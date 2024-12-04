@@ -10,173 +10,167 @@ import FirebaseAuth
 import FirebaseCore
 import GoogleSignIn
 
-struct KeyboardAdaptive: ViewModifier {
-    @State private var keyboardHeight: CGFloat = 0
+class KeyboardObserver: ObservableObject {
+    @Published var keyboardHeight: CGFloat = 0
+    private var cancellable: AnyCancellable?
     
-    func body(content: Content) -> some View {
-        content
-            .padding(.bottom, keyboardHeight)
-            .onReceive(Publishers.keyboardHeight) { self.keyboardHeight = $0 }
-    }
-}
-
-extension View {
-    func keyboardAdaptive() -> some View {
-        self.modifier(KeyboardAdaptive())
-    }
-}
-
-extension Publishers {
-    static var keyboardHeight: AnyPublisher<CGFloat, Never> {
-        NotificationCenter.default
-            .publisher(for: UIResponder.keyboardWillChangeFrameNotification)
-            .map { notification -> CGFloat in
-                let endFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
-                return endFrame?.height ?? 0
+    init() {
+        cancellable = NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)
+            .compactMap { notification -> CGFloat? in
+                if let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                    let screenHeight = UIScreen.main.bounds.height
+                    return frame.origin.y >= screenHeight ? 0 : screenHeight - frame.origin.y
+                }
+                return nil
             }
-            .eraseToAnyPublisher()
+            .assign(to: \.keyboardHeight, on: self)
+    }
+    
+    deinit {
+        cancellable?.cancel()
     }
 }
 
+// MARK: - Login View
 struct LoginView: View {
     @State private var phoneNumber: String = ""
     @State private var isLoading: Bool = false
     @State private var isOTPViewPresented: Bool = false
     @State private var verificationID: String = ""
-    @State private var enteredPhoneNumber: String = ""
+    @ObservedObject private var keyboardObserver = KeyboardObserver()
 
-    
     var onLoginSuccess: () -> Void
     
     var body: some View {
-        NavigationView {
-            VStack {
-                // Skip Button (Top-Right)
-                HStack {
-                    Spacer()
-                    Button(action: {
-                        onLoginSuccess()
-                    }) {
-                        Text("Skip")
-                            .font(.headline)
-                            .foregroundColor(Color.yellow)
-                    }
-                    .padding()
-                }
+        GeometryReader { geometry in
+            ZStack {
+                // Background Color
+                Color.black
+                    .edgesIgnoringSafeArea(.all)
                 
-                Spacer()
-                
-                // App Title
-                Text("TringQR")
-                    .font(.system(size: 36, weight: .bold))
-                    .foregroundColor(.white)
-                
-                Text("World's fastest QR Code scanner")
-                    .font(.system(size: 18))
-                    .foregroundColor(.white.opacity(0.8))
-                    .padding(.top, 5)
-                
-                Spacer()
-                
-                // Login Section
-                VStack(spacing: 20) {
-                    // Phone Login Header
-                    Text("Sign in with phone number")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    // Phone Number Input
-                    HStack(spacing: 0) {
-                        // Country Code
-                        ZStack {
-                            Color.white
-                            Text("+91")
-                                .font(.system(size: 16))
-                                .foregroundColor(.black)
+                VStack {
+                    // Skip Button (Top-Right)
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            onLoginSuccess()
+                        }) {
+                            Text("Skip")
+                                .font(.headline)
+                                .foregroundColor(Color.yellow)
                         }
-                        .frame(width: 60, height: 50)
-                        .cornerRadius(5)
+                        .padding(.trailing, 20)
+                    }
+                    
+                    Spacer()
+                
+                    
+                    // App Title
+                    VStack(spacing: 5) {
+                        Text("TringQR")
+                            .font(.system(size: 36, weight: .bold))
+                            .foregroundColor(.white)
                         
-                        // TextField for Phone Number
-                        TextField("Enter 10 Digits", text: $phoneNumber)
-                            .keyboardType(.numberPad)
-                            .foregroundStyle(.gray)
-                            .padding(.leading, 10)
-                            .frame(height: 50)
-                            .background(Color.white)
-                            .cornerRadius(5)
+                        Text("World's fastest QR Code scanner")
+                            .font(.system(size: 18))
+                            .foregroundColor(.white.opacity(0.8))
                     }
                     
-                    // Send OTP Button
-                    Button(action: {
-                        sendOTP()
-                    }) {
-                        Text("Send OTP")
+                    Spacer()
+                    
+                    // Login Section
+                    VStack(spacing: 20) {
+                        Text("Sign in with phone number")
                             .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.black)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.yellow)
-                            .cornerRadius(8)
-                    }
-                    
-                    // Divider Text
-                    Text("or continue with")
-                        .font(.system(size: 14))
-                        .foregroundColor(.white.opacity(0.7))
-                    
-                    // Google Sign-In Button
-                    Button(action: {
-                        signInWithGoogle()
-                    }) {
-                        HStack {
-                            Image(systemName: "g.circle.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(.black)
-                            Text("Continue with Google")
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        // Phone Number Input
+                        HStack(spacing: 0) {
+                            ZStack {
+                                Color.white
+                                Text("+91")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.black)
+                            }
+                            .frame(width: 60, height: 50)
+                            .cornerRadius(5)
+                            
+                            TextField("Enter 10 Digits", text: $phoneNumber)
+                                .keyboardType(.numberPad)
+                                .padding(.leading, 10)
+                                .frame(height: 50)
+                                .background(Color.white)
+                                .cornerRadius(5)
+                        }
+                        
+                        // Send OTP Button
+                        Button(action: {
+                            sendOTP()
+                        }) {
+                            Text("Send OTP")
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundColor(.black)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.yellow)
+                                .cornerRadius(8)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.white)
-                        .cornerRadius(8)
+                        
+                        Text("or continue with")
+                            .font(.system(size: 14))
+                            .foregroundColor(.white.opacity(0.7))
+                        
+                        // Google Sign-In Button
+                        Button(action: {
+                            signInWithGoogle()
+                        }) {
+                            HStack {
+                                Image(systemName: "g.circle.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.black)
+                                Text("Continue with Google")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.black)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.white)
+                            .cornerRadius(8)
+                        }
                     }
-                }
-                .padding()
-                .background(Color.white.opacity(0.1))
-                .cornerRadius(12)
-                .padding(.horizontal, 20)
-                
-                Spacer()
-                
-                // Terms and Privacy
-                VStack(spacing: 2) {
-                    Text("By registering, you agree to our")
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.7))
+                    .padding()
+                    .background(Color.white.opacity(0.1))
+                    .cornerRadius(12)
+                    .padding(.horizontal, 20)
                     
-                    Text("Terms of Use & Privacy Policy")
-                        .font(.system(size: 12))
-                        .foregroundColor(.yellow)
-                }
-                .padding(.bottom, 10)
-            }
-            .background(Color.black.opacity(0.8))
-            .ignoresSafeArea(.keyboard, edges: .bottom)
-            .keyboardAdaptive()
-            .sheet(isPresented: $isOTPViewPresented) {
-                OTPView(
-                    isOTPViewPresented: $isOTPViewPresented,
-                    verificationID: verificationID,
-                    phoneNumber: "+91\(phoneNumber)", 
-                    onOTPVerified: {
-                        print("OTP verified successfully!")
+                    Spacer()
+                    
+                    // Terms and Privacy
+                    VStack(spacing: 2) {
+                        Text("By registering, you agree to our")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.7))
+                        
+                        Text("Terms of Use & Privacy Policy")
+                            .font(.system(size: 12))
+                            .foregroundColor(.yellow)
                     }
-                )
+                    .padding(.bottom, 10)
+                }
+                .padding(.bottom, keyboardObserver.keyboardHeight)
+                .animation(.easeOut(duration: 0.3), value: keyboardObserver.keyboardHeight)
             }
-
+        }
+        .sheet(isPresented: $isOTPViewPresented) {
+            OTPView(
+                isOTPViewPresented: $isOTPViewPresented,
+                verificationID: verificationID,
+                phoneNumber: "+91\(phoneNumber)",
+                onOTPVerified: {
+                    print("OTP verified successfully!")
+                }
+            )
         }
     }
     
@@ -227,9 +221,9 @@ struct LoginView: View {
     }
 }
 
+
 #Preview {
     LoginView {
         print("Login Successful!")
     }
 }
-

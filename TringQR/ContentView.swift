@@ -34,6 +34,7 @@ struct SidebarItem: View {
 
 class AppState: ObservableObject {
     @Published var isLoggedIn: Bool = false
+    @Published var someOtherState: String = "Initial State"
 }
 
 struct ContentView: View {
@@ -87,7 +88,7 @@ struct ContentView: View {
                                             }
                                         }) {
                                             Image(systemName: "line.3.horizontal")
-                                                .foregroundColor(.white)
+                                                .foregroundColor(.black)
                                                 .imageScale(.large)
                                         }
                                         .padding()
@@ -96,13 +97,15 @@ struct ContentView: View {
                                     Spacer()
 
                                     Text("TringQR")
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.black)
+                                        .padding(.horizontal,-62)
                                         .font(.headline)
                                         .frame(maxWidth: .infinity, alignment: .center)
 
                                     Spacer()
+                                    Spacer()
                                 }
-                                .background(Color.black.opacity(0.1))
+                                .background(Color.white)
 
                                 // Content Based on Selected Tab
                                 Group {
