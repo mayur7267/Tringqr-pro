@@ -11,7 +11,7 @@ import FirebaseAuth
 import FirebaseMessaging
 import UserNotifications
 
-class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
@@ -20,33 +20,37 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         FirebaseApp.configure()
         FirebaseConfiguration.shared.setLoggerLevel(.debug)
         
-        #if DEBUG
-        Auth.auth().useEmulator(withHost: "localhost", port: 9099)
-        print("Using Firebase Emulator for Auth")
-        #endif
-
-        // Register for notifications
+        // Set Messaging Delegate
+        Messaging.messaging().delegate = self
+        
+        // Register for Notifications
         registerForRemoteNotifications(application)
-
+        
         return true
     }
 
-    
     private func registerForRemoteNotifications(_ application: UIApplication) {
         UNUserNotificationCenter.current().delegate = self
         let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
         UNUserNotificationCenter.current().requestAuthorization(options: authOptions) { granted, error in
             if let error = error {
                 print("Failed to request notification authorization: \(error.localizedDescription)")
+                return
+            }
+            
+            if granted {
+                DispatchQueue.main.async {
+                    application.registerForRemoteNotifications()
+                }
+            } else {
+                print("Notification permissions not granted.")
             }
         }
-        application.registerForRemoteNotifications()
     }
 
-   
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-       
         Messaging.messaging().apnsToken = deviceToken
+        print("APNs Token: \(deviceToken.map { String(format: "%02.2hhx", $0) }.joined())")
     }
 
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
@@ -55,18 +59,15 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
     func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any],
                      fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
-        
         if Auth.auth().canHandleNotification(userInfo) {
             completionHandler(.noData)
             return
         }
 
-        
         print("Received remote notification: \(userInfo)")
-
         completionHandler(.newData)
     }
-
+    
     // MARK: - UNUserNotificationCenterDelegate Methods
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
@@ -76,42 +77,52 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
-        
         let userInfo = response.notification.request.content.userInfo
         if Auth.auth().canHandleNotification(userInfo) {
             completionHandler()
             return
         }
 
-      
         print("User interacted with notification: \(userInfo)")
-
         completionHandler()
     }
+    
+    // MARK: - MessagingDelegate Methods
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        guard let fcmToken = fcmToken else { return }
+        print("FCM Token: \(fcmToken)")
+        
+        // TODO: Send FCM token to your server if necessary
+    }
+    
+    // MARK: - Handle Deep Linking
+    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+        guard let scheme = url.scheme, let host = url.host else { return false }
+        
+        if scheme == "app-1-318092550249-ios-ae473cdeaea44f437042f8" {
+            print("URL Host: \(host)")
+            if let urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: true),
+               let queryItems = urlComponents.queryItems {
+                for item in queryItems {
+                    print("\(item.name): \(item.value ?? "")")
+                }
+            }
+            return true
+        }
+        return false
+    }
 }
-
 
 @main
 struct TringQRApp: App {
-  @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-//  @StateObject private var appState = AppState()
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
-  var body: some Scene {
-    WindowGroup {
-      NavigationView {
-        ContentView()
-              .environmentObject(AppState())
-      }
+    var body: some Scene {
+        WindowGroup {
+            NavigationView {
+                ContentView()
+                    .environmentObject(AppState())
+            }
+        }
     }
-  }
 }
-//import SwiftUI
-//
-//@main
-//struct TringQRApp: App {
-//    var body: some Scene {
-//        WindowGroup {
-//            ContentView()
-//        }
-//    }
-//}

@@ -51,7 +51,7 @@ struct ContentView: View {
                     LoginView(onLoginSuccess: {
                         appState.isLoggedIn = true
                     })
-                    .transition(.move(edge: .leading)) // Smooth transition
+                    .transition(.move(edge: .leading))
                 } else {
                     GeometryReader { geometry in
                         ZStack {

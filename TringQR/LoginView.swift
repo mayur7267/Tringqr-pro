@@ -43,6 +43,8 @@ struct LoginView: View {
     @State private var isLoading: Bool = false
     @State private var isOTPViewPresented: Bool = false
     @State private var verificationID: String = ""
+    @State private var enteredPhoneNumber: String = ""
+
     
     var onLoginSuccess: () -> Void
     
@@ -168,9 +170,13 @@ struct LoginView: View {
                 OTPView(
                     isOTPViewPresented: $isOTPViewPresented,
                     verificationID: verificationID,
-                    onOTPVerified: onLoginSuccess
+                    phoneNumber: "+91\(phoneNumber)", 
+                    onOTPVerified: {
+                        print("OTP verified successfully!")
+                    }
                 )
             }
+
         }
     }
     

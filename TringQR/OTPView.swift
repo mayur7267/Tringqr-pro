@@ -12,75 +12,41 @@ struct OTPView: View {
     @State private var otp: String = ""
     @State private var isLoading: Bool = false
     @State private var errorMessage: String = ""
-    @Binding var isOTPViewPresented: Bool // To dismiss the OTP view
+    @Binding var isOTPViewPresented: Bool
     
     var verificationID: String
-    var onOTPVerified: () -> Void // Closure to notify parent view on success
+    var phoneNumber: String 
+    var onOTPVerified: () -> Void
     
     var body: some View {
         VStack {
             Spacer()
             
-            // App Title
-            Text("TringQR")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-            
-            Text("Enter the OTP sent to your phone number")
+            Text("OTP is sent to: \(phoneNumber)")
                 .font(.headline)
-                .foregroundColor(.white.opacity(0.8))
-                .padding(.top, 5)
+                .foregroundColor(.white)
+                .padding()
             
-            Spacer()
+            TextField("Enter OTP here", text: $otp)
+                .keyboardType(.numberPad)
+                .padding()
+                .background(Color.white)
+                .cornerRadius(5)
             
-            // OTP Input Section
-            VStack(alignment: .leading) {
-                Text("Enter OTP")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                
-                TextField("Enter OTP", text: $otp)
-                    .keyboardType(.numberPad)
-                    .padding()
-                    .background(Color.white)
-                    .cornerRadius(5)
-                
-                Button(action: {
-                    verifyOTP()
-                }) {
-                    Text("Verify OTP")
-                        .font(.headline)
-                        .foregroundColor(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.yellow)
-                        .cornerRadius(8)
-                }
-                .padding(.top)
-                
-                if !errorMessage.isEmpty {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundColor(.red)
-                        .padding(.top, 5)
-                }
-            }
-            .padding()
-            .background(Color.white.opacity(0.1))
-            .cornerRadius(15)
-            .padding()
-            
-            Spacer()
-            
-            // Dismiss Button
             Button(action: {
-                isOTPViewPresented = false // Dismiss the OTP view
+                verifyOTP()
             }) {
-                Text("Cancel")
-                    .font(.footnote)
-                    .foregroundColor(.yellow)
+                Text("Verify")
+                    .font(.headline)
+                    .foregroundColor(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.yellow)
+                    .cornerRadius(8)
             }
+            .padding(.top)
+            
+            Spacer()
         }
         .padding()
         .background(LinearGradient(colors: [Color.purple, Color.pink], startPoint: .top, endPoint: .bottom))
@@ -95,18 +61,14 @@ struct OTPView: View {
         
         isLoading = true
         
-        // Create a credential using the verificationID and OTP
         let credential = PhoneAuthProvider.provider().credential(withVerificationID: verificationID, verificationCode: otp)
         
-        // Sign in with the credential
         Auth.auth().signIn(with: credential) { authResult, error in
             isLoading = false
             if let error = error {
                 errorMessage = "Error verifying OTP: \(error.localizedDescription)"
                 return
             }
-            
-            
             onOTPVerified()
         }
     }
@@ -115,10 +77,11 @@ struct OTPView: View {
 
 #Preview {
     OTPView(
-        isOTPViewPresented: .constant(true), verificationID: "fakeVerificationID123",
+        isOTPViewPresented: .constant(true),
+        verificationID: "fakeVerificationID123",
+        phoneNumber: "9373500779",
         onOTPVerified: {
             print("OTP Verified!")
         }
     )
 }
-
