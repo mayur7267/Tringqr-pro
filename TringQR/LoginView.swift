@@ -38,15 +38,15 @@ struct LoginView: View {
     @State private var isOTPViewPresented: Bool = false
     @State private var verificationID: String = ""
     @ObservedObject private var keyboardObserver = KeyboardObserver()
-
+    
     var onLoginSuccess: () -> Void
     
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 // Background Color
-                Color.black
-                    .edgesIgnoringSafeArea(.all)
+                GIFView(gifName: "background2")
+                    .ignoresSafeArea()
                 
                 VStack {
                     // Skip Button (Top-Right)
@@ -56,14 +56,17 @@ struct LoginView: View {
                             onLoginSuccess()
                         }) {
                             Text("Skip")
-                                .font(.headline)
-                                .foregroundColor(Color.yellow)
+                                   .font(.headline)
+                                   .foregroundColor(.black)
+                                   .padding(.horizontal, 18)
+                                   .padding(.vertical, 10)
+                                   .background(Color.yellow)
+                                   .cornerRadius(25)
                         }
-                        .padding(.trailing, 20)
+                        .padding(.trailing, 30)
                     }
                     
                     Spacer()
-                
                     
                     // App Title
                     VStack(spacing: 5) {
@@ -164,11 +167,10 @@ struct LoginView: View {
         }
         .sheet(isPresented: $isOTPViewPresented) {
             OTPView(
-                isOTPViewPresented: $isOTPViewPresented,
-                verificationID: verificationID,
+                verificationID: verificationID, isOTPViewPresented: $isOTPViewPresented,
                 phoneNumber: "+91\(phoneNumber)",
                 onOTPVerified: {
-                    print("OTP verified successfully!")
+                    registerUser() // Call BE after OTP is verified
                 }
             )
         }
@@ -188,6 +190,51 @@ struct LoginView: View {
             print("OTP sent successfully.")
             self.isOTPViewPresented = true
         }
+    }
+    
+    private func registerUser() {
+        guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/api/v1/users") else { return }
+        
+        let user: [String: Any] = [
+            "first_name": "John",
+            "last_name": "Smith",
+            "email": "user@example.com",
+            "phone_number": "+91\(phoneNumber)",
+            "type": "User",
+            "gender": "Male",
+            "display_name": "User_\(Int.random(in: 1000...9999))",
+            "dob": "2000-01-01",
+            "avatar_url": "https://example.com/avatar.jpg",
+            "referredBy": "",
+            "deviceId": "ios123",
+            "notificationId": "abcd-1234-5678"
+        ]
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: user, options: [])
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Registration failed: \(error.localizedDescription)")
+                return
+            }
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                switch httpResponse.statusCode {
+                case 204:
+                    print("User registered successfully.")
+                    onLoginSuccess()
+                case 401:
+                    print("Unauthorized. Check token.")
+                case 409:
+                    print("User type conflict.")
+                default:
+                    print("Unexpected response code: \(httpResponse.statusCode)")
+                }
+            }
+        }.resume()
     }
     
     private func signInWithGoogle() {
@@ -220,7 +267,6 @@ struct LoginView: View {
         }
     }
 }
-
 
 #Preview {
     LoginView {

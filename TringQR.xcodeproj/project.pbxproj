@@ -11,6 +11,7 @@
 		188C3A622CFB1EC80022D3F4 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 188C3A612CFB1EC80022D3F4 /* FirebaseAuth */; };
 		188C3A692CFB29980022D3F4 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 188C3A682CFB29980022D3F4 /* GoogleSignIn */; };
 		188C3A6B2CFB29980022D3F4 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 188C3A6A2CFB29980022D3F4 /* GoogleSignInSwift */; };
+		188C3A712CFC782F0022D3F4 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 188C3A702CFC782F0022D3F4 /* FirebaseMessaging */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -74,6 +75,7 @@
 			files = (
 				188C3A602CFB1EC40022D3F4 /* FirebaseCore in Frameworks */,
 				188C3A622CFB1EC80022D3F4 /* FirebaseAuth in Frameworks */,
+				188C3A712CFC782F0022D3F4 /* FirebaseMessaging in Frameworks */,
 				188C3A692CFB29980022D3F4 /* GoogleSignIn in Frameworks */,
 				188C3A6B2CFB29980022D3F4 /* GoogleSignInSwift in Frameworks */,
 			);
@@ -148,6 +150,7 @@
 				188C3A612CFB1EC80022D3F4 /* FirebaseAuth */,
 				188C3A682CFB29980022D3F4 /* GoogleSignIn */,
 				188C3A6A2CFB29980022D3F4 /* GoogleSignInSwift */,
+				188C3A702CFC782F0022D3F4 /* FirebaseMessaging */,
 			);
 			productName = TringQR;
 			productReference = 18C305772CFA532D00252B56 /* TringQR.app */;
@@ -433,11 +436,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TringQR/TringQR.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"TringQR/Preview Content\"";
-				DEVELOPMENT_TEAM = 7547895L7H;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 6B54R23Y63;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TringQR/Info.plist;
@@ -453,9 +459,10 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "-com.tringbox.tringqr";
+				PRODUCT_BUNDLE_IDENTIFIER = com.tringbox.tringqr;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "TringQR Development";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -467,11 +474,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TringQR/TringQR.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"TringQR/Preview Content\"";
-				DEVELOPMENT_TEAM = 7547895L7H;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 6B54R23Y63;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TringQR/Info.plist;
@@ -487,9 +497,10 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "-com.tringbox.tringqr";
+				PRODUCT_BUNDLE_IDENTIFIER = com.tringbox.tringqr;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "TringQR Development";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -650,6 +661,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 188C3A672CFB29980022D3F4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignInSwift;
+		};
+		188C3A702CFC782F0022D3F4 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 188C3A5D2CFB1DB30022D3F4 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

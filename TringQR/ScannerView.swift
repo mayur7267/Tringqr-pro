@@ -34,11 +34,13 @@ struct ScannerView: View {
 
     var body: some View {
         VStack {
+           
             Text("Place the QR code inside the area")
                 .font(.title3)
-                .foregroundStyle(.black.opacity(0.8))
-                .padding(.top, 20)
-
+                .foregroundStyle(.white.opacity(0.8))
+                .padding(.top, 40)
+            
+          
             Spacer(minLength: 0)
 
             GeometryReader { geometry in
@@ -52,7 +54,7 @@ struct ScannerView: View {
                         let rotation = Double(index) * 90
                         RoundedRectangle(cornerRadius: 2, style: .circular)
                             .trim(from: 0.61, to: 0.64)
-                            .stroke(.black, style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
+                            .stroke(.white, style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
                             .rotationEffect(.init(degrees: rotation))
                     }
                 }
@@ -140,7 +142,7 @@ struct ScannerView: View {
                 Button(action: toggleTorch) {
                     HStack(spacing: 10) {
                         Image(systemName: isTorchOn ? "flashlight.on.fill" : "flashlight.off.fill")
-                            .font(.title2)
+                            .font(.title3)
                             .foregroundColor(.black)
                         Text("Light")
                             .font(.headline)
@@ -152,6 +154,7 @@ struct ScannerView: View {
             .background(
                 RoundedRectangle(cornerRadius: 25)
                     .fill(Color.yellow)
+                  
             )
             .shadow(radius: 5)
 
@@ -162,7 +165,7 @@ struct ScannerView: View {
                     .padding()
             }
         }
-        .padding(15)
+        .padding(.vertical,70)
         .onAppear(perform: checkCameraPermission)
         .alert(errormessage, isPresented: $showError) {
             if cameraPermission == .denied {
@@ -350,4 +353,5 @@ struct ScannerView: View {
 
 #Preview {
     ContentView()
+        .environmentObject(AppState())
 }

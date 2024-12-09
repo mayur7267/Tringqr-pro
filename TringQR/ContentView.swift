@@ -63,6 +63,7 @@ struct ContentView: View {
                             // Main Content
                             VStack {
                                 // Top Navigation Bar
+                                // Inside VStack where the Navigation Bar is defined
                                 HStack {
                                     if isBackButtonVisible {
                                         Button(action: {
@@ -71,16 +72,15 @@ struct ContentView: View {
                                                 isBackButtonVisible = false
                                             }
                                         }) {
-                                            HStack {
+                                            HStack(spacing: 4) {
                                                 Image(systemName: "chevron.left")
-                                                    .foregroundColor(.white)
-                                                    .imageScale(.large)
+                                                    .foregroundColor(.black)
+                                                    .imageScale(.medium) // Slightly smaller icon
                                                 Text("Back")
-                                                    .foregroundColor(.white)
-                                                    .font(.headline)
+                                                    .foregroundColor(.black)
+                                                    .font(.subheadline) // Smaller font for "Back"
                                             }
                                         }
-                                        .padding()
                                     } else {
                                         Button(action: {
                                             withAnimation {
@@ -89,23 +89,23 @@ struct ContentView: View {
                                         }) {
                                             Image(systemName: "line.3.horizontal")
                                                 .foregroundColor(.black)
-                                                .imageScale(.large)
+                                                .imageScale(.medium)
                                         }
-                                        .padding()
                                     }
 
                                     Spacer()
 
                                     Text("TringQR")
                                         .foregroundColor(.black)
-                                        .padding(.horizontal,-62)
-                                        .font(.headline)
+                                        .font(.headline) // Smaller font for the title
                                         .frame(maxWidth: .infinity, alignment: .center)
 
                                     Spacer()
-                                    Spacer()
                                 }
+                                .frame(height: 44) // Reduced height of the navigation bar
+                                .padding(.horizontal, 12) // Adds horizontal padding
                                 .background(Color.white)
+                                .shadow(color: Color.gray.opacity(0.2), radius: 1, x: 0, y: 1)
 
                                 // Content Based on Selected Tab
                                 Group {
@@ -149,12 +149,12 @@ struct ContentView: View {
                                                     Circle()
                                                         .stroke(Color.purple, lineWidth: 3)
                                                 )
-                                                .padding(.top, 20)
+                                                .padding(.top, 25)
 
                                             Text("Hi Champion!")
                                                 .font(.headline)
                                                 .foregroundColor(.black)
-                                                .padding(.top, 10)
+                                                .padding(30)
                                         }
                                         .frame(maxWidth: .infinity)
                                         .background(Color.yellow)
@@ -204,7 +204,7 @@ struct ContentView: View {
 
                                         Text("Made in India")
                                             .font(.footnote)
-                                            .foregroundColor(.gray)
+                                            .foregroundColor(.black)
                                             .padding(.bottom, 20)
                                             .frame(maxWidth: .infinity, alignment: .center)
                                     }
@@ -226,6 +226,7 @@ struct ContentView: View {
     }
 }
 
+// Other Views
 struct ShareView: View {
     @Binding var isBackButtonVisible: Bool
 
@@ -309,7 +310,6 @@ struct HistoryView: View {
         }
     }
 }
-
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
