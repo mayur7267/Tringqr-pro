@@ -47,7 +47,7 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Show login view if the user is not logged in
+                
                 if !appState.isLoggedIn {
                     LoginView(onLoginSuccess: {
                         appState.isLoggedIn = true
@@ -60,10 +60,9 @@ struct ContentView: View {
                             GIFView(gifName: "background")
                                 .ignoresSafeArea()
 
-                            // Main Content
+                          
                             VStack {
-                                // Top Navigation Bar
-                                // Inside VStack where the Navigation Bar is defined
+                                
                                 HStack {
                                     if isBackButtonVisible {
                                         Button(action: {
@@ -75,10 +74,10 @@ struct ContentView: View {
                                             HStack(spacing: 4) {
                                                 Image(systemName: "chevron.left")
                                                     .foregroundColor(.black)
-                                                    .imageScale(.medium) // Slightly smaller icon
+                                                    .imageScale(.medium)
                                                 Text("Back")
                                                     .foregroundColor(.black)
-                                                    .font(.subheadline) // Smaller font for "Back"
+                                                    .font(.subheadline)
                                             }
                                         }
                                     } else {
@@ -97,17 +96,17 @@ struct ContentView: View {
 
                                     Text("TringQR")
                                         .foregroundColor(.black)
-                                        .font(.headline) // Smaller font for the title
+                                        .font(.headline)
                                         .frame(maxWidth: .infinity, alignment: .center)
 
                                     Spacer()
                                 }
-                                .frame(height: 44) // Reduced height of the navigation bar
-                                .padding(.horizontal, 12) // Adds horizontal padding
+                                .frame(height: 44)
+                                .padding(.horizontal, 12)
                                 .background(Color.white)
                                 .shadow(color: Color.gray.opacity(0.2), radius: 1, x: 0, y: 1)
 
-                                // Content Based on Selected Tab
+                               
                                 Group {
                                     switch selectedTab {
                                     case 0:

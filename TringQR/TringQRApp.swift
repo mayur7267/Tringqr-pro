@@ -6,12 +6,9 @@
 //
 import SwiftUI
 import FirebaseCore
-import Firebase
 import FirebaseAuth
-import FirebaseMessaging
-import UserNotifications
 
-class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
+class AppDelegate: NSObject, UIApplicationDelegate {
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
@@ -20,82 +17,20 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         FirebaseApp.configure()
         FirebaseConfiguration.shared.setLoggerLevel(.debug)
         
-        // Set Messaging Delegate
-        Messaging.messaging().delegate = self
-        
-        // Register for Notifications
-        registerForRemoteNotifications(application)
-        
         return true
     }
 
-    private func registerForRemoteNotifications(_ application: UIApplication) {
-        UNUserNotificationCenter.current().delegate = self
-        let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
-        UNUserNotificationCenter.current().requestAuthorization(options: authOptions) { granted, error in
-            if let error = error {
-                print("Failed to request notification authorization: \(error.localizedDescription)")
-                return
-            }
-            
-            if granted {
-                DispatchQueue.main.async {
-                    application.registerForRemoteNotifications()
-                }
-            } else {
-                print("Notification permissions not granted.")
-            }
-        }
-    }
-
-    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-        Messaging.messaging().apnsToken = deviceToken
-        print("APNs Token: \(deviceToken.map { String(format: "%02.2hhx", $0) }.joined())")
-    }
-
-    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
-        print("Failed to register for remote notifications: \(error.localizedDescription)")
-    }
-
+    // MARK: - Handle Remote Notifications (Optional for Firebase Auth)
     func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any],
                      fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
         if Auth.auth().canHandleNotification(userInfo) {
             completionHandler(.noData)
             return
         }
-
-        print("Received remote notification: \(userInfo)")
         completionHandler(.newData)
     }
     
-    // MARK: - UNUserNotificationCenterDelegate Methods
-    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
-                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        // Handle notification when app is in foreground
-        completionHandler([.banner, .sound, .badge])
-    }
-
-    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
-                                withCompletionHandler completionHandler: @escaping () -> Void) {
-        let userInfo = response.notification.request.content.userInfo
-        if Auth.auth().canHandleNotification(userInfo) {
-            completionHandler()
-            return
-        }
-
-        print("User interacted with notification: \(userInfo)")
-        completionHandler()
-    }
-    
-    // MARK: - MessagingDelegate Methods
-    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
-        guard let fcmToken = fcmToken else { return }
-        print("FCM Token: \(fcmToken)")
-        
-        // TODO: Send FCM token to your server if necessary
-    }
-    
-    // MARK: - Handle Deep Linking
+    // MARK: - Handle Deep Linking (Optional)
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
         guard let scheme = url.scheme, let host = url.host else { return false }
         
