@@ -220,10 +220,11 @@ struct ScannerView: View {
     }
 
     func activateScannerAnimation() {
-        withAnimation(.easeInOut(duration: 0.85).delay(0.1).repeatForever(autoreverses: true)) {
+        withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
             isScanning = true
         }
     }
+
 
     func deactivateScannerAnimation() {
         withAnimation(.easeInOut(duration: 0.85)) {

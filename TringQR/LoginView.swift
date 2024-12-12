@@ -218,21 +218,49 @@ struct LoginView: View {
         }
     }
 
+//    func sendOTP() {
+//        let phoneNumber = "+91" + self.phoneNumber.trimmingCharacters(in: .whitespaces)
+//
+//        PhoneAuthProvider.provider().verifyPhoneNumber(phoneNumber, uiDelegate: nil) { verificationID, error in
+//            if let error = error {
+//                print("Error sending OTP: \(error.localizedDescription)")
+//                return
+//            }
+//
+//            guard let verificationID = verificationID else {
+//                print("Error: verificationID is nil")
+//                return
+//            }
+//
+//            print("Verification ID: \(verificationID)")
+//            UserDefaults.standard.set(verificationID, forKey: "authVerificationID")
+//            self.verificationID = verificationID
+//            print("OTP sent successfully: \(verificationID)")
+//            DispatchQueue.main.async {
+//                self.isOTPViewPresented = true
+//            }
+//        }
+//    }
     func sendOTP() {
-        let phoneNumber = "+91" + self.phoneNumber
+            let formattedNumber = "+91" + phoneNumber.trimmingCharacters(in: .whitespaces)
 
-        PhoneAuthProvider.provider().verifyPhoneNumber(phoneNumber, uiDelegate: nil) { verificationID, error in
-            if let error = error {
-                print("Error sending OTP: \(error.localizedDescription)")
-                return
+            isLoading = true
+            PhoneAuthProvider.provider().verifyPhoneNumber(formattedNumber, uiDelegate: nil) { id, error in
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    if let error = error {
+                        print("Error sending OTP: \(error.localizedDescription)")
+                        return
+                    }
+                    guard let id = id else {
+                        print("Error: Verification ID is nil")
+                        return
+                    }
+                    self.verificationID = id
+                    self.isOTPViewPresented = true
+                }
             }
-
-            UserDefaults.standard.set(verificationID, forKey: "authVerificationID")
-            self.verificationID = verificationID ?? ""
-            print("OTP sent successfully.")
-            self.isOTPViewPresented = true
         }
-    }
 
     private func registerUser() {
         let url = "https://core-api-619357594029.asia-south1.run.app/api/v1/users"
@@ -267,7 +295,7 @@ struct LoginView: View {
         guard let clientID = FirebaseApp.app()?.options.clientID else { return }
 
         let config = GIDConfiguration(clientID: clientID)
-        GIDSignIn.sharedInstance.configuration = config
+//        GIDSignIn.sharedInstance.configuration = config
 
         guard let rootViewController = UIApplication.shared.windows.first?.rootViewController else { return }
 

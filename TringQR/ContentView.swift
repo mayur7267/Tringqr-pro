@@ -6,6 +6,34 @@
 //
 
 import SwiftUI
+import UIKit
+
+
+
+struct ActivityView: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    let applicationActivities: [UIActivity]? = nil
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: applicationActivities)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+struct ShareSheet: UIViewControllerRepresentable {
+    var items: [Any]
+    var excludedActivityTypes: [UIActivity.ActivityType]? = nil
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        controller.excludedActivityTypes = excludedActivityTypes
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
 
 struct SidebarItem: View {
     let title: String
@@ -58,6 +86,8 @@ struct ContentView: View {
     @State private var selectedTab = 1
     @State private var isBackButtonVisible = false
     @State private var showLoginView = false
+    @State private var showShareSheet = false
+
     var body: some View {
         NavigationView {
             ZStack {
@@ -194,12 +224,21 @@ struct ContentView: View {
                                         SidebarItem(
                                             title: "Share",
                                             systemImage: "square.and.arrow.up",
-                                            isSelected: selectedTab == 2
+                                            isSelected: false
                                         ) {
-                                            selectedTab = 2
-                                            isSidebarVisible = false
-                                            isBackButtonVisible = true
+                                            withAnimation {
+                                                isSidebarVisible = false
+                                            }
+                                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                                                showShareSheet = true 
+                                            }
                                         }
+                                        .sheet(isPresented: $showShareSheet) {
+                                            let shareText = "Check out this amazing app!"
+                                            let shareURL = URL(string: "https://example.com")!
+                                            ActivityView(activityItems: [shareText, shareURL])
+                                        }
+
 
                                         SidebarItem(
                                             title: "Help",
@@ -252,9 +291,10 @@ struct ContentView: View {
     }
 }
 
-// Other Views
+
 struct ShareView: View {
     @Binding var isBackButtonVisible: Bool
+    @State private var isSharing = true
 
     var body: some View {
         ZStack {
@@ -265,14 +305,24 @@ struct ShareView: View {
             )
             .ignoresSafeArea()
 
-            Text("Share Page")
+            Text("Sharing...")
+                .font(.title)
                 .foregroundColor(.white)
         }
         .onAppear {
             isBackButtonVisible = true
         }
+        .sheet(isPresented: $isSharing, onDismiss: {
+            isBackButtonVisible = true
+        }) {
+            let shareText = "Check out this amazing app!"
+            let shareURL = URL(string: "https://example.com")!
+            ActivityView(activityItems: [shareText, shareURL])
+        }
     }
 }
+
+
 
 struct HelpView: View {
     @Binding var isBackButtonVisible: Bool

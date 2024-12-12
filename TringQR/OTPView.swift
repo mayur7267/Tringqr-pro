@@ -4,20 +4,28 @@
 //
 //  Created by Mayur on 01/12/24.
 //
-
 import SwiftUI
 import FirebaseAuth
 
 struct OTPView: View {
-    @State var otp: String = ""
-    @State var isLoading: Bool = false
-    @State var errorMessage: String = ""
-    @State var verificationID: String
+    @State private var otp: String = ""
+    @State private var isLoading: Bool = false
+    @State private var errorMessage: String = ""
+    @State private var verificationID: String
 
     @Binding var isOTPViewPresented: Bool
-
     var phoneNumber: String
     var onOTPVerified: () -> Void
+
+    @FocusState private var isOTPFieldFocused: Bool
+    @State private var scrollViewProxy: ScrollViewProxy?
+
+    init(verificationID: String, isOTPViewPresented: Binding<Bool>, phoneNumber: String, onOTPVerified: @escaping () -> Void) {
+        self._verificationID = State(initialValue: verificationID)
+        self._isOTPViewPresented = isOTPViewPresented
+        self.phoneNumber = phoneNumber
+        self.onOTPVerified = onOTPVerified
+    }
 
     var body: some View {
         VStack {
@@ -40,6 +48,7 @@ struct OTPView: View {
             // OTP Input Field
             TextField("Enter OTP", text: $otp)
                 .keyboardType(.numberPad)
+                .focused($isOTPFieldFocused)
                 .onChange(of: otp) { newValue in
                     otp = String(newValue.prefix(6).filter { $0.isNumber })
                 }
@@ -47,6 +56,14 @@ struct OTPView: View {
                 .background(Color.white)
                 .cornerRadius(5)
                 .padding(.horizontal)
+                .onTapGesture {
+                    isOTPFieldFocused = true
+                }
+                .onChange(of: isOTPFieldFocused) { isFocused in
+                    if isFocused {
+                        scrollViewProxy?.scrollTo(otp, anchor: .bottom)
+                    }
+                }
 
             // Error Message
             if !errorMessage.isEmpty {
@@ -103,6 +120,23 @@ struct OTPView: View {
         .padding()
         .background(LinearGradient(colors: [Color.purple, Color.black], startPoint: .top, endPoint: .bottom))
         .ignoresSafeArea()
+        .onTapGesture {
+            hideKeyboard()
+        }
+        .onAppear {
+            // Observe keyboard notifications to handle the keyboard showing and hiding
+            NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
+                if isOTPFieldFocused {
+                    adjustViewForKeyboard(notification: notification)
+                }
+            }
+
+            NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { _ in
+                withAnimation {
+                    scrollViewProxy?.scrollTo(otp, anchor: .bottom)
+                }
+            }
+        }
     }
 
     // MARK: - Verify OTP Logic
@@ -111,19 +145,19 @@ struct OTPView: View {
             errorMessage = "Please enter the OTP."
             return
         }
-
         isLoading = true
         errorMessage = ""
-
         let credential = PhoneAuthProvider.provider().credential(withVerificationID: verificationID, verificationCode: otp)
-
         Auth.auth().signIn(with: credential) { authResult, error in
-            isLoading = false
-            if let error = error {
-                errorMessage = "Error verifying OTP: \(error.localizedDescription)"
-                return
+            DispatchQueue.main.async {
+                isLoading = false
+                if let error = error {
+                    errorMessage = "Error verifying OTP: \(error.localizedDescription)"
+                    return
+                }
+                print("User signed in successfully.")
+                onOTPVerified()
             }
-            onOTPVerified()
         }
     }
 
@@ -138,11 +172,24 @@ struct OTPView: View {
                 errorMessage = "Error resending OTP: \(error.localizedDescription)"
                 return
             }
-           
 
             if let newVerificationID = newVerificationID {
                 verificationID = newVerificationID
                 errorMessage = "A new OTP has been sent to \(phoneNumber)."
+            }
+        }
+    }
+
+    // MARK: - Hide Keyboard
+    private func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+
+    // MARK: - Adjust view for keyboard
+    private func adjustViewForKeyboard(notification: Notification) {
+        if let userInfo = notification.userInfo, let keyboardFrame = (userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue {
+            withAnimation {
+                scrollViewProxy?.scrollTo(otp, anchor: .bottom)
             }
         }
     }
