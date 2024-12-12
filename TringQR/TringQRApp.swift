@@ -13,12 +13,22 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        // Configure Firebase
         FirebaseApp.configure()
         FirebaseConfiguration.shared.setLoggerLevel(.debug)
-        
+
+        // Request notification permissions
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if let error = error {
+                print("Failed to request notification permissions: \(error.localizedDescription)")
+            } else {
+                print("Notification permissions granted: \(granted)")
+            }
+        }
+        application.registerForRemoteNotifications()
+
         return true
     }
+
 
     // MARK: - Handle Remote Notifications (Optional for Firebase Auth)
     func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any],
@@ -47,6 +57,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         return false
     }
 }
+
 
 @main
 struct TringQRApp: App {

@@ -15,7 +15,7 @@ import PhotosUI
 
 
 struct ScannerView: View {
-    @State private var isScanning: Bool = false
+    @State private var isScanning: Bool = true
     @State private var session: AVCaptureSession = .init()
     @State private var cameraPermission: Permission = .idle
     @State private var qrOutput: AVCaptureMetadataOutput = .init()
@@ -24,23 +24,21 @@ struct ScannerView: View {
     @State private var showError: Bool = false
     @Environment(\.openURL) private var openURL
     @StateObject private var qrDelegate = QRScannerDelegate()
-    @State private var scannedCode: String = ""
     @State private var isTorchOn: Bool = false
 
     @State private var currentZoomFactor: CGFloat = 1.0
     @State private var lastZoomFactor: CGFloat = 1.0
     @State private var isPickerPresented: Bool = false
     @State private var errorMessage: String?
+    
+    @EnvironmentObject var appState: AppState
+    @State private var scannedCode: String = ""
+    @State private var showGalleryPicker: Bool = false
+
+    
 
     var body: some View {
         VStack {
-           
-            Text("Place the QR code inside the area")
-                .font(.title3)
-                .foregroundStyle(.white.opacity(0.8))
-                .padding(.top, 40)
-            
-          
             Spacer(minLength: 0)
 
             GeometryReader { geometry in
@@ -53,7 +51,6 @@ struct ScannerView: View {
                     ForEach(0...3, id: \.self) { index in
                         let rotation = Double(index) * 90
                         RoundedRectangle(cornerRadius: 2, style: .circular)
-                            .trim(from: 0.61, to: 0.64)
                             .stroke(.white, style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
                             .rotationEffect(.init(degrees: rotation))
                     }
@@ -70,50 +67,70 @@ struct ScannerView: View {
             }
             .padding(.horizontal, 50)
 
+            // Updated text position and content
+            VStack {
+                Text("Scan with TringQR")
+                    .font(.title2)
+                    .bold()
+                    .foregroundStyle(.white)
+                Text("World's fastest QR Code scanner")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.8))
+            }
+            .padding(.vertical, 10)
+
             Spacer()
 
             VStack {
-                HStack {
+                HStack(spacing: 4) { // Minimized spacing
                     Button(action: {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             updateZoomFactor(currentZoomFactor - 0.5) // Zoom out
                         }
                     }) {
-                        Image(systemName: "plus.magnifyingglass")
-                            .font(.title2)
-                            .padding(10)
+                        Image(systemName: "minus.magnifyingglass")
+                            .font(.system(size: 14))
+                            .padding(6)
                             .foregroundColor(.white)
-                            .shadow(radius: 10)
                     }
+                    
                     .disabled(currentZoomFactor <= 1.0)
 
                     Slider(
                         value: $currentZoomFactor,
-                        in: 1.0...5.0,
-                        onEditingChanged: { _ in
+                        in: 1.0...5.0
+                    ) { isDragging in
+                        
+                        if !isDragging {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 updateZoomFactor(currentZoomFactor)
                             }
                         }
-                    )
-                    .padding(.horizontal, 40)
+                    }
+                    .onChange(of: currentZoomFactor) { newValue in
+                        
+                        updateZoomFactor(newValue)
+                    }
+
+                    .padding(.horizontal, 8)
+                    .frame(height: 4)
                     .accentColor(.purple)
-                    .frame(height: 12)
 
                     Button(action: {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             updateZoomFactor(currentZoomFactor + 0.5) // Zoom in
                         }
                     }) {
-                        Image(systemName: "minus.magnifyingglass")
-                            .font(.title2)
-                            .padding(10)
+                        Image(systemName: "plus.magnifyingglass")
+                            .font(.system(size: 14))
+                            .padding(6)
                             .foregroundColor(.white)
-                            .shadow(radius: 10)
                     }
+                    
                     .disabled(currentZoomFactor >= 5.0)
                 }
-                .padding(.top, 10)
+                .frame(maxWidth: 200)
+                .padding(.vertical, 5)
             }
 
             HStack {
@@ -154,7 +171,6 @@ struct ScannerView: View {
             .background(
                 RoundedRectangle(cornerRadius: 25)
                     .fill(Color.yellow)
-                  
             )
             .shadow(radius: 5)
 
@@ -165,7 +181,7 @@ struct ScannerView: View {
                     .padding()
             }
         }
-        .padding(.vertical,70)
+        .padding(.vertical, 80)
         .onAppear(perform: checkCameraPermission)
         .alert(errormessage, isPresented: $showError) {
             if cameraPermission == .denied {
@@ -184,16 +200,19 @@ struct ScannerView: View {
             }
         }
         .onChange(of: qrDelegate.scannedCode) { newValue in
-            if let code = newValue {
-                scannedCode = code
-                session.stopRunning()
-                deactivateScannerAnimation()
-                handleScannedCode(code)
-                qrDelegate.scannedCode = nil
+                    if let code = newValue {
+                        scannedCode = code
+                        session.stopRunning()
+                        deactivateScannerAnimation()
+                        
+                       
+                        appState.addScannedCode(code)
+                        
+                        handleScannedCode(code)
+                        qrDelegate.scannedCode = nil 
+                    }
+                }
             }
-        }
-    }
-
     func reactivateCamera() {
         DispatchQueue.global(qos: .background).async {
             session.startRunning()

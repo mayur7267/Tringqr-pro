@@ -13,7 +13,7 @@ struct OTPView: View {
     @State var isLoading: Bool = false
     @State var errorMessage: String = ""
     @State var verificationID: String
-    
+
     @Binding var isOTPViewPresented: Bool
 
     var phoneNumber: String
@@ -30,6 +30,7 @@ struct OTPView: View {
 
             Spacer()
             Spacer()
+
             // OTP Sent Message
             Text("OTP has been sent to \(phoneNumber)")
                 .font(.headline)
@@ -39,6 +40,9 @@ struct OTPView: View {
             // OTP Input Field
             TextField("Enter OTP", text: $otp)
                 .keyboardType(.numberPad)
+                .onChange(of: otp) { newValue in
+                    otp = String(newValue.prefix(6).filter { $0.isNumber })
+                }
                 .padding()
                 .background(Color.white)
                 .cornerRadius(5)
@@ -50,6 +54,11 @@ struct OTPView: View {
                     .foregroundColor(.red)
                     .font(.caption)
                     .padding(.top, 5)
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                            errorMessage = ""
+                        }
+                    }
             }
 
             // Verify Button
@@ -87,6 +96,7 @@ struct OTPView: View {
                     .foregroundColor(.white)
                     .padding(.top)
             }
+            .disabled(isLoading)
 
             Spacer()
         }
@@ -113,8 +123,6 @@ struct OTPView: View {
                 errorMessage = "Error verifying OTP: \(error.localizedDescription)"
                 return
             }
-
-            
             onOTPVerified()
         }
     }
@@ -130,6 +138,7 @@ struct OTPView: View {
                 errorMessage = "Error resending OTP: \(error.localizedDescription)"
                 return
             }
+           
 
             if let newVerificationID = newVerificationID {
                 verificationID = newVerificationID
@@ -142,9 +151,9 @@ struct OTPView: View {
 #Preview {
     OTPView(
         verificationID: "fakeVerificationID123",
-        isOTPViewPresented: .constant(true),     // Place this second
-        phoneNumber: "9284272940",               // Then phoneNumber
-        onOTPVerified: {                         // Callback function comes last
+        isOTPViewPresented: .constant(true),
+        phoneNumber: "9284272940",
+        onOTPVerified: {
             print("OTP Verified!")
         }
     )

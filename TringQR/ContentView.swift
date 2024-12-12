@@ -34,8 +34,22 @@ struct SidebarItem: View {
 
 class AppState: ObservableObject {
     @Published var isLoggedIn: Bool = false
-    @Published var someOtherState: String = "Initial State"
+    @Published var userName: String? = nil
+    @Published var scannedHistory: [String] = [] 
+
+    func toggleLogin() {
+        isLoggedIn.toggle()
+    }
+
+    func setUserName(_ name: String?) {
+        userName = name
+    }
+
+    func addScannedCode(_ code: String) {
+        scannedHistory.append(code)
+    }
 }
+
 
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
@@ -43,14 +57,15 @@ struct ContentView: View {
     @State private var isSidebarVisible = false
     @State private var selectedTab = 1
     @State private var isBackButtonVisible = false
-
+    @State private var showLoginView = false
     var body: some View {
         NavigationView {
             ZStack {
-                
-                if !appState.isLoggedIn {
+                if showLoginView {
                     LoginView(onLoginSuccess: {
                         appState.isLoggedIn = true
+                        appState.setUserName("Google User")
+                        showLoginView = false
                     })
                     .transition(.move(edge: .leading))
                 } else {
@@ -60,9 +75,8 @@ struct ContentView: View {
                             GIFView(gifName: "background")
                                 .ignoresSafeArea()
 
-                          
                             VStack {
-                                
+                                // Navigation Bar
                                 HStack {
                                     if isBackButtonVisible {
                                         Button(action: {
@@ -87,8 +101,9 @@ struct ContentView: View {
                                             }
                                         }) {
                                             Image(systemName: "line.3.horizontal")
+                                                .bold()
                                                 .foregroundColor(.black)
-                                                .imageScale(.medium)
+                                                .imageScale(.large)
                                         }
                                     }
 
@@ -106,19 +121,19 @@ struct ContentView: View {
                                 .background(Color.white)
                                 .shadow(color: Color.gray.opacity(0.2), radius: 1, x: 0, y: 1)
 
-                               
+                                // Main Content
                                 Group {
                                     switch selectedTab {
                                     case 0:
                                         HistoryView(isBackButtonVisible: $isBackButtonVisible)
+                                            .environmentObject(appState)
                                     case 1:
                                         ScannerView()
+                                            .environmentObject(appState)
                                     case 2:
                                         ShareView(isBackButtonVisible: $isBackButtonVisible)
                                     case 3:
                                         HelpView(isBackButtonVisible: $isBackButtonVisible)
-                                    case 4:
-                                        SignInView(isBackButtonVisible: $isBackButtonVisible)
                                     default:
                                         Text("Unknown View")
                                     }
@@ -139,21 +154,28 @@ struct ContentView: View {
                                     VStack(alignment: .leading, spacing: 20) {
                                         // Sidebar Header
                                         VStack {
-                                            Image("Champion")
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fit)
-                                                .frame(width: 80, height: 80)
-                                                .clipShape(Circle())
-                                                .overlay(
-                                                    Circle()
-                                                        .stroke(Color.purple, lineWidth: 3)
-                                                )
-                                                .padding(.top, 25)
+                                            if let userName = appState.userName {
+                                                Text("Hi \(userName)!")
+                                                    .font(.headline)
+                                                    .foregroundColor(.black)
+                                                    .padding(30)
+                                            } else {
+                                                Image("Champion")
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fit)
+                                                    .frame(width: 80, height: 80)
+                                                    .clipShape(Circle())
+                                                    .overlay(
+                                                        Circle()
+                                                            .stroke(Color.purple, lineWidth: 3)
+                                                    )
+                                                    .padding(.top, 25)
 
-                                            Text("Hi Champion!")
-                                                .font(.headline)
-                                                .foregroundColor(.black)
-                                                .padding(30)
+                                                Text("Hi Champion!")
+                                                    .font(.headline)
+                                                    .foregroundColor(.black)
+                                                    .padding(30)
+                                            }
                                         }
                                         .frame(maxWidth: .infinity)
                                         .background(Color.yellow)
@@ -190,13 +212,18 @@ struct ContentView: View {
                                         }
 
                                         SidebarItem(
-                                            title: "Sign In",
+                                            title: appState.isLoggedIn ? "Sign Out" : "Sign In",
                                             systemImage: "person.circle",
-                                            isSelected: selectedTab == 4
+                                            isSelected: false
                                         ) {
-                                            selectedTab = 4
+                                            if appState.isLoggedIn {
+                                                appState.toggleLogin()
+                                                appState.setUserName(nil)
+                                            } else {
+                                                showLoginView = true
+                                            }
                                             isSidebarVisible = false
-                                            isBackButtonVisible = true
+                                            isBackButtonVisible = false
                                         }
 
                                         Spacer()
@@ -291,6 +318,7 @@ struct SignInView: View {
 
 struct HistoryView: View {
     @Binding var isBackButtonVisible: Bool
+    @EnvironmentObject var appState: AppState
 
     var body: some View {
         ZStack {
@@ -301,8 +329,32 @@ struct HistoryView: View {
             )
             .ignoresSafeArea()
 
-            Text("Scan History")
-                .foregroundColor(.white)
+            VStack(alignment: .leading) {
+                Text("Scan History")
+                    .font(.title)
+                    .foregroundColor(.white)
+                    .padding()
+
+                if appState.scannedHistory.isEmpty {
+                    Text("No scan history available.")
+                        .foregroundColor(.white)
+                        .padding()
+                } else {
+                    List(appState.scannedHistory, id: \.self) { code in
+                        HStack {
+                            Image(systemName: "qrcode")
+                                .foregroundColor(.white)
+                            Text(code)
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .listStyle(InsetGroupedListStyle())
+                    .background(Color.clear)
+                }
+
+                Spacer()
+            }
+            .padding()
         }
         .onAppear {
             isBackButtonVisible = true
