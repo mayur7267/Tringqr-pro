@@ -370,44 +370,79 @@ struct HistoryView: View {
     @Binding var isBackButtonVisible: Bool
     @EnvironmentObject var appState: AppState
 
+    @State private var showShareSheet = false
+    @State private var selectedHistoryItem: String? = nil
+
     var body: some View {
-        ZStack {
-            LinearGradient(
-                gradient: Gradient(colors: [Color.gray, Color.black]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+        NavigationView {
+            ZStack {
+                Color.black
+                    .ignoresSafeArea()
 
-            VStack(alignment: .leading) {
-                Text("Scan History")
-                    .font(.title)
-                    .foregroundColor(.white)
-                    .padding()
+                VStack(alignment: .leading) {
+                    if appState.scannedHistory.isEmpty {
+                        Text("No scan history available.")
+                            .foregroundColor(.white)
+                            .font(.title3)
+                            .padding()
+                    } else {
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 15) {
+                                ForEach(appState.scannedHistory, id: \ .self) { code in
+                                    HStack {
+                                        Image(systemName: "qrcode")
+                                            .foregroundColor(.white)
+                                            .padding(.trailing, 10)
 
-                if appState.scannedHistory.isEmpty {
-                    Text("No scan history available.")
-                        .foregroundColor(.white)
-                        .padding()
-                } else {
-                    List(appState.scannedHistory, id: \.self) { code in
-                        HStack {
-                            Image(systemName: "qrcode")
-                                .foregroundColor(.white)
-                            Text(code)
-                                .foregroundColor(.white)
+                                        VStack(alignment: .leading, spacing: 5) {
+                                            Text(code)
+                                                .font(.body)
+                                                .foregroundColor(.white)
+
+                                            Text("Tap to share or swipe to delete")
+                                                .font(.footnote)
+                                                .foregroundColor(.gray)
+                                        }
+
+                                        Spacer()
+                                    }
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        selectedHistoryItem = code
+                                        showShareSheet = true
+                                    }
+                                    .padding()
+                                    .background(Color.black.opacity(0.8))
+                                    .cornerRadius(10)
+                                }
+                                .onDelete { indexSet in
+                                    appState.scannedHistory.remove(atOffsets: indexSet)
+                                }
+                            }
+                            .padding()
                         }
                     }
-                    .listStyle(InsetGroupedListStyle())
-                    .background(Color.clear)
-                }
 
-                Spacer()
+                    Spacer()
+                }
+                .padding()
             }
-            .padding()
-        }
-        .onAppear {
-            isBackButtonVisible = true
+            .onAppear {
+                isBackButtonVisible = true
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarTitle("Scan History")
+            .navigationBarItems(leading: Button(action: {
+                isBackButtonVisible = false
+            }) {
+                Image(systemName: "chevron.backward")
+                    .foregroundColor(.purple)
+            })
+            .sheet(isPresented: $showShareSheet) {
+                if let selectedHistoryItem = selectedHistoryItem {
+                    ActivityView(activityItems: [selectedHistoryItem])
+                }
+            }
         }
     }
 }

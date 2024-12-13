@@ -74,11 +74,90 @@ class APIManager {
 }
 
 // MARK: - Login View
+struct Country: Identifiable {
+    let id = UUID()
+    let name: String
+    let code: String
+    let flag: String
+}
+
+// Sample country data
+let countries = [
+        Country(name: "India", code: "+91", flag: "🇮🇳"),
+        Country(name: "United States", code: "+1", flag: "🇺🇸"),
+        Country(name: "United Kingdom", code: "+44", flag: "🇬🇧"),
+        Country(name: "Canada", code: "+1", flag: "🇨🇦"),
+        Country(name: "Australia", code: "+61", flag: "🇦🇺"),
+        Country(name: "Canada", code: "+1", flag: "🇨🇦"),
+        Country(name: "Mexico", code: "+52", flag: "🇲🇽"),
+        Country(name: "Brazil", code: "+55", flag: "🇧🇷"),
+        Country(name: "Argentina", code: "+54", flag: "🇦🇷"),
+        Country(name: "France", code: "+33", flag: "🇫🇷"),
+        Country(name: "Italy", code: "+39", flag: "🇮🇹"),
+        Country(name: "Spain", code: "+34", flag: "🇪🇸"),
+        Country(name: "Russia", code: "+7", flag: "🇷🇺"),
+        Country(name: "China", code: "+86", flag: "🇨🇳"),
+        Country(name: "Japan", code: "+81", flag: "🇯🇵"),
+        Country(name: "South Korea", code: "+82", flag: "🇰🇷"),
+        Country(name: "South Africa", code: "+27", flag: "🇿🇦"),
+        Country(name: "Nigeria", code: "+234", flag: "🇳🇬"),
+        Country(name: "Egypt", code: "+20", flag: "🇪🇬"),
+        Country(name: "Turkey", code: "+90", flag: "🇹🇷"),
+        Country(name: "Saudi Arabia", code: "+966", flag: "🇸🇦"),
+        Country(name: "United Arab Emirates", code: "+971", flag: "🇦🇪"),
+        Country(name: "Israel", code: "+972", flag: "🇮🇱"),
+        Country(name: "Pakistan", code: "+92", flag: "🇵🇰"),
+        Country(name: "Bangladesh", code: "+880", flag: "🇧🇩"),
+        Country(name: "Sri Lanka", code: "+94", flag: "🇱🇰"),
+        Country(name: "Nepal", code: "+977", flag: "🇳🇵"),
+        Country(name: "Malaysia", code: "+60", flag: "🇲🇾"),
+        Country(name: "Indonesia", code: "+62", flag: "🇮🇩"),
+        Country(name: "Thailand", code: "+66", flag: "🇹🇭"),
+        Country(name: "Vietnam", code: "+84", flag: "🇻🇳"),
+        Country(name: "Philippines", code: "+63", flag: "🇵🇭"),
+        Country(name: "Singapore", code: "+65", flag: "🇸🇬"),
+        Country(name: "New Zealand", code: "+64", flag: "🇳🇿"),
+        Country(name: "Sweden", code: "+46", flag: "🇸🇪"),
+        Country(name: "Norway", code: "+47", flag: "🇳🇴"),
+        Country(name: "Denmark", code: "+45", flag: "🇩🇰"),
+        Country(name: "Finland", code: "+358", flag: "🇫🇮"),
+        Country(name: "Iceland", code: "+354", flag: "🇮🇸"),
+        Country(name: "Poland", code: "+48", flag: "🇵🇱"),
+        Country(name: "Austria", code: "+43", flag: "🇦🇹"),
+        Country(name: "Switzerland", code: "+41", flag: "🇨🇭"),
+        Country(name: "Belgium", code: "+32", flag: "🇧🇪"),
+        Country(name: "Netherlands", code: "+31", flag: "🇳🇱"),
+        Country(name: "Ireland", code: "+353", flag: "🇮🇪"),
+        Country(name: "Portugal", code: "+351", flag: "🇵🇹"),
+        Country(name: "Greece", code: "+30", flag: "🇬🇷"),
+        Country(name: "Czech Republic", code: "+420", flag: "🇨🇿"),
+        Country(name: "Hungary", code: "+36", flag: "🇭🇺"),
+        Country(name: "Romania", code: "+40", flag: "🇷🇴"),
+        Country(name: "Bulgaria", code: "+359", flag: "🇧🇬"),
+        Country(name: "Slovakia", code: "+421", flag: "🇸🇰"),
+        Country(name: "Slovenia", code: "+386", flag: "🇸🇮"),
+        Country(name: "Croatia", code: "+385", flag: "🇭🇷"),
+        Country(name: "Serbia", code: "+381", flag: "🇷🇸"),
+        Country(name: "Montenegro", code: "+382", flag: "🇲🇪"),
+        Country(name: "Bosnia and Herzegovina", code: "+387", flag: "🇧🇦"),
+        Country(name: "Albania", code: "+355", flag: "🇦🇱"),
+        Country(name: "North Macedonia", code: "+389", flag: "🇲🇰"),
+        Country(name: "Kosovo", code: "+383", flag: "🇽🇰"),
+        Country(name: "Georgia", code: "+995", flag: "🇬🇪"),
+        Country(name: "Armenia", code: "+374", flag: "🇦🇲"),
+        Country(name: "Azerbaijan", code: "+994", flag: "🇦🇿"),
+        Country(name: "Kazakhstan", code: "+7", flag: "🇰🇿"),
+        Country(name: "Uzbekistan", code: "+998", flag: "🇺🇿")
+]
+
+// MARK: - Login View
 struct LoginView: View {
+    @State private var selectedCountry: Country = countries.first!
     @State private var phoneNumber: String = ""
     @State private var isLoading: Bool = false
     @State private var isOTPViewPresented: Bool = false
     @State private var verificationID: String = ""
+    @State private var isCountryPickerPresented: Bool = false
     @ObservedObject private var keyboardObserver = KeyboardObserver()
 
     var onLoginSuccess: () -> Void
@@ -86,12 +165,11 @@ struct LoginView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                
+                // Background GIF
                 GIFView(gifName: "background2")
                     .ignoresSafeArea()
-
+                
                 VStack {
-                    
                     HStack {
                         Spacer()
                         Button(action: {
@@ -107,40 +185,46 @@ struct LoginView: View {
                         }
                         .padding(.trailing, 30)
                     }
-
+                    
                     Spacer()
-
+                    
                     // App Title
                     VStack(spacing: 5) {
                         Text("TringQR")
                             .font(.system(size: 36, weight: .bold))
                             .foregroundColor(.white)
-
+                        
                         Text("World's fastest QR Code scanner")
                             .font(.system(size: 18))
                             .foregroundColor(.white.opacity(0.8))
                     }
-
+                    
                     Spacer()
-
+                    
                     // Login Section
                     VStack(spacing: 20) {
                         Text("Sign in with phone number")
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity, alignment: .leading)
-
+                        
                         // Phone Number Input
                         HStack(spacing: 0) {
-                            ZStack {
-                                Color.white
-                                Text("+91")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(.black)
+                            Button(action: {
+                                isCountryPickerPresented = true
+                            }) {
+                                HStack {
+                                    Text(selectedCountry.flag)
+                                        .font(.system(size: 20))
+                                    Text(selectedCountry.code)
+                                        .font(.system(size: 16))
+                                        .foregroundColor(.black)
+                                }
+                                .frame(width: 80, height: 50)
+                                .background(Color.white)
+                                .cornerRadius(5)
                             }
-                            .frame(width: 60, height: 50)
-                            .cornerRadius(5)
-
+                            
                             TextField("Enter 10 Digits", text: $phoneNumber)
                                 .keyboardType(.numberPad)
                                 .padding(.leading, 10)
@@ -148,7 +232,7 @@ struct LoginView: View {
                                 .background(Color.white)
                                 .cornerRadius(5)
                         }
-
+                        
                         // Send OTP Button
                         Button(action: {
                             sendOTP()
@@ -161,11 +245,11 @@ struct LoginView: View {
                                 .background(Color.yellow)
                                 .cornerRadius(8)
                         }
-
+                        
                         Text("or continue with")
                             .font(.system(size: 14))
                             .foregroundColor(.white.opacity(0.7))
-
+                        
                         // Google Sign-In Button
                         Button(action: {
                             signInWithGoogle()
@@ -188,15 +272,15 @@ struct LoginView: View {
                     .background(Color.white.opacity(0.1))
                     .cornerRadius(12)
                     .padding(.horizontal, 20)
-
+                    
                     Spacer()
-
+                    
                     // Terms and Privacy
                     VStack(spacing: 2) {
                         Text("By registering, you agree to our")
                             .font(.system(size: 12))
                             .foregroundColor(.white.opacity(0.7))
-
+                        
                         Text("Terms of Use & Privacy Policy")
                             .font(.system(size: 12))
                             .foregroundColor(.yellow)
@@ -207,60 +291,41 @@ struct LoginView: View {
                 .animation(.easeOut(duration: 0.3), value: keyboardObserver.keyboardHeight)
             }
         }
+        .sheet(isPresented: $isCountryPickerPresented) {
+            CountryPicker(selectedCountry: $selectedCountry)
+        }
         .sheet(isPresented: $isOTPViewPresented) {
             OTPView(
-                verificationID: verificationID, isOTPViewPresented: $isOTPViewPresented,
-                phoneNumber: "+91\(phoneNumber)",
+                verificationID: verificationID,
+                isOTPViewPresented: $isOTPViewPresented,
+                phoneNumber: selectedCountry.code + phoneNumber,
                 onOTPVerified: {
-                    registerUser() // Call BE after OTP
+                    onLoginSuccess()
                 }
             )
         }
     }
 
-//    func sendOTP() {
-//        let phoneNumber = "+91" + self.phoneNumber.trimmingCharacters(in: .whitespaces)
-//
-//        PhoneAuthProvider.provider().verifyPhoneNumber(phoneNumber, uiDelegate: nil) { verificationID, error in
-//            if let error = error {
-//                print("Error sending OTP: \(error.localizedDescription)")
-//                return
-//            }
-//
-//            guard let verificationID = verificationID else {
-//                print("Error: verificationID is nil")
-//                return
-//            }
-//
-//            print("Verification ID: \(verificationID)")
-//            UserDefaults.standard.set(verificationID, forKey: "authVerificationID")
-//            self.verificationID = verificationID
-//            print("OTP sent successfully: \(verificationID)")
-//            DispatchQueue.main.async {
-//                self.isOTPViewPresented = true
-//            }
-//        }
-//    }
     func sendOTP() {
-            let formattedNumber = "+91" + phoneNumber.trimmingCharacters(in: .whitespaces)
+        let formattedNumber = selectedCountry.code + phoneNumber.trimmingCharacters(in: .whitespaces)
 
-            isLoading = true
-            PhoneAuthProvider.provider().verifyPhoneNumber(formattedNumber, uiDelegate: nil) { id, error in
-                DispatchQueue.main.async {
-                    self.isLoading = false
-                    if let error = error {
-                        print("Error sending OTP: \(error.localizedDescription)")
-                        return
-                    }
-                    guard let id = id else {
-                        print("Error: Verification ID is nil")
-                        return
-                    }
-                    self.verificationID = id
-                    self.isOTPViewPresented = true
+        isLoading = true
+        PhoneAuthProvider.provider().verifyPhoneNumber(formattedNumber, uiDelegate: nil) { id, error in
+            DispatchQueue.main.async {
+                self.isLoading = false
+                if let error = error {
+                    print("Error sending OTP: \(error.localizedDescription)")
+                    return
                 }
+                guard let id = id else {
+                    print("Error: Verification ID is nil")
+                    return
+                }
+                self.verificationID = id
+                self.isOTPViewPresented = true
             }
         }
+    }
 
     private func registerUser() {
         let url = "https://core-api-619357594029.asia-south1.run.app/api/v1/users"
@@ -325,6 +390,40 @@ struct LoginView: View {
         return UserDefaults.standard.string(forKey: "tringboxToken") ?? ""
     }
 }
+struct CountryPicker: View {
+    @Binding var selectedCountry: Country
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationView {
+            List(countries) { country in
+                Button(action: {
+                    selectedCountry = country
+                    dismiss()
+                }) {
+                    HStack {
+                        Text(country.flag)
+                            .font(.system(size: 20))
+                        Text(country.name)
+                        Spacer()
+                        Text(country.code)
+                            .foregroundColor(.gray)
+                    }
+                }
+            }
+            .navigationTitle("Select Country")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
 #Preview {
     LoginView {
         print("Login Successful!")

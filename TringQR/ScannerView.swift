@@ -9,11 +9,6 @@ import SwiftUI
 import AVFoundation
 import PhotosUI
 
-
-
-
-
-
 struct ScannerView: View {
     @State private var isScanning: Bool = true
     @State private var session: AVCaptureSession = .init()
@@ -34,8 +29,6 @@ struct ScannerView: View {
     @EnvironmentObject var appState: AppState
     @State private var scannedCode: String = ""
     @State private var showGalleryPicker: Bool = false
-
-    
 
     var body: some View {
         VStack {
@@ -209,7 +202,7 @@ struct ScannerView: View {
                         appState.addScannedCode(code)
                         
                         handleScannedCode(code)
-                        qrDelegate.scannedCode = nil 
+                        qrDelegate.scannedCode = nil
                     }
                 }
             }
@@ -220,8 +213,10 @@ struct ScannerView: View {
     }
 
     func activateScannerAnimation() {
-        withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-            isScanning = true
+        DispatchQueue.main.async {
+            withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
+                isScanning.toggle()
+            }
         }
     }
 
