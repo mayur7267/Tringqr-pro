@@ -83,71 +83,107 @@ struct Country: Identifiable {
 
 // Sample country data
 let countries = [
-        Country(name: "India", code: "+91", flag: "🇮🇳"),
-        Country(name: "United States", code: "+1", flag: "🇺🇸"),
-        Country(name: "United Kingdom", code: "+44", flag: "🇬🇧"),
-        Country(name: "Canada", code: "+1", flag: "🇨🇦"),
-        Country(name: "Australia", code: "+61", flag: "🇦🇺"),
-        Country(name: "Canada", code: "+1", flag: "🇨🇦"),
-        Country(name: "Mexico", code: "+52", flag: "🇲🇽"),
-        Country(name: "Brazil", code: "+55", flag: "🇧🇷"),
+    Country(name: "India", code: "+91", flag: "🇮🇳"),
+    Country(name: "Albania", code: "+355", flag: "🇦🇱"),
+        Country(name: "Algeria", code: "+213", flag: "🇩🇿"),
+        Country(name: "Angola", code: "+244", flag: "🇦🇴"),
         Country(name: "Argentina", code: "+54", flag: "🇦🇷"),
-        Country(name: "France", code: "+33", flag: "🇫🇷"),
-        Country(name: "Italy", code: "+39", flag: "🇮🇹"),
-        Country(name: "Spain", code: "+34", flag: "🇪🇸"),
-        Country(name: "Russia", code: "+7", flag: "🇷🇺"),
-        Country(name: "China", code: "+86", flag: "🇨🇳"),
-        Country(name: "Japan", code: "+81", flag: "🇯🇵"),
-        Country(name: "South Korea", code: "+82", flag: "🇰🇷"),
-        Country(name: "South Africa", code: "+27", flag: "🇿🇦"),
-        Country(name: "Nigeria", code: "+234", flag: "🇳🇬"),
-        Country(name: "Egypt", code: "+20", flag: "🇪🇬"),
-        Country(name: "Turkey", code: "+90", flag: "🇹🇷"),
-        Country(name: "Saudi Arabia", code: "+966", flag: "🇸🇦"),
-        Country(name: "United Arab Emirates", code: "+971", flag: "🇦🇪"),
-        Country(name: "Israel", code: "+972", flag: "🇮🇱"),
-        Country(name: "Pakistan", code: "+92", flag: "🇵🇰"),
-        Country(name: "Bangladesh", code: "+880", flag: "🇧🇩"),
-        Country(name: "Sri Lanka", code: "+94", flag: "🇱🇰"),
-        Country(name: "Nepal", code: "+977", flag: "🇳🇵"),
-        Country(name: "Malaysia", code: "+60", flag: "🇲🇾"),
-        Country(name: "Indonesia", code: "+62", flag: "🇮🇩"),
-        Country(name: "Thailand", code: "+66", flag: "🇹🇭"),
-        Country(name: "Vietnam", code: "+84", flag: "🇻🇳"),
-        Country(name: "Philippines", code: "+63", flag: "🇵🇭"),
-        Country(name: "Singapore", code: "+65", flag: "🇸🇬"),
-        Country(name: "New Zealand", code: "+64", flag: "🇳🇿"),
-        Country(name: "Sweden", code: "+46", flag: "🇸🇪"),
-        Country(name: "Norway", code: "+47", flag: "🇳🇴"),
-        Country(name: "Denmark", code: "+45", flag: "🇩🇰"),
-        Country(name: "Finland", code: "+358", flag: "🇫🇮"),
-        Country(name: "Iceland", code: "+354", flag: "🇮🇸"),
-        Country(name: "Poland", code: "+48", flag: "🇵🇱"),
+        Country(name: "Armenia", code: "+374", flag: "🇦🇲"),
+        Country(name: "Australia", code: "+61", flag: "🇦🇺"),
         Country(name: "Austria", code: "+43", flag: "🇦🇹"),
-        Country(name: "Switzerland", code: "+41", flag: "🇨🇭"),
+        Country(name: "Azerbaijan", code: "+994", flag: "🇦🇿"),
+        Country(name: "Bahrain", code: "+973", flag: "🇧🇭"),
+        Country(name: "Bangladesh", code: "+880", flag: "🇧🇩"),
         Country(name: "Belgium", code: "+32", flag: "🇧🇪"),
-        Country(name: "Netherlands", code: "+31", flag: "🇳🇱"),
-        Country(name: "Ireland", code: "+353", flag: "🇮🇪"),
-        Country(name: "Portugal", code: "+351", flag: "🇵🇹"),
-        Country(name: "Greece", code: "+30", flag: "🇬🇷"),
-        Country(name: "Czech Republic", code: "+420", flag: "🇨🇿"),
-        Country(name: "Hungary", code: "+36", flag: "🇭🇺"),
-        Country(name: "Romania", code: "+40", flag: "🇷🇴"),
+        Country(name: "Bolivia", code: "+591", flag: "🇧🇴"),
+        Country(name: "Bosnia and Herzegovina", code: "+387", flag: "🇧🇦"),
+        Country(name: "Brazil", code: "+55", flag: "🇧🇷"),
         Country(name: "Bulgaria", code: "+359", flag: "🇧🇬"),
+        Country(name: "Cambodia", code: "+855", flag: "🇰🇭"),
+        Country(name: "Canada", code: "+1", flag: "🇨🇦"),
+        Country(name: "Chile", code: "+56", flag: "🇨🇱"),
+        Country(name: "China", code: "+86", flag: "🇨🇳"),
+        Country(name: "Colombia", code: "+57", flag: "🇨🇴"),
+        Country(name: "Costa Rica", code: "+506", flag: "🇨🇷"),
+        Country(name: "Croatia", code: "+385", flag: "🇭🇷"),
+        Country(name: "Czech Republic", code: "+420", flag: "🇨🇿"),
+        Country(name: "Denmark", code: "+45", flag: "🇩🇰"),
+        Country(name: "Dominican Republic", code: "+1-809", flag: "🇩🇴"),
+        Country(name: "Ecuador", code: "+593", flag: "🇪🇨"),
+        Country(name: "Egypt", code: "+20", flag: "🇪🇬"),
+        Country(name: "El Salvador", code: "+503", flag: "🇸🇻"),
+        Country(name: "Estonia", code: "+372", flag: "🇪🇪"),
+        Country(name: "Finland", code: "+358", flag: "🇫🇮"),
+        Country(name: "France", code: "+33", flag: "🇫🇷"),
+        Country(name: "Georgia", code: "+995", flag: "🇬🇪"),
+        Country(name: "Germany", code: "+49", flag: "🇩🇪"),
+        Country(name: "Ghana", code: "+233", flag: "🇬🇭"),
+        Country(name: "Greece", code: "+30", flag: "🇬🇷"),
+        Country(name: "Guatemala", code: "+502", flag: "🇬🇹"),
+        Country(name: "Honduras", code: "+504", flag: "🇭🇳"),
+        Country(name: "Hungary", code: "+36", flag: "🇭🇺"),
+        Country(name: "Iceland", code: "+354", flag: "🇮🇸"),
+    
+        Country(name: "Indonesia", code: "+62", flag: "🇮🇩"),
+        Country(name: "Ireland", code: "+353", flag: "🇮🇪"),
+        Country(name: "Israel", code: "+972", flag: "🇮🇱"),
+        Country(name: "Italy", code: "+39", flag: "🇮🇹"),
+        Country(name: "Jamaica", code: "+1-876", flag: "🇯🇲"),
+        Country(name: "Japan", code: "+81", flag: "🇯🇵"),
+        Country(name: "Kazakhstan", code: "+7", flag: "🇰🇿"),
+        Country(name: "Kenya", code: "+254", flag: "🇰🇪"),
+        Country(name: "Kosovo", code: "+383", flag: "🇽🇰"),
+        Country(name: "Kuwait", code: "+965", flag: "🇰🇼"),
+        Country(name: "Latvia", code: "+371", flag: "🇱🇻"),
+        Country(name: "Lebanon", code: "+961", flag: "🇱🇧"),
+        Country(name: "Lithuania", code: "+370", flag: "🇱🇹"),
+        Country(name: "Luxembourg", code: "+352", flag: "🇱🇺"),
+        Country(name: "Malaysia", code: "+60", flag: "🇲🇾"),
+        Country(name: "Mexico", code: "+52", flag: "🇲🇽"),
+        Country(name: "Montenegro", code: "+382", flag: "🇲🇪"),
+        Country(name: "Morocco", code: "+212", flag: "🇲🇦"),
+        Country(name: "Netherlands", code: "+31", flag: "🇳🇱"),
+        Country(name: "New Zealand", code: "+64", flag: "🇳🇿"),
+        Country(name: "Nicaragua", code: "+505", flag: "🇳🇮"),
+        Country(name: "Nigeria", code: "+234", flag: "🇳🇬"),
+        Country(name: "North Macedonia", code: "+389", flag: "🇲🇰"),
+        Country(name: "Norway", code: "+47", flag: "🇳🇴"),
+        Country(name: "Pakistan", code: "+92", flag: "🇵🇰"),
+        Country(name: "Panama", code: "+507", flag: "🇵🇦"),
+        Country(name: "Peru", code: "+51", flag: "🇵🇪"),
+        Country(name: "Philippines", code: "+63", flag: "🇵🇭"),
+        Country(name: "Poland", code: "+48", flag: "🇵🇱"),
+        Country(name: "Portugal", code: "+351", flag: "🇵🇹"),
+        Country(name: "Puerto Rico", code: "+1-787", flag: "🇵🇷"),
+        Country(name: "Qatar", code: "+974", flag: "🇶🇦"),
+        Country(name: "Romania", code: "+40", flag: "🇷🇴"),
+        Country(name: "Russia", code: "+7", flag: "🇷🇺"),
+        Country(name: "Rwanda", code: "+250", flag: "🇷🇼"),
+        Country(name: "Saudi Arabia", code: "+966", flag: "🇸🇦"),
+        Country(name: "Senegal", code: "+221", flag: "🇸🇳"),
+        Country(name: "Serbia", code: "+381", flag: "🇷🇸"),
+        Country(name: "Singapore", code: "+65", flag: "🇸🇬"),
         Country(name: "Slovakia", code: "+421", flag: "🇸🇰"),
         Country(name: "Slovenia", code: "+386", flag: "🇸🇮"),
-        Country(name: "Croatia", code: "+385", flag: "🇭🇷"),
-        Country(name: "Serbia", code: "+381", flag: "🇷🇸"),
-        Country(name: "Montenegro", code: "+382", flag: "🇲🇪"),
-        Country(name: "Bosnia and Herzegovina", code: "+387", flag: "🇧🇦"),
-        Country(name: "Albania", code: "+355", flag: "🇦🇱"),
-        Country(name: "North Macedonia", code: "+389", flag: "🇲🇰"),
-        Country(name: "Kosovo", code: "+383", flag: "🇽🇰"),
-        Country(name: "Georgia", code: "+995", flag: "🇬🇪"),
-        Country(name: "Armenia", code: "+374", flag: "🇦🇲"),
-        Country(name: "Azerbaijan", code: "+994", flag: "🇦🇿"),
-        Country(name: "Kazakhstan", code: "+7", flag: "🇰🇿"),
-        Country(name: "Uzbekistan", code: "+998", flag: "🇺🇿")
+        Country(name: "South Africa", code: "+27", flag: "🇿🇦"),
+        Country(name: "South Korea", code: "+82", flag: "🇰🇷"),
+        Country(name: "Spain", code: "+34", flag: "🇪🇸"),
+        Country(name: "Sri Lanka", code: "+94", flag: "🇱🇰"),
+        Country(name: "Sweden", code: "+46", flag: "🇸🇪"),
+        Country(name: "Switzerland", code: "+41", flag: "🇨🇭"),
+        Country(name: "Tanzania", code: "+255", flag: "🇹🇿"),
+        Country(name: "Thailand", code: "+66", flag: "🇹🇭"),
+        Country(name: "Tunisia", code: "+216", flag: "🇹🇳"),
+        Country(name: "Turkey", code: "+90", flag: "🇹🇷"),
+        Country(name: "Uganda", code: "+256", flag: "🇺🇬"),
+        Country(name: "United Arab Emirates", code: "+971", flag: "🇦🇪"),
+        Country(name: "United Kingdom", code: "+44", flag: "🇬🇧"),
+        Country(name: "United States", code: "+1", flag: "🇺🇸"),
+        Country(name: "Uruguay", code: "+598", flag: "🇺🇾"),
+        Country(name: "Uzbekistan", code: "+998", flag: "🇺🇿"),
+        Country(name: "Venezuela", code: "+58", flag: "🇻🇪"),
+        Country(name: "Vietnam", code: "+84", flag: "🇻🇳"),
+        Country(name: "Zimbabwe", code: "+263", flag: "🇿🇼")
 ]
 
 // MARK: - Login View
@@ -393,10 +429,25 @@ struct LoginView: View {
 struct CountryPicker: View {
     @Binding var selectedCountry: Country
     @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    var filteredCountries: [Country] {
+        if searchText.isEmpty {
+            return countries
+        } else {
+            return countries.filter { country in
+                country.name.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+    }
+
+    init(selectedCountry: Binding<Country>) {
+        self._selectedCountry = selectedCountry
+    }
 
     var body: some View {
         NavigationView {
-            List(countries) { country in
+            List(filteredCountries) { country in
                 Button(action: {
                     selectedCountry = country
                     dismiss()
@@ -418,6 +469,12 @@ struct CountryPicker: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                }
+            }
+            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search Countries")
+            .onAppear {
+                if selectedCountry.name.isEmpty {
+                    selectedCountry = countries.first(where: { $0.name == "India" })!
                 }
             }
         }

@@ -31,14 +31,13 @@ struct ScannerView: View {
     @State private var showGalleryPicker: Bool = false
 
     var body: some View {
-        VStack {
+        VStack{
             Spacer(minLength: 0)
 
             GeometryReader { geometry in
                 let size = geometry.size
                 ZStack {
                     CameraView(frameSize: CGSize(width: size.width, height: size.width), session: $session)
-                        .scaleEffect(0.95)
                         .frame(width: size.width, height: size.width)
 
                     ForEach(0...3, id: \.self) { index in
@@ -59,9 +58,11 @@ struct ScannerView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .padding(.horizontal, 50)
+            .edgesIgnoringSafeArea(.top)
 
-            // Updated text position and content
-            VStack {
+            Spacer()
+            Spacer()
+            VStack(spacing: 5){
                 Text("Scan with TringQR")
                     .font(.title2)
                     .bold()

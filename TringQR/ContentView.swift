@@ -8,8 +8,6 @@
 import SwiftUI
 import UIKit
 
-
-
 struct ActivityView: UIViewControllerRepresentable {
     let activityItems: [Any]
     let applicationActivities: [UIActivity]? = nil
@@ -33,7 +31,6 @@ struct ShareSheet: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
-
 
 struct SidebarItem: View {
     let title: String
@@ -63,7 +60,7 @@ struct SidebarItem: View {
 class AppState: ObservableObject {
     @Published var isLoggedIn: Bool = false
     @Published var userName: String? = nil
-    @Published var scannedHistory: [String] = [] 
+    @Published var scannedHistory: [String] = []
 
     func toggleLogin() {
         isLoggedIn.toggle()
@@ -77,7 +74,6 @@ class AppState: ObservableObject {
         scannedHistory.append(code)
     }
 }
-
 
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
@@ -105,9 +101,9 @@ struct ContentView: View {
                             GIFView(gifName: "background")
                                 .ignoresSafeArea()
 
-                            VStack {
+                            VStack(spacing: 0) {
                                 // Navigation Bar
-                                HStack {
+                                HStack(alignment: .center) {
                                     if isBackButtonVisible {
                                         Button(action: {
                                             withAnimation {
@@ -126,8 +122,9 @@ struct ContentView: View {
                                         }
                                     } else {
                                         Button(action: {
-                                            withAnimation {
+                                            withAnimation(.spring()) {
                                                 isSidebarVisible.toggle()
+                                                print("Sidebar visibility toggled: \(isSidebarVisible)")
                                             }
                                         }) {
                                             Image(systemName: "line.3.horizontal")
@@ -135,6 +132,7 @@ struct ContentView: View {
                                                 .foregroundColor(.black)
                                                 .imageScale(.large)
                                         }
+
                                     }
 
                                     Spacer()
@@ -150,6 +148,9 @@ struct ContentView: View {
                                 .padding(.horizontal, 12)
                                 .background(Color.white)
                                 .shadow(color: Color.gray.opacity(0.2), radius: 1, x: 0, y: 1)
+                                .offset(y: 48)
+
+                                Spacer()
 
                                 // Main Content
                                 Group {
@@ -172,20 +173,12 @@ struct ContentView: View {
 
                             // Sidebar
                             if isSidebarVisible {
-                                Color.black.opacity(0.5)
-                                    .ignoresSafeArea()
-                                    .onTapGesture {
-                                        withAnimation {
-                                            isSidebarVisible = false
-                                        }
-                                    }
-
-                                HStack {
+                                HStack(spacing: 0) {
                                     VStack(alignment: .leading, spacing: 20) {
                                         // Sidebar Header
                                         VStack {
                                             if let userName = appState.userName {
-                                                Text("Hi \(userName)!")
+                                                Text(appState.isLoggedIn ? "Hi \(appState.userName ?? "User")!" : "Hi Guest!")
                                                     .font(.headline)
                                                     .foregroundColor(.black)
                                                     .padding(30)
@@ -230,7 +223,7 @@ struct ContentView: View {
                                                 isSidebarVisible = false
                                             }
                                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                                                showShareSheet = true 
+                                                showShareSheet = true
                                             }
                                         }
                                         .sheet(isPresented: $showShareSheet) {
@@ -238,7 +231,6 @@ struct ContentView: View {
                                             let shareURL = URL(string: "https://example.com")!
                                             ActivityView(activityItems: [shareText, shareURL])
                                         }
-
 
                                         SidebarItem(
                                             title: "Help",
@@ -280,17 +272,18 @@ struct ContentView: View {
                                     Spacer()
                                 }
                                 .transition(.move(edge: .leading))
+                                .animation(.easeInOut, value: isSidebarVisible)
                             }
                         }
                     }
                     .navigationBarHidden(true)
                 }
             }
-            .navigationViewStyle(StackNavigationViewStyle())
+            .ignoresSafeArea(edges: .top)
+            .environmentObject(appState)
         }
     }
 }
-
 
 struct ShareView: View {
     @Binding var isBackButtonVisible: Bool
