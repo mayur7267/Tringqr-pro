@@ -145,6 +145,10 @@ struct OTPView: View {
             errorMessage = "Please enter the OTP."
             return
         }
+        guard !verificationID.isEmpty else {
+            errorMessage = "Verification ID is missing. Please try resending the OTP."
+            return
+        }
         isLoading = true
         errorMessage = ""
         let credential = PhoneAuthProvider.provider().credential(withVerificationID: verificationID, verificationCode: otp)
@@ -161,23 +165,25 @@ struct OTPView: View {
         }
     }
 
+
     // MARK: - Resend OTP Logic
     private func resendOTP() {
         isLoading = true
         errorMessage = ""
-
-        PhoneAuthProvider.provider().verifyPhoneNumber(phoneNumber, uiDelegate: nil) { newVerificationID, error in
-            isLoading = false
+        
+        PhoneAuthProvider.provider().verifyPhoneNumber(phoneNumber, uiDelegate: nil) { verificationID, error in
             if let error = error {
-                errorMessage = "Error resending OTP: \(error.localizedDescription)"
+                print("Error during phone number verification: \(error.localizedDescription)")
                 return
             }
-
-            if let newVerificationID = newVerificationID {
-                verificationID = newVerificationID
-                errorMessage = "A new OTP has been sent to \(phoneNumber)."
+            if let verificationID = verificationID {
+                DispatchQueue.main.async {
+                    self.isOTPViewPresented = true
+                    self.verificationID = verificationID // Ensure this is passed to OTPView
+                }
             }
         }
+        
     }
 
     // MARK: - Hide Keyboard

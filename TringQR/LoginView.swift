@@ -33,45 +33,45 @@ class KeyboardObserver: ObservableObject {
 }
 
 // MARK: - API Manager
-class APIManager {
-    static let shared = APIManager()
-
-    func makeRequest(endpoint: String, method: String, parameters: [String: Any]? = nil, headers: [String: String]? = nil, completion: @escaping (Result<Data, Error>) -> Void) {
-        guard let url = URL(string: endpoint) else {
-            completion(.failure(NSError(domain: "Invalid URL", code: 400, userInfo: nil)))
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = method
-
-        if let headers = headers {
-            for (key, value) in headers {
-                request.setValue(value, forHTTPHeaderField: key)
-            }
-        }
-
-        if let parameters = parameters {
-            request.httpBody = try? JSONSerialization.data(withJSONObject: parameters, options: [])
-        }
-
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                completion(.failure(error))
-                return
-            }
-
-            guard let data = data else {
-                completion(.failure(NSError(domain: "No data", code: 500, userInfo: nil)))
-                return
-            }
-
-            completion(.success(data))
-        }.resume()
-    }
-}
+//class APIManager {
+//    static let shared = APIManager()
+//
+//    func makeRequest(endpoint: String, method: String, parameters: [String: Any]? = nil, headers: [String: String]? = nil, completion: @escaping (Result<Data, Error>) -> Void) {
+//        guard let url = URL(string: endpoint) else {
+//            completion(.failure(NSError(domain: "Invalid URL", code: 400, userInfo: nil)))
+//            return
+//        }
+//
+//        var request = URLRequest(url: url)
+//        request.httpMethod = method
+//
+//        if let headers = headers {
+//            for (key, value) in headers {
+//                request.setValue(value, forHTTPHeaderField: key)
+//            }
+//        }
+//
+//        if let parameters = parameters {
+//            request.httpBody = try? JSONSerialization.data(withJSONObject: parameters, options: [])
+//        }
+//
+//        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+//
+//        URLSession.shared.dataTask(with: request) { data, response, error in
+//            if let error = error {
+//                completion(.failure(error))
+//                return
+//            }
+//
+//            guard let data = data else {
+//                completion(.failure(NSError(domain: "No data", code: 500, userInfo: nil)))
+//                return
+//            }
+//
+//            completion(.success(data))
+//        }.resume()
+//    }
+//}
 
 // MARK: - Login View
 struct Country: Identifiable {
@@ -194,6 +194,8 @@ struct LoginView: View {
     @State private var isOTPViewPresented: Bool = false
     @State private var verificationID: String = ""
     @State private var isCountryPickerPresented: Bool = false
+    @State private var showErrorAlert: Bool = false
+    @State private var errorMessage: String = ""
     @ObservedObject private var keyboardObserver = KeyboardObserver()
 
     var onLoginSuccess: () -> Void
@@ -201,9 +203,8 @@ struct LoginView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Background GIF
                 GIFView(gifName: "background2")
-                    .ignoresSafeArea()
+                    .ignoresSafeArea(edges: .all)
                 
                 VStack {
                     HStack {
@@ -218,13 +219,13 @@ struct LoginView: View {
                                 .padding(.vertical, 10)
                                 .background(Color.yellow)
                                 .cornerRadius(25)
+                                .padding(.vertical, 40)
                         }
                         .padding(.trailing, 30)
                     }
                     
                     Spacer()
                     
-                    // App Title
                     VStack(spacing: 5) {
                         Text("TringQR")
                             .font(.system(size: 36, weight: .bold))
@@ -237,14 +238,12 @@ struct LoginView: View {
                     
                     Spacer()
                     
-                    // Login Section
                     VStack(spacing: 20) {
                         Text("Sign in with phone number")
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         
-                        // Phone Number Input
                         HStack(spacing: 0) {
                             Button(action: {
                                 isCountryPickerPresented = true
@@ -269,24 +268,27 @@ struct LoginView: View {
                                 .cornerRadius(5)
                         }
                         
-                        // Send OTP Button
-                        Button(action: {
-                            sendOTP()
-                        }) {
-                            Text("Send OTP")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.black)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.yellow)
-                                .cornerRadius(8)
+                        if isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .yellow))
+                        } else {
+                            Button(action: {
+                                sendOTP()
+                            }) {
+                                Text("Send OTP")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.black)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.yellow)
+                                    .cornerRadius(8)
+                            }
                         }
-                        
+
                         Text("or continue with")
                             .font(.system(size: 14))
                             .foregroundColor(.white.opacity(0.7))
                         
-                        // Google Sign-In Button
                         Button(action: {
                             signInWithGoogle()
                         }) {
@@ -311,7 +313,6 @@ struct LoginView: View {
                     
                     Spacer()
                     
-                    // Terms and Privacy
                     VStack(spacing: 2) {
                         Text("By registering, you agree to our")
                             .font(.system(size: 12))
@@ -325,6 +326,9 @@ struct LoginView: View {
                 }
                 .padding(.bottom, keyboardObserver.keyboardHeight)
                 .animation(.easeOut(duration: 0.3), value: keyboardObserver.keyboardHeight)
+                .alert(isPresented: $showErrorAlert) {
+                    Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
+                }
             }
         }
         .sheet(isPresented: $isCountryPickerPresented) {
@@ -350,11 +354,13 @@ struct LoginView: View {
             DispatchQueue.main.async {
                 self.isLoading = false
                 if let error = error {
-                    print("Error sending OTP: \(error.localizedDescription)")
+                    self.errorMessage = "Error sending OTP: \(error.localizedDescription)"
+                    self.showErrorAlert = true
                     return
                 }
                 guard let id = id else {
-                    print("Error: Verification ID is nil")
+                    self.errorMessage = "Verification ID is nil."
+                    self.showErrorAlert = true
                     return
                 }
                 self.verificationID = id
@@ -363,34 +369,37 @@ struct LoginView: View {
         }
     }
 
-    private func registerUser() {
-        let url = "https://core-api-619357594029.asia-south1.run.app/api/v1/users"
-        let headers = ["Authorization": "Bearer \(getToken())"]
-        let user: [String: Any] = [
-            "first_name": "John",
-            "last_name": "Smith",
-            "email": "user@example.com",
-            "phone_number": "+91\(phoneNumber)",
-            "type": "User",
-            "gender": "Male",
-            "display_name": "User_\(Int.random(in: 1000...9999))",
-            "dob": "2000-01-01",
-            "avatar_url": "https://example.com/avatar.jpg",
-            "referredBy": "",
-            "deviceId": "ios123",
-            "notificationId": "abcd-1234-5678"
-        ]
-
-        APIManager.shared.makeRequest(endpoint: url, method: "POST", parameters: user, headers: headers) { result in
-            switch result {
-            case .success:
-                print("User registered successfully.")
-                onLoginSuccess()
-            case .failure(let error):
-                print("Registration failed: \(error.localizedDescription)")
+    func registerUser() {
+        // Create a request object with the JSON data
+        let request = RegisterUserRequest(
+            first_name: "Tring",
+            last_name: "Box",
+            dob: "2024-08-01",
+            gender: "Male",
+            type: "User",
+            email: "support@tringbox.com",
+            display_name: "Tringbox",
+            phone_number: "+15146430901",
+            notificationId: "802a6eea-1ae2-4254-85fa-fd4b877c2dc3",
+            deviceId: "sampleDevice1"
+        )
+        
+        // Replace "your_bearer_token_here" with the actual token
+        let bearerToken = "your_bearer_token_here"
+        
+        // Call the API
+        APIManager.shared.registerUser(request: request, token: bearerToken) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let response):
+                    print("User registered successfully: \(response)")
+                case .failure(let error):
+                    print("Registration failed: \(error.localizedDescription)")
+                }
             }
         }
     }
+
 
     private func signInWithGoogle() {
         guard let clientID = FirebaseApp.app()?.options.clientID else { return }

@@ -62,20 +62,21 @@ struct ScannerView: View {
 
             Spacer()
             Spacer()
-            VStack(spacing: 5){
+            VStack(spacing: 12){
                 Text("Scan with TringQR")
-                    .font(.title2)
+                    .font(.title)
                     .bold()
                     .foregroundStyle(.white)
                 Text("World's fastest QR Code scanner")
-                    .font(.subheadline)
+                    .font(.title3)
+                    .bold()
                     .foregroundStyle(.white.opacity(0.8))
             }
-            .padding(.vertical, 10)
+            .padding(.vertical, 4)
 
             Spacer()
 
-            VStack {
+            VStack(spacing: 10) {
                 HStack(spacing: 4) { // Minimized spacing
                     Button(action: {
                         withAnimation(.easeInOut(duration: 0.2)) {
@@ -106,7 +107,7 @@ struct ScannerView: View {
                         updateZoomFactor(newValue)
                     }
 
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, 12)
                     .frame(height: 4)
                     .accentColor(.purple)
 
@@ -365,6 +366,14 @@ struct ScannerView: View {
             presentError("Scanned code is not a valid URL")
         }
     }
+    func restartScanning() {
+        DispatchQueue.global(qos: .background).async {
+            if !session.isRunning {
+                session.startRunning()
+            }
+        }
+    }
+
 }
 
 #Preview {

@@ -61,7 +61,16 @@ class AppState: ObservableObject {
     @Published var isLoggedIn: Bool = false
     @Published var userName: String? = nil
     @Published var scannedHistory: [String] = []
-
+    @Published var isFirstLaunch: Bool {
+            didSet {
+                UserDefaults.standard.set(isFirstLaunch, forKey: "isFirstLaunch")
+            }
+        }
+        
+        init() {
+            
+            self.isFirstLaunch = UserDefaults.standard.object(forKey: "isFirstLaunch") as? Bool ?? true
+        }
     func toggleLogin() {
         isLoggedIn.toggle()
     }
@@ -73,12 +82,19 @@ class AppState: ObservableObject {
     func addScannedCode(_ code: String) {
         scannedHistory.append(code)
     }
+    func completeFirstLaunch() {
+            isFirstLaunch = false
+        }
 }
 
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
 
-    @State private var isSidebarVisible = false
+    @State private var isSidebarVisible = false {
+        didSet {
+            print("Sidebar visibility changed to: \(isSidebarVisible)")
+        }
+    }
     @State private var selectedTab = 1
     @State private var isBackButtonVisible = false
     @State private var showLoginView = false
@@ -87,22 +103,22 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                if showLoginView {
+                if appState.isFirstLaunch {
+                    // Show LoginView for first-time launch
                     LoginView(onLoginSuccess: {
                         appState.isLoggedIn = true
                         appState.setUserName("Google User")
-                        showLoginView = false
+                        appState.completeFirstLaunch()
                     })
                     .transition(.move(edge: .leading))
                 } else {
+                    // Regular Content
                     GeometryReader { geometry in
                         ZStack {
-                            // Background
                             GIFView(gifName: "background")
                                 .ignoresSafeArea()
 
                             VStack(spacing: 0) {
-                                // Navigation Bar
                                 HStack(alignment: .center) {
                                     if isBackButtonVisible {
                                         Button(action: {
@@ -122,9 +138,9 @@ struct ContentView: View {
                                         }
                                     } else {
                                         Button(action: {
-                                            withAnimation(.spring()) {
+                                            print("Hamburger button tapped")
+                                            withAnimation {
                                                 isSidebarVisible.toggle()
-                                                print("Sidebar visibility toggled: \(isSidebarVisible)")
                                             }
                                         }) {
                                             Image(systemName: "line.3.horizontal")
@@ -132,16 +148,15 @@ struct ContentView: View {
                                                 .foregroundColor(.black)
                                                 .imageScale(.large)
                                         }
-
+                                        .padding(16)
+                                        .contentShape(Rectangle()) 
                                     }
 
                                     Spacer()
-
                                     Text("TringQR")
                                         .foregroundColor(.black)
                                         .font(.headline)
                                         .frame(maxWidth: .infinity, alignment: .center)
-
                                     Spacer()
                                 }
                                 .frame(height: 44)
@@ -152,7 +167,6 @@ struct ContentView: View {
 
                                 Spacer()
 
-                                // Main Content
                                 Group {
                                     switch selectedTab {
                                     case 0:
@@ -171,29 +185,24 @@ struct ContentView: View {
                                 }
                             }
 
-                            // Sidebar
                             if isSidebarVisible {
+                                Color.black.opacity(0.5)
+                                    .edgesIgnoringSafeArea(.all)
+                                    .onTapGesture {
+                                        withAnimation(.easeInOut(duration: 0.3)) {
+                                            isSidebarVisible = false
+                                        }
+                                    }
+
                                 HStack(spacing: 0) {
                                     VStack(alignment: .leading, spacing: 20) {
-                                        // Sidebar Header
                                         VStack {
                                             if let userName = appState.userName {
-                                                Text(appState.isLoggedIn ? "Hi \(appState.userName ?? "User")!" : "Hi Guest!")
+                                                Text("Hi \(userName)!")
                                                     .font(.headline)
                                                     .foregroundColor(.black)
                                                     .padding(30)
                                             } else {
-                                                Image("Champion")
-                                                    .resizable()
-                                                    .aspectRatio(contentMode: .fit)
-                                                    .frame(width: 80, height: 80)
-                                                    .clipShape(Circle())
-                                                    .overlay(
-                                                        Circle()
-                                                            .stroke(Color.purple, lineWidth: 3)
-                                                    )
-                                                    .padding(.top, 25)
-
                                                 Text("Hi Champion!")
                                                     .font(.headline)
                                                     .foregroundColor(.black)
@@ -203,80 +212,45 @@ struct ContentView: View {
                                         .frame(maxWidth: .infinity)
                                         .background(Color.yellow)
 
-                                        // Sidebar Items
-                                        SidebarItem(
-                                            title: "Scan History",
-                                            systemImage: "clock",
-                                            isSelected: selectedTab == 0
-                                        ) {
+                                        SidebarItem(title: "Scan History", systemImage: "clock", isSelected: selectedTab == 0) {
                                             selectedTab = 0
                                             isSidebarVisible = false
                                             isBackButtonVisible = true
                                         }
-
-                                        SidebarItem(
-                                            title: "Share",
-                                            systemImage: "square.and.arrow.up",
-                                            isSelected: false
-                                        ) {
-                                            withAnimation {
-                                                isSidebarVisible = false
-                                            }
-                                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                                                showShareSheet = true
-                                            }
+                                        SidebarItem(title: "Scanner", systemImage: "camera", isSelected: selectedTab == 1) {
+                                            selectedTab = 1
+                                            isSidebarVisible = false
+                                            withAnimation { isBackButtonVisible = false }
+                                        }
+                                        SidebarItem(title: "Share", systemImage: "square.and.arrow.up", isSelected: selectedTab == 2) {
+                                            selectedTab = 2
+                                            isSidebarVisible = false
+                                            isBackButtonVisible = true
+                                            showShareSheet = true
                                         }
                                         .sheet(isPresented: $showShareSheet) {
                                             let shareText = "Check out this amazing app!"
                                             let shareURL = URL(string: "https://example.com")!
                                             ActivityView(activityItems: [shareText, shareURL])
                                         }
-
-                                        SidebarItem(
-                                            title: "Help",
-                                            systemImage: "questionmark.circle",
-                                            isSelected: selectedTab == 3
-                                        ) {
+                                        SidebarItem(title: "Help", systemImage: "questionmark.circle", isSelected: selectedTab == 3) {
                                             selectedTab = 3
                                             isSidebarVisible = false
                                             isBackButtonVisible = true
                                         }
-
-                                        SidebarItem(
-                                            title: appState.isLoggedIn ? "Sign Out" : "Sign In",
-                                            systemImage: "person.circle",
-                                            isSelected: false
-                                        ) {
-                                            if appState.isLoggedIn {
-                                                appState.toggleLogin()
-                                                appState.setUserName(nil)
-                                            } else {
-                                                showLoginView = true
-                                            }
-                                            isSidebarVisible = false
-                                            isBackButtonVisible = false
-                                        }
-
-                                        Spacer()
-
-                                        Text("Made in India")
-                                            .font(.footnote)
-                                            .foregroundColor(.black)
-                                            .padding(.bottom, 20)
-                                            .frame(maxWidth: .infinity, alignment: .center)
                                     }
                                     .frame(width: geometry.size.width * 0.7)
                                     .background(Color.white)
-                                    .edgesIgnoringSafeArea(.bottom)
-
+                                    .shadow(radius: 5)
+                                    .transition(.move(edge: .leading))
                                     Spacer()
                                 }
                                 .transition(.move(edge: .leading))
-                                .animation(.easeInOut, value: isSidebarVisible)
+                                .animation(.easeInOut(duration: 0.3), value: isSidebarVisible)
                             }
                         }
                     }
-                    .navigationBarHidden(true)
+                    .navigationViewStyle(StackNavigationViewStyle())
                 }
             }
             .ignoresSafeArea(edges: .top)
@@ -284,6 +258,7 @@ struct ContentView: View {
         }
     }
 }
+
 
 struct ShareView: View {
     @Binding var isBackButtonVisible: Bool
