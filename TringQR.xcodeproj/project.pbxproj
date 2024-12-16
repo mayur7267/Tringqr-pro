@@ -237,6 +237,7 @@
 			packageReferences = (
 				188C3A5D2CFB1DB30022D3F4 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				188C3A672CFB29980022D3F4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				18796E332D0F37720061AE94 /* XCRemoteSwiftPackageReference "PhoneNumberKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 18C305782CFA532D00252B56 /* Products */;
@@ -634,6 +635,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		18796E332D0F37720061AE94 /* XCRemoteSwiftPackageReference "PhoneNumberKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/marmelroy/PhoneNumberKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.1;
+			};
+		};
 		188C3A5D2CFB1DB30022D3F4 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
