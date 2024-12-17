@@ -204,14 +204,19 @@ struct LoginView: View {
         GeometryReader { geometry in
             ZStack {
                 GIFView(gifName: "background2")
-                    .ignoresSafeArea(edges: .all)
+                    .ignoresSafeArea()
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                
                 
                 VStack {
                     HStack {
                         Spacer()
-                        Button(action: {
-                            onLoginSuccess()
-                        }) {
+                        Button {
+                            DispatchQueue.main.async {
+                                onLoginSuccess()
+                            }
+                            
+                        }label: {
                             Text("Skip")
                                 .font(.headline)
                                 .foregroundColor(.black)
@@ -330,6 +335,7 @@ struct LoginView: View {
                     Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
                 }
             }
+            .ignoresSafeArea()
         }
         .sheet(isPresented: $isCountryPickerPresented) {
             CountryPicker(selectedCountry: $selectedCountry)
@@ -383,12 +389,13 @@ struct LoginView: View {
             notificationId: "802a6eea-1ae2-4254-85fa-fd4b877c2dc3",
             deviceId: "sampleDevice1"
         )
-        
-        // Replace "your_bearer_token_here" with the actual token
+
+        // Replace "your_bearer_token_here" and "your_id_token_here" with actual values
         let bearerToken = "your_bearer_token_here"
-        
+        let idToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjFhYWMyNzEwOTkwNDljMGRmYzA1OGUwNjEyZjA4ZDA2YzMwYTA0MTUiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vcHJqLW0tdHJpbmdxci1hcHAiLCJhdWQiOiJwcmotbS10cmluZ3FyLWFwcCIsImF1dGhfdGltZSI6MTczNDQ0MzgzNSwidXNlcl9pZCI6Im9YZ2FYOVlGbTBQRDEzUXJMS0lVQUlCNWJLdDEiLCJzdWIiOiJvWGdhWDlZRm0wUEQxM1FyTEtJVUFJQjViS3QxIiwiaWF0IjoxNzM0NDQzODM1LCJleHAiOjE3MzQ0NDc0MzUsImVtYWlsIjoic3VwcG9ydEB0cmluZ2JveC5jb20iLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnsiZW1haWwiOlsic3VwcG9ydEB0cmluZ2JveC5jb20iXX0sInNpZ25faW5fcHJvdmlkZXIiOiJwYXNzd29yZCJ9fQ.m9eZctd_xtHC404_HgzLudmh56AaDtUa_22D_P9sKr1_o0J1-hiMB2QenJiLtCNspZXvSr8SFP4oe2IBBISeGiKq5fMv-AGxcONqlW5cvBdpzj7LkaCVtpen4OOU8XTPn8_Po6-bDOfimh7UJVZDhl3qbhGEFD95lKuVZkNVlfrCmGxhsuAaiGBD5dBI4s7uq4Nmo7gRJzDjjpNPOAVJ-NE-WjN6G-9m_ZV-mgp9AhNb8_31K3dPiyA5ieyp0TPpB7LtMDqtV2hvY6JqTKVYKZE04k0Y46ogZBfTtyEkh_7YUzU-RBLdPWIOjhVSeHMoNE6QzZnPNVb9ytexdlYwgw"
+
         // Call the API
-        APIManager.shared.registerUser(request: request, token: bearerToken) { result in
+        APIManager.shared.registerUser(request: request, token: bearerToken, idToken: idToken) { result in
             DispatchQueue.main.async {
                 switch result {
                 case .success(let response):

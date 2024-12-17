@@ -124,7 +124,7 @@ struct OTPView: View {
             hideKeyboard()
         }
         .onAppear {
-            // Observe keyboard notifications to handle the keyboard showing and hiding
+           
             NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
                 if isOTPFieldFocused {
                     adjustViewForKeyboard(notification: notification)
@@ -179,7 +179,7 @@ struct OTPView: View {
             if let verificationID = verificationID {
                 DispatchQueue.main.async {
                     self.isOTPViewPresented = true
-                    self.verificationID = verificationID // Ensure this is passed to OTPView
+                    self.verificationID = verificationID
                 }
             }
         }

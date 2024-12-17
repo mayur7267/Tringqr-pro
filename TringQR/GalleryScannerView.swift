@@ -122,22 +122,30 @@ struct GalleryScannerView: View {
 
 struct GIFView: UIViewRepresentable {
     let gifName: String
-
+    
     func makeUIView(context: Context) -> UIImageView {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
-        if let path = Bundle.main.path(forResource: gifName, ofType: "gif"),
-           let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
-            imageView.image = UIImage.animatedImage(withAnimatedGIFData: data)
+        
+        // Perform GIF loading asynchronously
+        DispatchQueue.global(qos: .userInteractive).async {
+            if let path = Bundle.main.path(forResource: gifName, ofType: "gif"),
+               let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
+                let image = UIImage.animatedImage(withAnimatedGIFData: data)
+                
+                DispatchQueue.main.async {
+                    imageView.image = image
+                }
+            }
         }
+        
         return imageView
     }
-
-    func updateUIView(_ uiView: UIImageView, context: Context) {
-       
-    }
+    
+    func updateUIView(_ uiView: UIImageView, context: Context) {}
 }
+
 
 extension UIImage {
     static func animatedImage(withAnimatedGIFData data: Data) -> UIImage? {

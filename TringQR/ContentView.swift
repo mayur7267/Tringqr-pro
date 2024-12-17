@@ -8,55 +8,6 @@
 import SwiftUI
 import UIKit
 
-struct ActivityView: UIViewControllerRepresentable {
-    let activityItems: [Any]
-    let applicationActivities: [UIActivity]? = nil
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: applicationActivities)
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
-}
-
-struct ShareSheet: UIViewControllerRepresentable {
-    var items: [Any]
-    var excludedActivityTypes: [UIActivity.ActivityType]? = nil
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
-        controller.excludedActivityTypes = excludedActivityTypes
-        return controller
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
-}
-
-struct SidebarItem: View {
-    let title: String
-    let systemImage: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 16) {
-                Image(systemName: systemImage)
-                    .foregroundColor(isSelected ? .purple : .gray)
-                    .imageScale(.large)
-
-                Text(title)
-                    .font(.body)
-                    .foregroundColor(isSelected ? .purple : .gray)
-            }
-            .padding(.vertical, 12)
-            .padding(.horizontal)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(isSelected ? Color.purple.opacity(0.1) : Color.clear)
-        }
-    }
-}
-
 class AppState: ObservableObject {
     @Published var isLoggedIn: Bool = false
     @Published var userName: String? = nil
@@ -98,13 +49,12 @@ struct ContentView: View {
     @State private var selectedTab = 1
     @State private var isBackButtonVisible = false
     @State private var showLoginView = false
-    @State private var showShareSheet = false
 
     var body: some View {
         NavigationView {
             ZStack {
                 if appState.isFirstLaunch {
-                    // Show LoginView for first-time launch
+                   
                     LoginView(onLoginSuccess: {
                         appState.isLoggedIn = true
                         appState.setUserName("Google User")
@@ -115,8 +65,9 @@ struct ContentView: View {
                     // Regular Content
                     GeometryReader { geometry in
                         ZStack {
-                            GIFView(gifName: "background")
+                            GIFView(gifName: "main")
                                 .ignoresSafeArea()
+                                .allowsHitTesting(false)
 
                             VStack(spacing: 0) {
                                 HStack(alignment: .center) {
@@ -149,7 +100,7 @@ struct ContentView: View {
                                                 .imageScale(.large)
                                         }
                                         .padding(16)
-                                        .contentShape(Rectangle()) 
+                                        .contentShape(Rectangle())
                                     }
 
                                     Spacer()
@@ -194,58 +145,11 @@ struct ContentView: View {
                                         }
                                     }
 
-                                HStack(spacing: 0) {
-                                    VStack(alignment: .leading, spacing: 20) {
-                                        VStack {
-                                            if let userName = appState.userName {
-                                                Text("Hi \(userName)!")
-                                                    .font(.headline)
-                                                    .foregroundColor(.black)
-                                                    .padding(30)
-                                            } else {
-                                                Text("Hi Champion!")
-                                                    .font(.headline)
-                                                    .foregroundColor(.black)
-                                                    .padding(30)
-                                            }
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                        .background(Color.yellow)
-
-                                        SidebarItem(title: "Scan History", systemImage: "clock", isSelected: selectedTab == 0) {
-                                            selectedTab = 0
-                                            isSidebarVisible = false
-                                            isBackButtonVisible = true
-                                        }
-                                        SidebarItem(title: "Scanner", systemImage: "camera", isSelected: selectedTab == 1) {
-                                            selectedTab = 1
-                                            isSidebarVisible = false
-                                            withAnimation { isBackButtonVisible = false }
-                                        }
-                                        SidebarItem(title: "Share", systemImage: "square.and.arrow.up", isSelected: selectedTab == 2) {
-                                            selectedTab = 2
-                                            isSidebarVisible = false
-                                            isBackButtonVisible = true
-                                            showShareSheet = true
-                                        }
-                                        .sheet(isPresented: $showShareSheet) {
-                                            let shareText = "Check out this amazing app!"
-                                            let shareURL = URL(string: "https://example.com")!
-                                            ActivityView(activityItems: [shareText, shareURL])
-                                        }
-                                        SidebarItem(title: "Help", systemImage: "questionmark.circle", isSelected: selectedTab == 3) {
-                                            selectedTab = 3
-                                            isSidebarVisible = false
-                                            isBackButtonVisible = true
-                                        }
-                                    }
-                                    .frame(width: geometry.size.width * 0.7)
-                                    .background(Color.white)
-                                    .shadow(radius: 5)
-                                    .transition(.move(edge: .leading))
-                                    Spacer()
-                                }
-                                .transition(.move(edge: .leading))
+                                SidebarView(
+                                    selectedTab: $selectedTab,
+                                    isSidebarVisible: $isSidebarVisible,
+                                    isBackButtonVisible: $isBackButtonVisible
+                                )
                                 .animation(.easeInOut(duration: 0.3), value: isSidebarVisible)
                             }
                         }
@@ -258,7 +162,6 @@ struct ContentView: View {
         }
     }
 }
-
 
 struct ShareView: View {
     @Binding var isBackButtonVisible: Bool

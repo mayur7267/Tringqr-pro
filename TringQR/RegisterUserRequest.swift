@@ -24,8 +24,10 @@ struct RegisterUserRequest: Codable {
 
 // MARK: - Response Model
 struct RegisterUserResponse: Codable {
-    let id: String?
-    let message: String?
+    let first_name: String?
+    let last_name: String?
+    let phone_number: String?
+    let email: String?
 }
 
 // MARK: - API Manager
@@ -34,8 +36,8 @@ class APIManager {
     
     private init() {}
     
-    func registerUser(request: RegisterUserRequest, token: String, completion: @escaping (Result<RegisterUserResponse, Error>) -> Void) {
-        guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/users") else {
+    func registerUser(request: RegisterUserRequest, token: String, idToken: String?, completion: @escaping (Result<RegisterUserResponse, Error>) -> Void) {
+        guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/users/qr") else {
             completion(.failure(NSError(domain: "Invalid URL", code: -1, userInfo: nil)))
             return
         }
@@ -44,6 +46,10 @@ class APIManager {
         urlRequest.httpMethod = "POST"
         urlRequest.addValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
+        if let idToken = idToken {
+            urlRequest.addValue(idToken, forHTTPHeaderField: "idtoken")
+        }
         
         do {
             let requestBody = try JSONEncoder().encode(request)

@@ -1,0 +1,1697 @@
+{
+	"info": {
+		"_postman_id": "4771c56b-d408-4726-8b0c-f2e51e6cb89c",
+		"name": "Tringbox",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "25427765"
+	},
+	"item": [
+		{
+			"name": "Register Users",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"first_name\": \"Tring\",\n    \"last_name\": \"Box\",\n    \"dob\": \"2024-08-01\", // Date\n    \"gender\": \"Male\", // enum: [\"Male\", \"Female\"]\n    \"type\": \"User\", // enum: [\"DJ\", \"User\"]\n    \"email\": \"support@tringbox.com\",\n    \"display_name\": \"Tringbox\",\n    \"phone_number\": \"+15146430901\",\n    \"notificationId\": \"802a6eea-1ae2-4254-85fa-fd4b877c2dc3\",\n    \"deviceId\": \"sampleDevice1\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/users",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get User Profile",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://core-api-stage-001.ap-south-1.elasticbeanstalk.com/v1/users?type=DJ",
+					"protocol": "http",
+					"host": [
+						"core-api-stage-001",
+						"ap-south-1",
+						"elasticbeanstalk",
+						"com"
+					],
+					"path": [
+						"v1",
+						"users"
+					],
+					"query": [
+						{
+							"key": "type",
+							"value": "DJ"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Users",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    // Everything on POST could be updated here.\n    \"gender\": \"Female\" // enum: [\"Male\", \"Female\"]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://core-api-stage-001.ap-south-1.elasticbeanstalk.com/v1/users",
+					"protocol": "http",
+					"host": [
+						"core-api-stage-001",
+						"ap-south-1",
+						"elasticbeanstalk",
+						"com"
+					],
+					"path": [
+						"v1",
+						"users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Token",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"tringboxToken\", jsonData.idToken);",
+							"pm.globals.set(\"tringboxToken\", jsonData.idToken);"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"test.core@tringbox.in\",\n    \"password\": \"pFXTv47R464T1xTgJlOH62Xd5LdIkaHl\",\n    \"returnSecureToken\": true\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyPassword?key=AIzaSyBr-VHYoYzOIHkj5LTHVss_cYAelPPPSHk",
+					"protocol": "https",
+					"host": [
+						"www",
+						"googleapis",
+						"com"
+					],
+					"path": [
+						"identitytoolkit",
+						"v3",
+						"relyingparty",
+						"verifyPassword"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "AIzaSyBr-VHYoYzOIHkj5LTHVss_cYAelPPPSHk"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Venues",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://core-api-stage-001.ap-south-1.elasticbeanstalk.com/v1/venue?lon=72.7994335&lat=18.9638779",
+					"protocol": "http",
+					"host": [
+						"core-api-stage-001",
+						"ap-south-1",
+						"elasticbeanstalk",
+						"com"
+					],
+					"path": [
+						"v1",
+						"venue"
+					],
+					"query": [
+						{
+							"key": "lon",
+							"value": "72.7994335"
+						},
+						{
+							"key": "lat",
+							"value": "18.9638779"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Trending Search",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/track/trending",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"track",
+						"trending"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Search Songs",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://core-api-stage-001.ap-south-1.elasticbeanstalk.com/v1/track/search?query=Tauba Tauba",
+					"protocol": "http",
+					"host": [
+						"core-api-stage-001",
+						"ap-south-1",
+						"elasticbeanstalk",
+						"com"
+					],
+					"path": [
+						"v1",
+						"track",
+						"search"
+					],
+					"query": [
+						{
+							"key": "query",
+							"value": "Tauba Tauba"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "New Releases",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://core-api-stage-001.ap-south-1.elasticbeanstalk.com/v1/track/new",
+					"protocol": "http",
+					"host": [
+						"core-api-stage-001",
+						"ap-south-1",
+						"elasticbeanstalk",
+						"com"
+					],
+					"path": [
+						"v1",
+						"track",
+						"new"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Presonalized Track",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://core-api-stage-001.ap-south-1.elasticbeanstalk.com/v1/track/presonalized",
+					"protocol": "http",
+					"host": [
+						"core-api-stage-001",
+						"ap-south-1",
+						"elasticbeanstalk",
+						"com"
+					],
+					"path": [
+						"v1",
+						"track",
+						"presonalized"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Add track to queue",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"trackId\": \"66ceba490ade8e2117bc1bd0\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/venue/672ba5e6a8a61f701ab4c5ce/queue",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"venue",
+						"672ba5e6a8a61f701ab4c5ce",
+						"queue"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get the queue of Tracks",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://core-api-stage-001.ap-south-1.elasticbeanstalk.com/v1/venue/66c7c5f10ade8e2117bc1bb9/queue",
+					"protocol": "http",
+					"host": [
+						"core-api-stage-001",
+						"ap-south-1",
+						"elasticbeanstalk",
+						"com"
+					],
+					"path": [
+						"v1",
+						"venue",
+						"66c7c5f10ade8e2117bc1bb9",
+						"queue"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Accept or Reject the song",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"status\": \"played\",\n    \"trackId\": \"66ceba490ade8e2117bc1bd0\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/venue/672ba5e6a8a61f701ab4c5ce/queue/status",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"venue",
+						"672ba5e6a8a61f701ab4c5ce",
+						"queue",
+						"status"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "See the now playing song",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://core-api-stage-001.ap-south-1.elasticbeanstalk.com/v1/venue/66c7c5f10ade8e2117bc1bb9/playback",
+					"protocol": "http",
+					"host": [
+						"core-api-stage-001",
+						"ap-south-1",
+						"elasticbeanstalk",
+						"com"
+					],
+					"path": [
+						"v1",
+						"venue",
+						"66c7c5f10ade8e2117bc1bb9",
+						"playback"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "History of the songs played with count as parameter",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://core-api-stage-001.ap-south-1.elasticbeanstalk.com/v1/venue/66c7c5f10ade8e2117bc1bb9/playback?count=5",
+					"protocol": "http",
+					"host": [
+						"core-api-stage-001",
+						"ap-south-1",
+						"elasticbeanstalk",
+						"com"
+					],
+					"path": [
+						"v1",
+						"venue",
+						"66c7c5f10ade8e2117bc1bb9",
+						"playback"
+					],
+					"query": [
+						{
+							"key": "count",
+							"value": "5"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create a Venue for DJ",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"startAt\": \"2024-09-12T04:45:33+0000\",\n    \"endAt\": \"2024-09-12T06:45:33+0000\",\n    \"name\": \"DJ Khalil\",\n    \"theme\":\"Bollywood 90s\",\n    \"address\": \"RETRO CLUB, 2107/5 Sidartha complex, Under indian overseas bank, Bannur Main Rd, near Chamundeshwari Temple, Chamundeshwari nagar, Mandya, Karnataka 571401, India\",\n    \"geometry\": {\n        \"type\": \"Point\",\n        \"coordinates\": [72.6884395, 19.0028104]\n    }\n    \n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/v1/venue",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"v1",
+						"venue"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get the venue created by DJ",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://core-api-stage-001.ap-south-1.elasticbeanstalk.com/v1/owner/venues",
+					"protocol": "http",
+					"host": [
+						"core-api-stage-001",
+						"ap-south-1",
+						"elasticbeanstalk",
+						"com"
+					],
+					"path": [
+						"v1",
+						"owner",
+						"venues"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Make DJ Venue Active/Live or Inactive/End",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"status\": \"finished\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://core-api-stage-001.ap-south-1.elasticbeanstalk.com/v1/venue/66e11a54235cd31749236280/status",
+					"protocol": "http",
+					"host": [
+						"core-api-stage-001",
+						"ap-south-1",
+						"elasticbeanstalk",
+						"com"
+					],
+					"path": [
+						"v1",
+						"venue",
+						"66e11a54235cd31749236280",
+						"status"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get the approved Tracks",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://core-api-stage-001.ap-south-1.elasticbeanstalk.com/v1/venue/66c7c5f10ade8e2117bc1bb9/approved",
+					"protocol": "http",
+					"host": [
+						"core-api-stage-001",
+						"ap-south-1",
+						"elasticbeanstalk",
+						"com"
+					],
+					"path": [
+						"v1",
+						"venue",
+						"66c7c5f10ade8e2117bc1bb9",
+						"approved"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Order a Price",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/order/price",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"order",
+						"price"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create an Order",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"priceId\": \"66e7b4a60ade8e2117bc1bf3\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/order",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"order"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get the venue with DJ ID",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/venue/:dj_userId",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"venue",
+						":dj_userId"
+					],
+					"variable": [
+						{
+							"key": "dj_userId",
+							"value": "dC1EhUxQXeP84nVk7iELgWlXPj13"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Register Device No Firebase",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"deviceId\": \"device-android-123\",\n    \"notificationId\": \"802a6eea-1ae2-4254-85fa-fd4b877c2dc3\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/users/device",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"users",
+						"device"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Add Users Activity",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"deviceId\": \"device-android-123\",\n    \"eventName\": \"https://play.google.com/console/u/0/developers/5401530119411460803/app-list\",\n    \"event\": \"scan\" // You can add any action clicked/opened (this is just string)\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://core-prod-001-619357594029.asia-south1.run.app/v1/users/activity",
+					"protocol": "https",
+					"host": [
+						"core-prod-001-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"users",
+						"activity"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Venues",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Starbucks\",\n    \"theme\": \"90s Song\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/venue/66c7c5f10ade8e2117bc1bb9",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"venue",
+						"66c7c5f10ade8e2117bc1bb9"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete a venue",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/venue/66e299968d7636d098be151c",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"venue",
+						"66e299968d7636d098be151c"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Users Activity",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/users/activity/75f1013425961755",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"users",
+						"activity",
+						"75f1013425961755"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Register QR Users",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "https://core-prod-001-619357594029.asia-south1.run.app/v1/users/qr",
+					"protocol": "https",
+					"host": [
+						"core-prod-001-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"users",
+						"qr"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Transactions",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/v1/transactions",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"v1",
+						"transactions"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Fast Track song",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"trackId\": \"66ceba490ade8e2117bc1bd0\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/venue/672ba5e6a8a61f701ab4c5ce/queue/fastTrack",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"venue",
+						"672ba5e6a8a61f701ab4c5ce",
+						"queue",
+						"fastTrack"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "DJ Overview",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/venues/overview",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"venues",
+						"overview"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shout Out Request",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"shoutOut\": \"Happy Birthday to me\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/shout-out/673439120ade8e2117bc1c12/request",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"shout-out",
+						"673439120ade8e2117bc1c12",
+						"request"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get shout-out messages",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app//v1/shout-out/message",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"",
+						"v1",
+						"shout-out",
+						"message"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "My Shout Out Request",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/v1/shout-out/673439120ade8e2117bc1c12/request",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"v1",
+						"shout-out",
+						"673439120ade8e2117bc1c12",
+						"request"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update the status of shout out",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"status\": \"played\",\n    \"shoutOutId\": \"673439aed7723781dc2b539b\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/shout-out/673439120ade8e2117bc1c12/status",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"shout-out",
+						"673439120ade8e2117bc1c12",
+						"status"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "My tracks",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/venue/673592c58a5ff32a90cb526f/tracks",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"venue",
+						"673592c58a5ff32a90cb526f",
+						"tracks"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Venue Overview",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/v1/venue/67406f6f6fe9149a5b011844/overview",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"v1",
+						"venue",
+						"67406f6f6fe9149a5b011844",
+						"overview"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shout-Out Count",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/v1/shout-out/673439120ade8e2117bc1c12/users/count",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"v1",
+						"shout-out",
+						"673439120ade8e2117bc1c12",
+						"users",
+						"count"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Venue Users Count",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/venue/674404bfe3487669680d38c0/users/count",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"venue",
+						"674404bfe3487669680d38c0",
+						"users",
+						"count"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Venue Users",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/venue/674404bfe3487669680d38c0/users",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"venue",
+						"674404bfe3487669680d38c0",
+						"users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Add Users to venue",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/venue/674404bfe3487669680d38c0/users",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"venue",
+						"674404bfe3487669680d38c0",
+						"users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Tracks of Playlist By ID",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/playlist/67563ddb70bd3cc11b79b0cb/tracks",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"playlist",
+						"67563ddb70bd3cc11b79b0cb",
+						"tracks"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Playlists",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/playlists",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"playlists"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "User Dashboard",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://core-api-619357594029.asia-south1.run.app/v1/users/dashboard",
+					"protocol": "https",
+					"host": [
+						"core-api-619357594029",
+						"asia-south1",
+						"run",
+						"app"
+					],
+					"path": [
+						"v1",
+						"users",
+						"dashboard"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Artists",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/v1/artists",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"v1",
+						"artists"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Languages ",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{tringboxToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/v1/languages",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"v1",
+						"languages"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Token TringQR",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"tringboxToken\", jsonData.idToken);",
+							"pm.globals.set(\"tringboxToken\", jsonData.idToken);"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"support@tringbox.com\",\n    \"password\": \"PassApi@123\",\n    \"returnSecureToken\": true\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyPassword?key=AIzaSyDSts7idwu8o7U_gWHaU17OkR4VWGBhhnY",
+					"protocol": "https",
+					"host": [
+						"www",
+						"googleapis",
+						"com"
+					],
+					"path": [
+						"identitytoolkit",
+						"v3",
+						"relyingparty",
+						"verifyPassword"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "AIzaSyDSts7idwu8o7U_gWHaU17OkR4VWGBhhnY"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

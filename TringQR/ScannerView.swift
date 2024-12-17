@@ -77,10 +77,10 @@ struct ScannerView: View {
             Spacer()
 
             VStack(spacing: 10) {
-                HStack(spacing: 4) { // Minimized spacing
+                HStack(spacing: 4) {
                     Button(action: {
                         withAnimation(.easeInOut(duration: 0.2)) {
-                            updateZoomFactor(currentZoomFactor - 0.5) // Zoom out
+                            updateZoomFactor(currentZoomFactor - 0.5)
                         }
                     }) {
                         Image(systemName: "minus.magnifyingglass")
