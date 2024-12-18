@@ -35,72 +35,107 @@ struct SidebarItem: View {
 
 
 struct SidebarView: View {
-    @Binding var selectedTab: Int
-    @Binding var isSidebarVisible: Bool
-    @Binding var isBackButtonVisible: Bool
     @EnvironmentObject var appState: AppState
-    @State private var showShareSheet = false
+    @Binding var isSidebarVisible: Bool
+    @Binding var selectedTab: Int
+    @Binding var isBackButtonVisible: Bool
+    @Binding var showShareSheet: Bool
 
     var body: some View {
-        HStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 20) {
-                VStack {
-                    if let userName = appState.userName {
-                        Text("Hi \(userName)!")
-                            .font(.headline)
-                            .foregroundColor(.black)
-                            .padding(30)
-                    } else {
-                        Text("Hi Champion!")
-                            .font(.headline)
-                            .foregroundColor(.black)
-                            .padding(30)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .background(Color.yellow)
+        VStack(alignment: .leading, spacing: 20) {
+            // Sidebar Header
+            VStack {
+                if let userName = appState.userName {
+                    Text("Hi \(userName)!")
+                        .font(.headline)
+                        .foregroundColor(.black)
+                        .padding(30)
+                } else {
+                    Image("Champion")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 80, height: 80)
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(Color.purple, lineWidth: 3)
+                        )
+                        .padding(.top, 25)
 
-                SidebarItem(title: "Scan History", systemImage: "clock", isSelected: selectedTab == 0) {
-                    selectedTab = 0
-                    isSidebarVisible = false
-                    isBackButtonVisible = true
-                }
-                
-                SidebarItem(title: "Scanner", systemImage: "camera", isSelected: selectedTab == 1) {
-                    selectedTab = 1
-                    isSidebarVisible = false
-                    withAnimation { isBackButtonVisible = false }
-                }
-                
-                SidebarItem(title: "Share", systemImage: "square.and.arrow.up", isSelected: selectedTab == 2) {
-                    selectedTab = 2
-                    isSidebarVisible = false
-                    isBackButtonVisible = true
-                    showShareSheet = true
-                }
-                .sheet(isPresented: $showShareSheet) {
-                    let shareText = "Check out this amazing app!"
-                    let shareURL = URL(string: "https://example.com")!
-                    ActivityView(activityItems: [shareText, shareURL])
-                }
-                
-                SidebarItem(title: "Help", systemImage: "questionmark.circle", isSelected: selectedTab == 3) {
-                    selectedTab = 3
-                    isSidebarVisible = false
-                    isBackButtonVisible = true
+                    Text("Hi Champion!")
+                        .font(.headline)
+                        .foregroundColor(.black)
+                        .padding(30)
                 }
             }
-            .frame(width: 250)
-            .background(Color.white)
-            .shadow(radius: 5)
-            .transition(.move(edge: .leading))
-            
+            .frame(maxWidth: .infinity)
+            .background(Color.yellow)
+
+            // Sidebar Items
+            SidebarItem(
+                title: "Scan History",
+                systemImage: "clock",
+                isSelected: selectedTab == 0
+            ) {
+                selectedTab = 0
+                isSidebarVisible = false
+                isBackButtonVisible = true
+            }
+
+            SidebarItem(
+                title: "Share",
+                systemImage: "square.and.arrow.up",
+                isSelected: false
+            ) {
+                withAnimation {
+                    isSidebarVisible = false
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                    showShareSheet = true
+                }
+            }
+
+            SidebarItem(
+                title: "Help",
+                systemImage: "questionmark.circle",
+                isSelected: selectedTab == 3
+            ) {
+                selectedTab = 3
+                isSidebarVisible = false
+                isBackButtonVisible = true
+            }
+
+            SidebarItem(
+                title: appState.isLoggedIn ? "Sign Out" : "Sign In",
+                systemImage: "person.circle",
+                isSelected: false
+            ) {
+                if appState.isLoggedIn {
+                    appState.toggleLogin()
+                    appState.setUserName(nil)
+                } else {
+                    isSidebarVisible = false
+                }
+                isSidebarVisible = false
+                isBackButtonVisible = false
+            }
+
             Spacer()
+
+            Text("Made in India")
+                .font(.footnote)
+                .foregroundColor(.black)
+                .padding(.bottom, 20)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
+        .frame(maxWidth: .infinity)
+        .background(Color.white)
     }
 }
+    
+
 #Preview {
-    SidebarView(selectedTab: .constant(0), isSidebarVisible: .constant(true), isBackButtonVisible: .constant(false))
+    SidebarView(isSidebarVisible: .constant(true), selectedTab: .constant(0), isBackButtonVisible: .constant(false), showShareSheet: .constant(false))
         .environmentObject(AppState())
 }
 

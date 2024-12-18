@@ -11,8 +11,9 @@ import AVKit
 struct CameraView: UIViewRepresentable {
     var frameSize: CGSize
     @Binding var session: AVCaptureSession
+    
     func makeUIView(context: Context) -> UIView {
-        let view = UIViewType(frame: CGRect(origin: .zero, size: frameSize))
+        let view = UIView(frame: CGRect(origin: .zero, size: frameSize))
         view.backgroundColor = .clear
         
         let cameraLayer = AVCaptureVideoPreviewLayer(session: session)
@@ -21,11 +22,13 @@ struct CameraView: UIViewRepresentable {
         cameraLayer.masksToBounds = true
         view.layer.addSublayer(cameraLayer)
         
+       
+        view.isUserInteractionEnabled = false
+        
         return view
     }
     
-    func updateUIView(_ uiView: UIViewType, context: Context) {
-            }
-    
-   
+    func updateUIView(_ uiView: UIView, context: Context) {
+       
     }
+}

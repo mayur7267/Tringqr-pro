@@ -41,35 +41,32 @@ class AppState: ObservableObject {
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
 
-    @State private var isSidebarVisible = false {
-        didSet {
-            print("Sidebar visibility changed to: \(isSidebarVisible)")
-        }
-    }
+    @State private var isSidebarVisible = false
     @State private var selectedTab = 1
     @State private var isBackButtonVisible = false
-    @State private var showLoginView = false
+    @State private var showLoginView = true
+    @State private var showShareSheet = false
 
     var body: some View {
         NavigationView {
             ZStack {
-                if appState.isFirstLaunch {
-                   
+                if showLoginView {
                     LoginView(onLoginSuccess: {
                         appState.isLoggedIn = true
                         appState.setUserName("Google User")
+                        showLoginView = false
                         appState.completeFirstLaunch()
                     })
                     .transition(.move(edge: .leading))
                 } else {
-                    // Regular Content
                     GeometryReader { geometry in
                         ZStack {
+                            // Background
                             GIFView(gifName: "main")
                                 .ignoresSafeArea()
-                                .allowsHitTesting(false)
 
                             VStack(spacing: 0) {
+                                // Navigation Bar
                                 HStack(alignment: .center) {
                                     if isBackButtonVisible {
                                         Button(action: {
@@ -89,8 +86,7 @@ struct ContentView: View {
                                         }
                                     } else {
                                         Button(action: {
-                                            print("Hamburger button tapped")
-                                            withAnimation {
+                                            withAnimation(.spring()) {
                                                 isSidebarVisible.toggle()
                                             }
                                         }) {
@@ -99,15 +95,15 @@ struct ContentView: View {
                                                 .foregroundColor(.black)
                                                 .imageScale(.large)
                                         }
-                                        .padding(16)
-                                        .contentShape(Rectangle())
                                     }
 
                                     Spacer()
+
                                     Text("TringQR")
                                         .foregroundColor(.black)
                                         .font(.headline)
                                         .frame(maxWidth: .infinity, alignment: .center)
+
                                     Spacer()
                                 }
                                 .frame(height: 44)
@@ -115,9 +111,9 @@ struct ContentView: View {
                                 .background(Color.white)
                                 .shadow(color: Color.gray.opacity(0.2), radius: 1, x: 0, y: 1)
                                 .offset(y: 48)
-
                                 Spacer()
 
+                                // Main Content
                                 Group {
                                     switch selectedTab {
                                     case 0:
@@ -136,28 +132,40 @@ struct ContentView: View {
                                 }
                             }
 
+                            // Sidebar
                             if isSidebarVisible {
                                 Color.black.opacity(0.5)
-                                    .edgesIgnoringSafeArea(.all)
+                                    .ignoresSafeArea()
                                     .onTapGesture {
-                                        withAnimation(.easeInOut(duration: 0.3)) {
+                                        withAnimation {
                                             isSidebarVisible = false
                                         }
                                     }
 
                                 SidebarView(
-                                    selectedTab: $selectedTab,
                                     isSidebarVisible: $isSidebarVisible,
-                                    isBackButtonVisible: $isBackButtonVisible
+                                    selectedTab: $selectedTab,
+                                    isBackButtonVisible: $isBackButtonVisible,
+                                    showShareSheet: $showShareSheet
                                 )
-                                .animation(.easeInOut(duration: 0.3), value: isSidebarVisible)
+                                .frame(width: geometry.size.width * 0.7)
+                                .transition(.move(edge: .leading))
+                                .animation(.spring(), value: isSidebarVisible)
+                            } else {
+                                EmptyView()
                             }
                         }
                     }
-                    .navigationViewStyle(StackNavigationViewStyle())
+                    .navigationBarHidden(true)
                 }
             }
             .ignoresSafeArea(edges: .top)
+            .onAppear {
+                
+                if appState.isFirstLaunch {
+                    showLoginView = true
+                }
+            }
             .environmentObject(appState)
         }
     }
@@ -259,35 +267,37 @@ struct HistoryView: View {
                     } else {
                         ScrollView {
                             VStack(alignment: .leading, spacing: 15) {
-                                ForEach(appState.scannedHistory, id: \ .self) { code in
-                                    HStack {
-                                        Image(systemName: "qrcode")
-                                            .foregroundColor(.white)
-                                            .padding(.trailing, 10)
-
-                                        VStack(alignment: .leading, spacing: 5) {
-                                            Text(code)
-                                                .font(.body)
+                                List{
+                                    ForEach(appState.scannedHistory, id: \ .self) { code in
+                                        HStack {
+                                            Image(systemName: "qrcode")
                                                 .foregroundColor(.white)
-
-                                            Text("Tap to share or swipe to delete")
-                                                .font(.footnote)
-                                                .foregroundColor(.gray)
+                                                .padding(.trailing, 10)
+                                            
+                                            VStack(alignment: .leading, spacing: 5) {
+                                                Text(code)
+                                                    .font(.body)
+                                                    .foregroundColor(.white)
+                                                
+                                                Text("Tap to share or swipe to delete")
+                                                    .font(.footnote)
+                                                    .foregroundColor(.gray)
+                                            }
+                                            
+                                            Spacer()
                                         }
-
-                                        Spacer()
+                                        .contentShape(Rectangle())
+                                        .onTapGesture {
+                                            selectedHistoryItem = code
+                                            showShareSheet = true
+                                        }
+                                        .padding()
+                                        .background(Color.black.opacity(0.8))
+                                        .cornerRadius(10)
                                     }
-                                    .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        selectedHistoryItem = code
-                                        showShareSheet = true
-                                    }
-                                    .padding()
-                                    .background(Color.black.opacity(0.8))
-                                    .cornerRadius(10)
-                                }
-                                .onDelete { indexSet in
-                                    appState.scannedHistory.remove(atOffsets: indexSet)
+                                    .onDelete(perform: { indexSet in
+                                            appState.scannedHistory.remove(atOffsets: indexSet)
+                                        })
                                 }
                             }
                             .padding()

@@ -120,31 +120,70 @@ struct GalleryScannerView: View {
 }
 
 
+import SwiftUI
+import UIKit
+
+// GIFCache to store GIF data in memory
+class GIFCache {
+    static let shared = GIFCache()
+    private let cache = NSCache<NSString, NSData>()
+    
+    func getCachedGIF(named name: String) -> Data? {
+        return cache.object(forKey: name as NSString) as Data?
+    }
+    
+    func cacheGIF(data: Data, named name: String) {
+        cache.setObject(data as NSData, forKey: name as NSString)
+    }
+}
+
 struct GIFView: UIViewRepresentable {
     let gifName: String
-    
+
     func makeUIView(context: Context) -> UIImageView {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
-        
-        // Perform GIF loading asynchronously
+
+        // Load GIF
+        loadGIF(for: imageView)
+
+        return imageView
+    }
+
+    func updateUIView(_ uiView: UIImageView, context: Context) {}
+
+    // Helper to load GIF data
+    private func loadGIF(for imageView: UIImageView) {
         DispatchQueue.global(qos: .userInteractive).async {
-            if let path = Bundle.main.path(forResource: gifName, ofType: "gif"),
-               let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
-                let image = UIImage.animatedImage(withAnimatedGIFData: data)
-                
+            // Check cache first
+            if let cachedData = GIFCache.shared.getCachedGIF(named: gifName) {
+                if let image = UIImage.animatedImage(withAnimatedGIFData: cachedData) {
+                    DispatchQueue.main.async {
+                        imageView.image = image
+                    }
+                }
+                return
+            }
+
+            // Load from bundle if not cached
+            guard let path = Bundle.main.path(forResource: gifName, ofType: "gif"),
+                  let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else {
+                print("Error: GIF not found or failed to load: \(gifName)")
+                return
+            }
+
+            // Cache and display the GIF
+            GIFCache.shared.cacheGIF(data: data, named: gifName)
+            if let image = UIImage.animatedImage(withAnimatedGIFData: data) {
                 DispatchQueue.main.async {
                     imageView.image = image
                 }
             }
         }
-        
-        return imageView
     }
-    
-    func updateUIView(_ uiView: UIImageView, context: Context) {}
 }
+
 
 
 extension UIImage {

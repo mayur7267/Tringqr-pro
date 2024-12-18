@@ -185,10 +185,15 @@ let countries = [
         Country(name: "Vietnam", code: "+84", flag: "🇻🇳"),
         Country(name: "Zimbabwe", code: "+263", flag: "🇿🇼")
 ]
+extension View {
+    func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+}
 
 // MARK: - Login View
 struct LoginView: View {
-    @State private var selectedCountry: Country = countries.first!
+    @State private var selectedCountry: Country = countries.first ?? Country(name: "India", code: "+91", flag: "🇮🇳")
     @State private var phoneNumber: String = ""
     @State private var isLoading: Bool = false
     @State private var isOTPViewPresented: Bool = false
@@ -451,11 +456,13 @@ struct CountryPicker: View {
         if searchText.isEmpty {
             return countries
         } else {
+            let predicate = NSPredicate(format: "SELF CONTAINS[cd] %@", searchText)
             return countries.filter { country in
-                country.name.localizedCaseInsensitiveContains(searchText)
+                predicate.evaluate(with: country.name)
             }
         }
     }
+
 
     init(selectedCountry: Binding<Country>) {
         self._selectedCountry = selectedCountry
