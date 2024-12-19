@@ -44,8 +44,13 @@ struct ContentView: View {
     @State private var isSidebarVisible = false
     @State private var selectedTab = 1
     @State private var isBackButtonVisible = false
-    @State private var showLoginView = true
+    @State private var showLoginView: Bool
     @State private var showShareSheet = false
+
+    init(appState: AppState) {
+        // Initialize showLoginView with the value of isFirstLaunch
+        _showLoginView = State(initialValue: appState.isFirstLaunch)
+    }
 
     var body: some View {
         NavigationView {
@@ -160,12 +165,6 @@ struct ContentView: View {
                 }
             }
             .ignoresSafeArea(edges: .top)
-            .onAppear {
-                
-                if appState.isFirstLaunch {
-                    showLoginView = true
-                }
-            }
             .environmentObject(appState)
         }
     }
@@ -330,7 +329,7 @@ struct HistoryView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView()
+        ContentView(appState: AppState())
             .environmentObject(AppState())
     }
 }

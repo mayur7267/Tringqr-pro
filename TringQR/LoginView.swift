@@ -202,26 +202,25 @@ struct LoginView: View {
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
     @ObservedObject private var keyboardObserver = KeyboardObserver()
-
+    
     var onLoginSuccess: () -> Void
-
+    
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 GIFView(gifName: "background2")
-                    .ignoresSafeArea()
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                
+                    .ignoresSafeArea(edges: .top)
+                    
                 
                 VStack {
+                    Spacer()
                     HStack {
                         Spacer()
-                        Button {
+                        Button(action: {
                             DispatchQueue.main.async {
                                 onLoginSuccess()
                             }
-                            
-                        }label: {
+                        }) {
                             Text("Skip")
                                 .font(.headline)
                                 .foregroundColor(.black)
@@ -229,10 +228,13 @@ struct LoginView: View {
                                 .padding(.vertical, 10)
                                 .background(Color.yellow)
                                 .cornerRadius(25)
-                                .padding(.vertical, 40)
                         }
                         .padding(.trailing, 30)
+                        .padding(.top, 20)
+                        .contentShape(Rectangle())
+
                     }
+
                     
                     Spacer()
                     
@@ -294,13 +296,13 @@ struct LoginView: View {
                                     .cornerRadius(8)
                             }
                         }
-
+                        
                         Text("or continue with")
                             .font(.system(size: 14))
                             .foregroundColor(.white.opacity(0.7))
                         
                         Button(action: {
-                            signInWithGoogle()
+                            //                            signInWithGoogle()
                         }) {
                             HStack {
                                 Image(systemName: "g.circle.fill")
@@ -356,10 +358,10 @@ struct LoginView: View {
             )
         }
     }
-
+    
     func sendOTP() {
         let formattedNumber = selectedCountry.code + phoneNumber.trimmingCharacters(in: .whitespaces)
-
+        
         isLoading = true
         PhoneAuthProvider.provider().verifyPhoneNumber(formattedNumber, uiDelegate: nil) { id, error in
             DispatchQueue.main.async {
@@ -379,8 +381,10 @@ struct LoginView: View {
             }
         }
     }
-
+    
     func registerUser() {
+        let phone_number = selectedCountry.code + phoneNumber.trimmingCharacters(in: .whitespaces)
+        
         // Create a request object with the JSON data
         let request = RegisterUserRequest(
             first_name: "Tring",
@@ -394,24 +398,40 @@ struct LoginView: View {
             notificationId: "802a6eea-1ae2-4254-85fa-fd4b877c2dc3",
             deviceId: "sampleDevice1"
         )
+        
+       
+        guard let currentUser = Auth.auth().currentUser else {
+                print("No user is signed in.")
+                return
+            }
 
-        // Replace "your_bearer_token_here" and "your_id_token_here" with actual values
-        let bearerToken = "your_bearer_token_here"
-        let idToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjFhYWMyNzEwOTkwNDljMGRmYzA1OGUwNjEyZjA4ZDA2YzMwYTA0MTUiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vcHJqLW0tdHJpbmdxci1hcHAiLCJhdWQiOiJwcmotbS10cmluZ3FyLWFwcCIsImF1dGhfdGltZSI6MTczNDQ0MzgzNSwidXNlcl9pZCI6Im9YZ2FYOVlGbTBQRDEzUXJMS0lVQUlCNWJLdDEiLCJzdWIiOiJvWGdhWDlZRm0wUEQxM1FyTEtJVUFJQjViS3QxIiwiaWF0IjoxNzM0NDQzODM1LCJleHAiOjE3MzQ0NDc0MzUsImVtYWlsIjoic3VwcG9ydEB0cmluZ2JveC5jb20iLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnsiZW1haWwiOlsic3VwcG9ydEB0cmluZ2JveC5jb20iXX0sInNpZ25faW5fcHJvdmlkZXIiOiJwYXNzd29yZCJ9fQ.m9eZctd_xtHC404_HgzLudmh56AaDtUa_22D_P9sKr1_o0J1-hiMB2QenJiLtCNspZXvSr8SFP4oe2IBBISeGiKq5fMv-AGxcONqlW5cvBdpzj7LkaCVtpen4OOU8XTPn8_Po6-bDOfimh7UJVZDhl3qbhGEFD95lKuVZkNVlfrCmGxhsuAaiGBD5dBI4s7uq4Nmo7gRJzDjjpNPOAVJ-NE-WjN6G-9m_ZV-mgp9AhNb8_31K3dPiyA5ieyp0TPpB7LtMDqtV2hvY6JqTKVYKZE04k0Y46ogZBfTtyEkh_7YUzU-RBLdPWIOjhVSeHMoNE6QzZnPNVb9ytexdlYwgw"
+            currentUser.getIDToken { idToken, error in
+                if let error = error {
+                    print("Failed to fetch ID token: \(error.localizedDescription)")
+                    return
+                }
 
-        // Call the API
-        APIManager.shared.registerUser(request: request, token: bearerToken, idToken: idToken) { result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let response):
-                    print("User registered successfully: \(response)")
-                case .failure(let error):
-                    print("Registration failed: \(error.localizedDescription)")
+                guard let idToken = idToken else {
+                    print("ID token is nil.")
+                    return
+                }
+
+                // Call-thebackend API with fetchedID  token
+                APIManager.shared.sendIDTokenToBackend(idToken: idToken) { result in
+                    switch result {
+                    case .success(let success):
+                        if success {
+                            print("Token validated successfully.")
+                            onLoginSuccess()
+                        } else {
+                            print("Token validation failed.")
+                        }
+                    case .failure(let error):
+                        print("Error: \(error.localizedDescription)")
+                    }
                 }
             }
         }
-    }
-
 
     private func signInWithGoogle() {
         guard let clientID = FirebaseApp.app()?.options.clientID else { return }

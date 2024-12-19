@@ -376,6 +376,7 @@ struct ScannerView: View {
     }
 
 #Preview {
-    ContentView()
+    ContentView(appState: AppState())
         .environmentObject(AppState())
 }
+

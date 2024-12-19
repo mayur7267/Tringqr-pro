@@ -84,7 +84,7 @@ struct TringQRApp: App {
     var body: some Scene {
         WindowGroup {
             NavigationView {
-                ContentView()
+                ContentView(appState: AppState())
                     .environmentObject(AppState())
             }
         }
