@@ -40,6 +40,7 @@ struct SidebarView: View {
     @Binding var selectedTab: Int
     @Binding var isBackButtonVisible: Bool
     @Binding var showShareSheet: Bool
+    @Binding var showLoginView: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -113,8 +114,9 @@ struct SidebarView: View {
                 if appState.isLoggedIn {
                     appState.toggleLogin()
                     appState.setUserName(nil)
+                    showLoginView = true
                 } else {
-                    isSidebarVisible = false
+                    showLoginView = true
                 }
                 isSidebarVisible = false
                 isBackButtonVisible = false
@@ -132,10 +134,10 @@ struct SidebarView: View {
         .background(Color.white)
     }
 }
-    
+
 
 #Preview {
-    SidebarView(isSidebarVisible: .constant(true), selectedTab: .constant(0), isBackButtonVisible: .constant(false), showShareSheet: .constant(false))
+    SidebarView(isSidebarVisible: .constant(true), selectedTab: .constant(0), isBackButtonVisible: .constant(false), showShareSheet: .constant(false), showLoginView: .constant(false))
         .environmentObject(AppState())
 }
 

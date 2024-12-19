@@ -48,128 +48,137 @@ struct ContentView: View {
     @State private var showShareSheet = false
 
     init(appState: AppState) {
-        // Initialize showLoginView with the value of isFirstLaunch
         _showLoginView = State(initialValue: appState.isFirstLaunch)
     }
 
     var body: some View {
-        NavigationView {
-            ZStack {
-                if showLoginView {
-                    LoginView(onLoginSuccess: {
-                        appState.isLoggedIn = true
-                        appState.setUserName("Google User")
-                        showLoginView = false
-                        appState.completeFirstLaunch()
-                    })
-                    .transition(.move(edge: .leading))
-                } else {
-                    GeometryReader { geometry in
-                        ZStack {
-                            // Background
-                            GIFView(gifName: "main")
-                                .ignoresSafeArea()
-
-                            VStack(spacing: 0) {
-                                // Navigation Bar
-                                HStack(alignment: .center) {
-                                    if isBackButtonVisible {
-                                        Button(action: {
+        NavigationStack {
+            NavigationView {
+                ZStack {
+                    if showLoginView {
+                        LoginView(onLoginSuccess: {
+                            appState.isLoggedIn = true
+                            appState.setUserName("Google User")
+                            showLoginView = false
+                            appState.completeFirstLaunch()
+                        })
+                        .transition(.move(edge: .leading))
+                    } else {
+                        GeometryReader { geometry in
+                            ZStack(alignment: .leading) {
+                                // Background
+                                GIFView(gifName: "main")
+                                    .ignoresSafeArea(edges: .all)
+                                
+                                VStack(spacing: 0) {
+                                    // Navigation Bar
+                                    HStack(alignment: .center) {
+                                        if isBackButtonVisible {
+                                            Button(action: {
+                                                withAnimation {
+                                                    selectedTab = 1
+                                                    isBackButtonVisible = false
+                                                }
+                                            }) {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: "chevron.left")
+                                                        .foregroundColor(.black)
+                                                        .imageScale(.medium)
+                                                    Text("Back")
+                                                        .foregroundColor(.black)
+                                                        .font(.subheadline)
+                                                }
+                                            }
+                                        } else {
+                                            Button(action: {
+                                                withAnimation(.spring()) {
+                                                    isSidebarVisible.toggle()
+                                                }
+                                            }) {
+                                                Image(systemName: "line.3.horizontal")
+                                                    .bold()
+                                                    .foregroundColor(.black)
+                                                    .imageScale(.large)
+                                                    .contentShape(Rectangle())
+                                            }
+                                            .border(Color.clear)
+                                            .frame(width: 44, height: 44)
+                                            .background(Color.clear)
+                                            .zIndex(1)
+                                        }
+                                        
+                                        Spacer()
+                                        
+                                        Text("TringQR")
+                                            .foregroundColor(.black)
+                                            .font(.headline)
+                                            .frame(maxWidth: .infinity, alignment: .center)
+                                        
+                                        Spacer()
+                                    }
+                                    .frame(height: 44)
+                                    .padding(.horizontal, 12)
+                                    .background(Color.white)
+                                    .padding(.vertical, 40)
+                                    .offset(y: 0)
+                                    .zIndex(2)
+                                    
+                                    // Main Content
+                                    Group {
+                                        switch selectedTab {
+                                        case 0:
+                                            HistoryView(isBackButtonVisible: $isBackButtonVisible)
+                                                .environmentObject(appState)
+                                        case 1:
+                                            ScannerView()
+                                                .environmentObject(appState)
+                                        case 2:
+                                            ShareView(isBackButtonVisible: $isBackButtonVisible)
+                                        case 3:
+                                            HelpView(isBackButtonVisible: $isBackButtonVisible)
+                                        default:
+                                            Text("Unknown View")
+                                        }
+                                    }
+                                }
+                                
+                                // Sidebar and overlay
+                                if isSidebarVisible {
+                                    Color.black.opacity(0.5)
+                                        .ignoresSafeArea()
+                                        .onTapGesture {
                                             withAnimation {
-                                                selectedTab = 1
-                                                isBackButtonVisible = false
-                                            }
-                                        }) {
-                                            HStack(spacing: 4) {
-                                                Image(systemName: "chevron.left")
-                                                    .foregroundColor(.black)
-                                                    .imageScale(.medium)
-                                                Text("Back")
-                                                    .foregroundColor(.black)
-                                                    .font(.subheadline)
+                                                isSidebarVisible = false
                                             }
                                         }
-                                    } else {
-                                        Button(action: {
-                                            withAnimation(.spring()) {
-                                                isSidebarVisible.toggle()
-                                            }
-                                        }) {
-                                            Image(systemName: "line.3.horizontal")
-                                                .bold()
-                                                .foregroundColor(.black)
-                                                .imageScale(.large)
-                                        }
-                                    }
-
-                                    Spacer()
-
-                                    Text("TringQR")
-                                        .foregroundColor(.black)
-                                        .font(.headline)
-                                        .frame(maxWidth: .infinity, alignment: .center)
-
-                                    Spacer()
-                                }
-                                .frame(height: 44)
-                                .padding(.horizontal, 12)
-                                .background(Color.white)
-                                .shadow(color: Color.gray.opacity(0.2), radius: 1, x: 0, y: 1)
-                                .offset(y: 48)
-                                Spacer()
-
-                                // Main Content
-                                Group {
-                                    switch selectedTab {
-                                    case 0:
-                                        HistoryView(isBackButtonVisible: $isBackButtonVisible)
-                                            .environmentObject(appState)
-                                    case 1:
-                                        ScannerView()
-                                            .environmentObject(appState)
-                                    case 2:
-                                        ShareView(isBackButtonVisible: $isBackButtonVisible)
-                                    case 3:
-                                        HelpView(isBackButtonVisible: $isBackButtonVisible)
-                                    default:
-                                        Text("Unknown View")
+                                    
+                                    HStack(spacing: 0) {
+                                        SidebarView(
+                                            isSidebarVisible: $isSidebarVisible,
+                                            selectedTab: $selectedTab,
+                                            isBackButtonVisible: $isBackButtonVisible,
+                                            showShareSheet: $showShareSheet,
+                                            showLoginView: $showLoginView
+                                        )
+                                        .frame(width: geometry.size.width * 0.7)
+                                        .background(Color.white)
+                                        .edgesIgnoringSafeArea(.bottom)
+                                        .transition(.move(edge: .leading))
+                                        
+                                        Spacer()
                                     }
                                 }
-                            }
-
-                            // Sidebar
-                            if isSidebarVisible {
-                                Color.black.opacity(0.5)
-                                    .ignoresSafeArea()
-                                    .onTapGesture {
-                                        withAnimation {
-                                            isSidebarVisible = false
-                                        }
-                                    }
-
-                                SidebarView(
-                                    isSidebarVisible: $isSidebarVisible,
-                                    selectedTab: $selectedTab,
-                                    isBackButtonVisible: $isBackButtonVisible,
-                                    showShareSheet: $showShareSheet
-                                )
-                                .frame(width: geometry.size.width * 0.7)
-                                .transition(.move(edge: .leading))
-                                .animation(.spring(), value: isSidebarVisible)
-                            } else {
-                                EmptyView()
                             }
                         }
+                        .navigationBarHidden(true)
                     }
-                    .navigationBarHidden(true)
                 }
+                .environmentObject(appState)
+                .ignoresSafeArea(edges: .all)
             }
-            .ignoresSafeArea(edges: .top)
-            .environmentObject(appState)
         }
     }
 }
-
 struct ShareView: View {
     @Binding var isBackButtonVisible: Bool
     @State private var isSharing = true
@@ -177,6 +186,7 @@ struct ShareView: View {
     var body: some View {
         ZStack {
             LinearGradient(
+                
                 gradient: Gradient(colors: [Color.gray, Color.black]),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -327,9 +337,7 @@ struct HistoryView: View {
     }
 }
 
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
+#Preview {
         ContentView(appState: AppState())
             .environmentObject(AppState())
-    }
 }

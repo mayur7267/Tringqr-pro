@@ -96,7 +96,7 @@ struct GalleryScannerView: View {
     
     private func handleImageFromGallery(_ image: UIImage?) {
         guard let image = image else {
-            errorMessage = "No image selected."
+            
             return
         }
         
@@ -104,9 +104,7 @@ struct GalleryScannerView: View {
         if let qrCode = extractQRCode(from: image) {
             scannedCode = qrCode
             errorMessage = nil
-        } else {
-            errorMessage = "No QR code found in the image."
-        }
+        } 
     }
 
    
