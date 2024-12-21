@@ -47,30 +47,48 @@ struct SidebarView: View {
             // Sidebar Header
             VStack {
                 if let userName = appState.userName {
+                    Image("Champion")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 120, height: 120)
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(Color.purple, lineWidth: 4)
+                        )
+                        .padding(.top, 15)
+                        .offset(y: 35)
+
                     Text("Hi \(userName)!")
                         .font(.headline)
                         .foregroundColor(.black)
-                        .padding(30)
+                        .padding(50)
+                        .offset(y:20)
+                    
                 } else {
                     Image("Champion")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 80, height: 80)
+                        .frame(width: 120, height: 120)
                         .clipShape(Circle())
                         .overlay(
                             Circle()
-                                .stroke(Color.purple, lineWidth: 3)
+                                .stroke(Color.purple, lineWidth: 4)
                         )
-                        .padding(.top, 25)
+                        .padding(.top, 15)
+                        .offset(y: 35)
 
                     Text("Hi Champion!")
                         .font(.headline)
                         .foregroundColor(.black)
-                        .padding(30)
+                        .padding(50)
+                        .offset(y:20)
                 }
             }
             .frame(maxWidth: .infinity)
             .background(Color.yellow)
+            .frame(height: 260)
+            .padding(.bottom,10)
 
             // Sidebar Items
             SidebarItem(

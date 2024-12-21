@@ -56,7 +56,7 @@ struct ContentView: View {
             NavigationView {
                 ZStack {
                     if showLoginView {
-                        LoginView(onLoginSuccess: {
+                        LoginView(onLoginSuccess: { 
                             appState.isLoggedIn = true
                             appState.setUserName("Google User")
                             showLoginView = false

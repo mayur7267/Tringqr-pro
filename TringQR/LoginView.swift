@@ -228,10 +228,12 @@ struct LoginView: View {
                                 .padding(.vertical, 10)
                                 .background(Color.yellow)
                                 .cornerRadius(25)
+                            
                         }
                         .padding(.trailing, 30)
                         .padding(.top, 20)
                         .contentShape(Rectangle())
+                        .offset(y:-45)
 
                     }
 
@@ -302,7 +304,7 @@ struct LoginView: View {
                             .foregroundColor(.white.opacity(0.7))
                         
                         Button(action: {
-                            //                            signInWithGoogle()
+                            signInWithGoogle()
                         }) {
                             HStack {
                                 Image(systemName: "g.circle.fill")
@@ -335,6 +337,7 @@ struct LoginView: View {
                             .foregroundColor(.yellow)
                     }
                     .padding(.bottom, 10)
+                    .offset(y:-20)
                 }
                 .padding(.bottom, keyboardObserver.keyboardHeight)
                 .animation(.easeOut(duration: 0.3), value: keyboardObserver.keyboardHeight)

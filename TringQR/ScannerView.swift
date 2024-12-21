@@ -33,6 +33,7 @@ struct ScannerView: View {
     
     
     var body: some View {
+        NavigationStack{
         VStack {
             Spacer(minLength: 0)
             
@@ -50,17 +51,11 @@ struct ScannerView: View {
                     }
                 }
                 .frame(width: size.width, height: size.width)
-                .overlay(alignment: .top) {
-                    Rectangle()
-                        .fill(.blue.opacity(0.7))
-                        .frame(height: 2.5)
-                        .shadow(color: .black.opacity(0.7), radius: 8, x: 0, y: isScanning ? 15 : -15)
-                        .offset(y: isScanning ? size.width : 0)
-                }
-                
+                .offset(y:-92)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                
             }
-            .padding(.horizontal, 50)
+            .padding(.horizontal, 45)
             .edgesIgnoringSafeArea(.top)
             
             Spacer()
@@ -74,17 +69,18 @@ struct ScannerView: View {
                     .bold()
                     .foregroundStyle(.white.opacity(0.8))
             }
+            .offset(y:-90)
             .padding(.vertical, 4)
             
             Spacer()
             
             VStack(spacing: 10) {
-                HStack(spacing: 4) {
+                HStack(spacing: 3) {
                     Button(action: {
                         updateZoomFactor(currentZoomFactor - 0.5)
                     }) {
                         Image(systemName: "minus.magnifyingglass")
-                            .font(.system(size: 14))
+                            .font(.system(size: 20))
                             .padding(6)
                             .foregroundColor(.white)
                     }
@@ -101,15 +97,16 @@ struct ScannerView: View {
                     .onChange(of: currentZoomFactor) { newValue in
                         updateZoomFactor(newValue)
                     }
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal,-45)
                     .frame(height: 4)
                     .accentColor(.purple)
+                    .scaleEffect(x: 0.6, y: 0.6)
                     
                     Button(action: {
                         updateZoomFactor(currentZoomFactor + 0.5)
                     }) {
                         Image(systemName: "plus.magnifyingglass")
-                            .font(.system(size: 14))
+                            .font(.system(size: 20))
                             .padding(6)
                             .foregroundColor(.white)
                     }
@@ -117,6 +114,7 @@ struct ScannerView: View {
                 }
                 .frame(maxWidth: 200)
                 .padding(.vertical, 5)
+                .offset(y:-80)
             }
             
             HStack {
@@ -157,6 +155,7 @@ struct ScannerView: View {
                     .fill(Color.yellow)
             )
             .shadow(radius: 5)
+            .offset(y:-75)
             
             if let errorMessage = errorMessage {
                 Text(errorMessage)
@@ -166,6 +165,8 @@ struct ScannerView: View {
             }
         }
         .padding(.vertical, 80)
+        
+    }
         .onAppear {
             checkCameraPermission()
             activateScannerAnimation()
