@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>BaseURL</key>
-	<string>https://core-api-619357594029.asia-south1.run.app/api/Users</string>
+	<string>https://core-api-619357594029.asia-south1.run.app</string>
 	<key>RegisterUserURL</key>
 	<string>https://core-api-619357594029.asia-south1.run.app/v1/users/qr</string>
 	<key>BearerToken</key>

@@ -203,7 +203,7 @@ struct LoginView: View {
     @State private var errorMessage: String = ""
     @ObservedObject private var keyboardObserver = KeyboardObserver()
     
-    var onLoginSuccess: () -> Void
+    var onLoginSuccess: (String) -> Void
     
     var body: some View {
         GeometryReader { geometry in
@@ -218,7 +218,7 @@ struct LoginView: View {
                         Spacer()
                         Button(action: {
                             DispatchQueue.main.async {
-                                onLoginSuccess()
+                                onLoginSuccess("User")
                             }
                         }) {
                             Text("Skip")
@@ -356,7 +356,7 @@ struct LoginView: View {
                 isOTPViewPresented: $isOTPViewPresented,
                 phoneNumber: selectedCountry.code + phoneNumber,
                 onOTPVerified: {
-                    onLoginSuccess()
+                    onLoginSuccess(selectedCountry.code + phoneNumber)
                 }
             )
         }
@@ -386,10 +386,10 @@ struct LoginView: View {
     }
     
     func registerUser() {
-        let phone_number = selectedCountry.code + phoneNumber.trimmingCharacters(in: .whitespaces)
+        _ = selectedCountry.code + phoneNumber.trimmingCharacters(in: .whitespaces)
         
         // Create a request object with the JSON data
-        let request = RegisterUserRequest(
+        _ = RegisterUserRequest(
             first_name: "Tring",
             last_name: "Box",
             dob: "2024-08-01",
@@ -425,7 +425,7 @@ struct LoginView: View {
                     case .success(let success):
                         if success {
                             print("Token validated successfully.")
-                            onLoginSuccess()
+                            onLoginSuccess("User Registered")
                         } else {
                             print("Token validation failed.")
                         }
@@ -438,11 +438,12 @@ struct LoginView: View {
 
     private func signInWithGoogle() {
         guard let clientID = FirebaseApp.app()?.options.clientID else { return }
+        
+        _ = GIDConfiguration(clientID: clientID)
 
-        let config = GIDConfiguration(clientID: clientID)
-//        GIDSignIn.sharedInstance.configuration = config
-
-        guard let rootViewController = UIApplication.shared.windows.first?.rootViewController else { return }
+        // Access the root view controller from the active window scene
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = windowScene.windows.first?.rootViewController else { return }
 
         GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { result, error in
             if let error = error {
@@ -450,7 +451,8 @@ struct LoginView: View {
                 return
             }
 
-            guard let user = result?.user, let idToken = user.idToken?.tokenString else { return }
+            guard let user = result?.user,
+                  let idToken = user.idToken?.tokenString else { return }
 
             let credential = GoogleAuthProvider.credential(withIDToken: idToken,
                                                            accessToken: user.accessToken.tokenString)
@@ -461,7 +463,7 @@ struct LoginView: View {
                     return
                 }
 
-                onLoginSuccess()
+                onLoginSuccess("Google User")
             }
         }
     }
@@ -528,7 +530,7 @@ struct CountryPicker: View {
 }
 
 #Preview {
-    LoginView {
+    LoginView {_ in 
         print("Login Successful!")
     }
 }

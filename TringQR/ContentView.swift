@@ -9,33 +9,55 @@ import SwiftUI
 import UIKit
 
 class AppState: ObservableObject {
-    @Published var isLoggedIn: Bool = false
+    @Published var isLoggedIn: Bool {
+        didSet {
+            // Persist login status when it changes
+            UserDefaults.standard.set(isLoggedIn, forKey: "isLoggedIn")
+        }
+    }
     @Published var userName: String? = nil
-    @Published var scannedHistory: [String] = []
+    @Published var phoneNumber: String? = nil
+    @Published var scannedHistory: [String] {
+        didSet {
+            UserDefaults.standard.set(scannedHistory, forKey: "scannedHistory")
+        }
+    }
     @Published var isFirstLaunch: Bool {
-            didSet {
-                UserDefaults.standard.set(isFirstLaunch, forKey: "isFirstLaunch")
-            }
+        didSet {
+            UserDefaults.standard.set(isFirstLaunch, forKey: "isFirstLaunch")
         }
+    }
+
+    init() {
         
-        init() {
-            
-            self.isFirstLaunch = UserDefaults.standard.object(forKey: "isFirstLaunch") as? Bool ?? true
-        }
+        self.isLoggedIn = UserDefaults.standard.bool(forKey: "isLoggedIn")
+        self.userName = UserDefaults.standard.string(forKey: "userName")
+        self.phoneNumber = UserDefaults.standard.string(forKey: "phoneNumber")
+        self.scannedHistory = UserDefaults.standard.stringArray(forKey: "scannedHistory") ?? []
+        self.isFirstLaunch = UserDefaults.standard.bool(forKey: "isFirstLaunch")
+    }
+
     func toggleLogin() {
         isLoggedIn.toggle()
     }
 
     func setUserName(_ name: String?) {
         userName = name
+        UserDefaults.standard.set(name, forKey: "userName")
+    }
+    
+    func setPhoneNumber(_ number: String?) {
+        phoneNumber = number
+        UserDefaults.standard.set(number, forKey: "phoneNumber")
     }
 
     func addScannedCode(_ code: String) {
         scannedHistory.append(code)
     }
+
     func completeFirstLaunch() {
-            isFirstLaunch = false
-        }
+        isFirstLaunch = false
+    }
 }
 
 struct ContentView: View {
@@ -48,17 +70,22 @@ struct ContentView: View {
     @State private var showShareSheet = false
 
     init(appState: AppState) {
-        _showLoginView = State(initialValue: appState.isFirstLaunch)
+        _showLoginView = State(initialValue: !appState.isLoggedIn && appState.isFirstLaunch)
     }
 
     var body: some View {
         NavigationStack {
             NavigationView {
                 ZStack {
+                    
+                    Color(red: 220/255, green: 220/255, blue: 220/255)
+                        .ignoresSafeArea()
+
+
                     if showLoginView {
                         LoginView(onLoginSuccess: { 
                             appState.isLoggedIn = true
-                            appState.setUserName("Google User")
+                            appState.setUserName($0)
                             showLoginView = false
                             appState.completeFirstLaunch()
                         })
@@ -67,8 +94,10 @@ struct ContentView: View {
                         GeometryReader { geometry in
                             ZStack(alignment: .leading) {
                                 // Background
-                                GIFView(gifName: "main")
-                                    .ignoresSafeArea(edges: .all)
+                                if selectedTab != 0 {
+                                            GIFView(gifName: "main")
+                                                .ignoresSafeArea(edges: .all)
+                                        }
                                 
                                 VStack(spacing: 0) {
                                     // Navigation Bar
@@ -109,7 +138,7 @@ struct ContentView: View {
                                         
                                         Spacer()
                                         
-                                        Text("TringQR")
+                                        Text(selectedTab == 0 ? "Scan History" : "TringQR")
                                             .foregroundColor(.black)
                                             .font(.headline)
                                             .frame(maxWidth: .infinity, alignment: .center)
@@ -127,7 +156,7 @@ struct ContentView: View {
                                     Group {
                                         switch selectedTab {
                                         case 0:
-                                            HistoryView(isBackButtonVisible: $isBackButtonVisible)
+                                            HistoryView()
                                                 .environmentObject(appState)
                                         case 1:
                                             ScannerView()
@@ -175,6 +204,11 @@ struct ContentView: View {
                 }
                 .environmentObject(appState)
                 .ignoresSafeArea(edges: .all)
+                .sheet(isPresented: $showShareSheet) { // Add sheet modifier here
+                    let shareText = "Check out this amazing app!"
+                    let shareURL = URL(string: "https://example.com")!
+                    ShareSheet(items: [shareText, shareURL])
+                }
             }
         }
     }
@@ -253,91 +287,134 @@ struct SignInView: View {
         }
     }
 }
-
 struct HistoryView: View {
-    @Binding var isBackButtonVisible: Bool
     @EnvironmentObject var appState: AppState
-
     @State private var showShareSheet = false
     @State private var selectedHistoryItem: String? = nil
 
     var body: some View {
-        NavigationView {
-            ZStack {
-                Color.black
-                    .ignoresSafeArea()
+        ZStack {
+            // Light yellow background covering the entire screen
+            Color(red: 220/255, green: 220/255, blue: 220/255) // Light yellow
+                .edgesIgnoringSafeArea(.all)
 
-                VStack(alignment: .leading) {
-                    if appState.scannedHistory.isEmpty {
-                        Text("No scan history available.")
-                            .foregroundColor(.white)
-                            .font(.title3)
-                            .padding()
-                    } else {
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 15) {
-                                List{
-                                    ForEach(appState.scannedHistory, id: \ .self) { code in
-                                        HStack {
-                                            Image(systemName: "qrcode")
-                                                .foregroundColor(.white)
-                                                .padding(.trailing, 10)
-                                            
-                                            VStack(alignment: .leading, spacing: 5) {
-                                                Text(code)
-                                                    .font(.body)
-                                                    .foregroundColor(.white)
-                                                
-                                                Text("Tap to share or swipe to delete")
-                                                    .font(.footnote)
-                                                    .foregroundColor(.gray)
-                                            }
-                                            
-                                            Spacer()
-                                        }
-                                        .contentShape(Rectangle())
-                                        .onTapGesture {
-                                            selectedHistoryItem = code
-                                            showShareSheet = true
-                                        }
-                                        .padding()
-                                        .background(Color.black.opacity(0.8))
-                                        .cornerRadius(10)
-                                    }
-                                    .onDelete(perform: { indexSet in
-                                            appState.scannedHistory.remove(atOffsets: indexSet)
-                                        })
-                                }
-                            }
-                            .padding()
-                        }
-                    }
-
+            VStack(spacing: 0) {
+                // Main Content
+                if appState.scannedHistory.isEmpty {
                     Spacer()
+                    Text("No scan history available.")
+                        .foregroundColor(.gray)
+                        .font(.system(size: 17))
+                    Spacer()
+                } else {
+                    ScrollView {
+                        VStack(spacing: 12) {
+                            ForEach(appState.scannedHistory, id: \.self) { historyItem in
+                                HistoryItemView(
+                                    historyItem: historyItem,
+                                    showShareSheet: $showShareSheet,
+                                    selectedHistoryItem: $selectedHistoryItem
+                                )
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
+                    }
                 }
-                .padding()
             }
-            .onAppear {
-                isBackButtonVisible = true
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarTitle("Scan History")
-            .navigationBarItems(leading: Button(action: {
-                isBackButtonVisible = false
-            }) {
-                Image(systemName: "chevron.backward")
-                    .foregroundColor(.purple)
-            })
-            .sheet(isPresented: $showShareSheet) {
-                if let selectedHistoryItem = selectedHistoryItem {
-                    ActivityView(activityItems: [selectedHistoryItem])
-                }
+        }
+        .navigationBarHidden(true)
+        .sheet(isPresented: $showShareSheet) {
+            if let selectedHistoryItem = selectedHistoryItem {
+                ActivityView(activityItems: [selectedHistoryItem])
             }
         }
     }
 }
 
+
+struct HistoryItemView: View {
+    let historyItem: String
+    @Binding var showShareSheet: Bool
+    @Binding var selectedHistoryItem: String?
+    @EnvironmentObject var appState: AppState
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(historyItem)
+                    .font(.system(size: 16))
+                    .lineLimit(1)
+                
+                Spacer()
+                
+                Button(action: {
+                    if let url = URL(string: historyItem),
+                       UIApplication.shared.canOpenURL(url) {
+                        UIApplication.shared.open(url)
+                    }
+                }) {
+                    Image(systemName: "arrow.up.right.square")
+                        .font(.system(size: 20))
+                        .foregroundColor(.black)
+                }
+                .padding(.horizontal, 4)
+                
+                Button(action: {
+                    selectedHistoryItem = historyItem
+                    showShareSheet = true
+                }) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 20))
+                        .foregroundColor(.black)
+                }
+            }
+            
+            Text("13-12-2024 6:17 PM")
+                .font(.system(size: 12))
+                .foregroundColor(.gray)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.white)
+                .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+        )
+        .contextMenu {
+            Button(action: {
+                selectedHistoryItem = historyItem
+                showShareSheet = true
+            }) {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+            
+            Button(action: {
+                if let url = URL(string: historyItem),
+                   UIApplication.shared.canOpenURL(url) {
+                    UIApplication.shared.open(url)
+                }
+            }) {
+                Label("Open Link", systemImage: "arrow.up.right.square")
+            }
+            
+            Button(role: .destructive, action: {
+                deleteHistoryItem(historyItem)
+            }) {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+    }
+    
+    private func deleteHistoryItem(_ item: String) {
+        if let index = appState.scannedHistory.firstIndex(of: item) {
+            appState.scannedHistory.remove(at: index)
+        }
+    }
+}
+
+
+
 #Preview {
-        ContentView(appState: AppState())
-            .environmentObject(AppState())
+    ContentView(appState: AppState())
+        .environmentObject(AppState())
 }

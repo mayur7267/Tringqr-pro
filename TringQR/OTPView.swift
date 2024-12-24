@@ -20,6 +20,11 @@ struct OTPView: View {
     @FocusState private var isOTPFieldFocused: Bool
     @State private var scrollViewProxy: ScrollViewProxy?
 
+    // Timer-related states
+    @State private var isResendButtonEnabled = false
+    @State private var remainingTime: Int = 60
+    private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
     init(verificationID: String, isOTPViewPresented: Binding<Bool>, phoneNumber: String, onOTPVerified: @escaping () -> Void) {
         self._verificationID = State(initialValue: verificationID)
         self._isOTPViewPresented = isOTPViewPresented
@@ -31,10 +36,11 @@ struct OTPView: View {
         VStack {
             Spacer()
             Spacer()
-           
+
             GIFView(gifName: "otpgif")
                 .frame(height: 100)
                 .padding()
+                .offset(y:-25)
 
             Spacer()
             Spacer()
@@ -44,6 +50,7 @@ struct OTPView: View {
                 .font(.headline)
                 .foregroundColor(.white)
                 .padding()
+                .offset(y: -40)
 
             // OTP Input Field
             TextField("Enter OTP", text: $otp)
@@ -64,6 +71,7 @@ struct OTPView: View {
                         scrollViewProxy?.scrollTo(otp, anchor: .bottom)
                     }
                 }
+                .offset(y: -35)
 
             // Error Message
             if !errorMessage.isEmpty {
@@ -97,6 +105,7 @@ struct OTPView: View {
                         .padding()
                         .background(Color.yellow)
                         .cornerRadius(8)
+                        .offset(y:-35)
                 }
             }
             .disabled(isLoading || otp.isEmpty)
@@ -108,12 +117,17 @@ struct OTPView: View {
             Button(action: {
                 resendOTP()
             }) {
-                Text("Didn't receive the OTP? Resend")
-                    .font(.footnote)
-                    .foregroundColor(.white)
-                    .padding(.top)
+                if isResendButtonEnabled {
+                    Text("Didn't receive the OTP? Resend")
+                        .font(.footnote)
+                        .foregroundColor(.white)
+                } else {
+                    Text("Resend in \(remainingTime) seconds")
+                        .font(.footnote)
+                        .foregroundColor(.gray)
+                }
             }
-            .disabled(isLoading)
+            .disabled(!isResendButtonEnabled || isLoading)
 
             Spacer()
         }
@@ -124,7 +138,8 @@ struct OTPView: View {
             hideKeyboard()
         }
         .onAppear {
-           
+            startTimer() // Start the timer when the view appears
+
             NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
                 if isOTPFieldFocused {
                     adjustViewForKeyboard(notification: notification)
@@ -137,6 +152,20 @@ struct OTPView: View {
                 }
             }
         }
+        .onReceive(timer) { _ in
+            if remainingTime > 0 {
+                remainingTime -= 1
+            } else {
+                isResendButtonEnabled = true
+                timer.upstream.connect().cancel() // Stop the timer
+            }
+        }
+    }
+
+    // MARK: - Start Timer
+    private func startTimer() {
+        isResendButtonEnabled = false
+        remainingTime = 60
     }
 
     // MARK: - Verify OTP Logic
@@ -165,12 +194,11 @@ struct OTPView: View {
         }
     }
 
-
     // MARK: - Resend OTP Logic
     private func resendOTP() {
         isLoading = true
         errorMessage = ""
-        
+        startTimer() // Restart the timer
         PhoneAuthProvider.provider().verifyPhoneNumber(phoneNumber, uiDelegate: nil) { verificationID, error in
             if let error = error {
                 print("Error during phone number verification: \(error.localizedDescription)")
@@ -183,7 +211,6 @@ struct OTPView: View {
                 }
             }
         }
-        
     }
 
     // MARK: - Hide Keyboard
@@ -193,7 +220,7 @@ struct OTPView: View {
 
     // MARK: - Adjust view for keyboard
     private func adjustViewForKeyboard(notification: Notification) {
-        if let userInfo = notification.userInfo, let keyboardFrame = (userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue {
+        if let userInfo = notification.userInfo, let _ = (userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue {
             withAnimation {
                 scrollViewProxy?.scrollTo(otp, anchor: .bottom)
             }

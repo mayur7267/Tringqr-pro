@@ -18,12 +18,12 @@ struct SidebarItem: View {
         Button(action: action) {
             HStack(spacing: 16) {
                 Image(systemName: systemImage)
-                    .foregroundColor(isSelected ? .purple : .gray)
+                    .foregroundColor(isSelected ? .gray : .purple)
                     .imageScale(.large)
 
                 Text(title)
                     .font(.body)
-                    .foregroundColor(isSelected ? .purple : .gray)
+                    .foregroundColor(isSelected ? .gray : .black)
             }
             .padding(.vertical, 12)
             .padding(.horizontal)
@@ -109,10 +109,11 @@ struct SidebarView: View {
                 withAnimation {
                     isSidebarVisible = false
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     showShareSheet = true
                 }
             }
+
 
             SidebarItem(
                 title: "Help",
@@ -123,6 +124,7 @@ struct SidebarView: View {
                 isSidebarVisible = false
                 isBackButtonVisible = true
             }
+            
 
             SidebarItem(
                 title: appState.isLoggedIn ? "Sign Out" : "Sign In",

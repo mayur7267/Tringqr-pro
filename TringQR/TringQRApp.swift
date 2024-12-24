@@ -8,6 +8,7 @@ import SwiftUI
 import FirebaseCore
 import FirebaseAuth
 import UserNotifications
+import GoogleSignIn
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(
@@ -20,6 +21,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
         // Request Notification Permissions
         requestNotificationPermissions(application)
+        GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: FirebaseApp.app()?.options.clientID ?? "")
+
+        
 
         return true
     }
