@@ -7,100 +7,148 @@
 
 import SwiftUI
 import UIKit
+import Combine
+
+struct ScannedHistoryItem: Identifiable, Codable {
+    let id: UUID
+    let code: String
+    let date: Date
+
+    init(code: String) {
+        self.id = UUID()
+        self.code = code
+        self.date = Date()
+    }
+}
+
 
 class AppState: ObservableObject {
     @Published var isLoggedIn: Bool {
         didSet {
-            // Persist login status when it changes
             UserDefaults.standard.set(isLoggedIn, forKey: "isLoggedIn")
         }
     }
-    @Published var userName: String? = nil
-    @Published var phoneNumber: String? = nil
-    @Published var scannedHistory: [String] {
+    @Published var userName: String? {
         didSet {
-            UserDefaults.standard.set(scannedHistory, forKey: "scannedHistory")
+            UserDefaults.standard.set(userName, forKey: "userName")
         }
     }
+    @Published var phoneNumber: String? {
+        didSet {
+            UserDefaults.standard.set(phoneNumber, forKey: "phoneNumber")
+        }
+    }
+    @Published var scannedHistory: [ScannedHistoryItem] {
+            didSet {
+                if let encoded = try? JSONEncoder().encode(scannedHistory) {
+                    UserDefaults.standard.set(encoded, forKey: "scannedHistory")
+                }
+            }
+        }
     @Published var isFirstLaunch: Bool {
         didSet {
             UserDefaults.standard.set(isFirstLaunch, forKey: "isFirstLaunch")
         }
     }
-
+    @Published var isSidebarVisible: Bool {
+        didSet {
+            UserDefaults.standard.set(isSidebarVisible, forKey: "isSidebarVisible")
+        }
+    }
+    
     init() {
-        
         self.isLoggedIn = UserDefaults.standard.bool(forKey: "isLoggedIn")
-        self.userName = UserDefaults.standard.string(forKey: "userName")
+        self.userName = UserDefaults.standard.string(forKey: "userName") ?? ""
         self.phoneNumber = UserDefaults.standard.string(forKey: "phoneNumber")
-        self.scannedHistory = UserDefaults.standard.stringArray(forKey: "scannedHistory") ?? []
+        if let data = UserDefaults.standard.data(forKey: "scannedHistory"),
+                   let decoded = try? JSONDecoder().decode([ScannedHistoryItem].self, from: data) {
+                    self.scannedHistory = decoded
+                } else {
+                    self.scannedHistory = []
+                }
         self.isFirstLaunch = UserDefaults.standard.bool(forKey: "isFirstLaunch")
+        self.isSidebarVisible = UserDefaults.standard.bool(forKey: "isSidebarVisible")
     }
 
     func toggleLogin() {
         isLoggedIn.toggle()
     }
 
-    func setUserName(_ name: String?) {
+    func setUserName(_ name: String) {
         userName = name
         UserDefaults.standard.set(name, forKey: "userName")
     }
-    
+
     func setPhoneNumber(_ number: String?) {
         phoneNumber = number
         UserDefaults.standard.set(number, forKey: "phoneNumber")
     }
 
     func addScannedCode(_ code: String) {
-        scannedHistory.append(code)
-    }
+            let newItem = ScannedHistoryItem(code: code)
+            scannedHistory.append(newItem)
+        }
 
     func completeFirstLaunch() {
         isFirstLaunch = false
+    }
+
+    func toggleSidebar() {
+        isSidebarVisible.toggle()
+    }
+    
+    func signOut() {
+        isLoggedIn = false
+        userName = ""
+        phoneNumber = nil
+        UserDefaults.standard.removeObject(forKey: "userName")
+        UserDefaults.standard.removeObject(forKey: "phoneNumber")
     }
 }
 
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
-
-    @State private var isSidebarVisible = false
+    
     @State private var selectedTab = 1
     @State private var isBackButtonVisible = false
     @State private var showLoginView: Bool
     @State private var showShareSheet = false
-
+    @Environment(\.scenePhase) private var scenePhase
+    
     init(appState: AppState) {
         _showLoginView = State(initialValue: !appState.isLoggedIn && appState.isFirstLaunch)
     }
-
+    
     var body: some View {
         NavigationStack {
             NavigationView {
                 ZStack {
-                    
-                    Color(red: 220/255, green: 220/255, blue: 220/255)
+                    Color(red: 220 / 255, green: 220 / 255, blue: 220 / 255)
                         .ignoresSafeArea()
-
-
+                    
                     if showLoginView {
-                        LoginView(onLoginSuccess: { 
-                            appState.isLoggedIn = true
-                            appState.setUserName($0)
+                        LoginView(onLoginSuccess: { displayName in
+                            if displayName.isEmpty {
+                                appState.isLoggedIn = false
+                                appState.setUserName("") 
+                            } else {
+                                appState.isLoggedIn = true
+                                appState.setUserName(displayName)
+                            }
                             showLoginView = false
                             appState.completeFirstLaunch()
                         })
+
                         .transition(.move(edge: .leading))
                     } else {
                         GeometryReader { geometry in
                             ZStack(alignment: .leading) {
-                                // Background
                                 if selectedTab != 0 {
-                                            GIFView(gifName: "main")
-                                                .ignoresSafeArea(edges: .all)
-                                        }
+                                    GIFView(gifName: "main")
+                                        .ignoresSafeArea(edges: .all)
+                                }
                                 
                                 VStack(spacing: 0) {
-                                    // Navigation Bar
                                     HStack(alignment: .center) {
                                         if isBackButtonVisible {
                                             Button(action: {
@@ -120,8 +168,8 @@ struct ContentView: View {
                                             }
                                         } else {
                                             Button(action: {
-                                                withAnimation(.spring()) {
-                                                    isSidebarVisible.toggle()
+                                                withAnimation(.easeInOut) {
+                                                    appState.toggleSidebar()
                                                 }
                                             }) {
                                                 Image(systemName: "line.3.horizontal")
@@ -142,7 +190,7 @@ struct ContentView: View {
                                             .foregroundColor(.black)
                                             .font(.headline)
                                             .frame(maxWidth: .infinity, alignment: .center)
-                                        
+                                            .offset(x: -20)
                                         Spacer()
                                     }
                                     .frame(height: 44)
@@ -152,7 +200,6 @@ struct ContentView: View {
                                     .offset(y: 0)
                                     .zIndex(2)
                                     
-                                    // Main Content
                                     Group {
                                         switch selectedTab {
                                         case 0:
@@ -171,19 +218,19 @@ struct ContentView: View {
                                     }
                                 }
                                 
-                                // Sidebar and overlay
-                                if isSidebarVisible {
+                                if appState.isSidebarVisible {
                                     Color.black.opacity(0.5)
                                         .ignoresSafeArea()
                                         .onTapGesture {
-                                            withAnimation {
-                                                isSidebarVisible = false
+                                            withAnimation(.easeInOut) {
+                                                appState.isSidebarVisible = false
                                             }
                                         }
+                                        .transition(.opacity)
                                     
                                     HStack(spacing: 0) {
                                         SidebarView(
-                                            isSidebarVisible: $isSidebarVisible,
+                                            isSidebarVisible: $appState.isSidebarVisible,
                                             selectedTab: $selectedTab,
                                             isBackButtonVisible: $isBackButtonVisible,
                                             showShareSheet: $showShareSheet,
@@ -204,11 +251,19 @@ struct ContentView: View {
                 }
                 .environmentObject(appState)
                 .ignoresSafeArea(edges: .all)
-                .sheet(isPresented: $showShareSheet) { // Add sheet modifier here
+                .sheet(isPresented: $showShareSheet) {
                     let shareText = "Check out this amazing app!"
                     let shareURL = URL(string: "https://example.com")!
                     ShareSheet(items: [shareText, shareURL])
                 }
+            }
+        }
+        .onAppear {
+            appState.isSidebarVisible = false
+        }
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .active {
+                appState.isSidebarVisible = false
             }
         }
     }
@@ -287,15 +342,16 @@ struct SignInView: View {
         }
     }
 }
+import SwiftUI
+
 struct HistoryView: View {
     @EnvironmentObject var appState: AppState
     @State private var showShareSheet = false
-    @State private var selectedHistoryItem: String? = nil
-
+    @State private var selectedHistoryItem: ScannedHistoryItem? = nil
     var body: some View {
         ZStack {
-            // Light yellow background covering the entire screen
-            Color(red: 220/255, green: 220/255, blue: 220/255) // Light yellow
+           
+            Color(red: 220 / 255, green: 220 / 255, blue: 220 / 255)
                 .edgesIgnoringSafeArea(.all)
 
             VStack(spacing: 0) {
@@ -309,7 +365,7 @@ struct HistoryView: View {
                 } else {
                     ScrollView {
                         VStack(spacing: 12) {
-                            ForEach(appState.scannedHistory, id: \.self) { historyItem in
+                            ForEach(appState.scannedHistory) { historyItem in
                                 HistoryItemView(
                                     historyItem: historyItem,
                                     showShareSheet: $showShareSheet,
@@ -326,58 +382,61 @@ struct HistoryView: View {
         .navigationBarHidden(true)
         .sheet(isPresented: $showShareSheet) {
             if let selectedHistoryItem = selectedHistoryItem {
-                ActivityView(activityItems: [selectedHistoryItem])
+                ActivityView(activityItems: [selectedHistoryItem.code])
             }
         }
     }
 }
 
-
 struct HistoryItemView: View {
-    let historyItem: String
+    let historyItem: ScannedHistoryItem
     @Binding var showShareSheet: Bool
-    @Binding var selectedHistoryItem: String?
+    @Binding var selectedHistoryItem: ScannedHistoryItem?
     @EnvironmentObject var appState: AppState
-    
+    @Environment(\.colorScheme) var colorScheme // Detect light/dark mode
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(historyItem)
+                Text(historyItem.code)
                     .font(.system(size: 16))
                     .lineLimit(1)
-                
+                    .foregroundColor(colorScheme == .dark ? .white : .black) 
+
                 Spacer()
-                
+
                 Button(action: {
-                    if let url = URL(string: historyItem),
+                    if let url = URL(string: historyItem.code),
                        UIApplication.shared.canOpenURL(url) {
                         UIApplication.shared.open(url)
                     }
                 }) {
                     Image(systemName: "arrow.up.right.square")
                         .font(.system(size: 20))
-                        .foregroundColor(.black)
+                        .foregroundColor(colorScheme == .dark ? .white : .black)
                 }
                 .padding(.horizontal, 4)
-                
+
                 Button(action: {
                     selectedHistoryItem = historyItem
-                    showShareSheet = true
+                    DispatchQueue.main.async {
+                        showShareSheet = true
+                    }
                 }) {
                     Image(systemName: "square.and.arrow.up")
                         .font(.system(size: 20))
-                        .foregroundColor(.black)
+                        .foregroundColor(colorScheme == .dark ? .white : .black)
                 }
             }
-            
-            Text("13-12-2024 6:17 PM")
+
+            Text(formattedDate(historyItem.date))
                 .font(.system(size: 12))
-                .foregroundColor(.gray)
+                .foregroundColor(colorScheme == .dark ? .gray : .secondary)
         }
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white)
+                .fill(colorScheme == .dark ? Color(white: 0.2) : Color.white)
                 .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
         )
         .contextMenu {
@@ -387,16 +446,16 @@ struct HistoryItemView: View {
             }) {
                 Label("Share", systemImage: "square.and.arrow.up")
             }
-            
+
             Button(action: {
-                if let url = URL(string: historyItem),
+                if let url = URL(string: historyItem.code),
                    UIApplication.shared.canOpenURL(url) {
                     UIApplication.shared.open(url)
                 }
             }) {
                 Label("Open Link", systemImage: "arrow.up.right.square")
             }
-            
+
             Button(role: .destructive, action: {
                 deleteHistoryItem(historyItem)
             }) {
@@ -404,14 +463,20 @@ struct HistoryItemView: View {
             }
         }
     }
-    
-    private func deleteHistoryItem(_ item: String) {
-        if let index = appState.scannedHistory.firstIndex(of: item) {
+
+    private func formattedDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+
+    private func deleteHistoryItem(_ item: ScannedHistoryItem) {
+        if let index = appState.scannedHistory.firstIndex(where: { $0.id == item.id }) {
             appState.scannedHistory.remove(at: index)
         }
     }
 }
-
 
 
 #Preview {

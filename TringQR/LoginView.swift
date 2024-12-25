@@ -191,6 +191,8 @@ extension View {
     }
 }
 
+
+
 // MARK: - Login View
 struct LoginView: View {
     @State private var selectedCountry: Country = countries.first ?? Country(name: "India", code: "+91", flag: "🇮🇳")
@@ -218,7 +220,7 @@ struct LoginView: View {
                         Spacer()
                         Button(action: {
                             DispatchQueue.main.async {
-                                onLoginSuccess("User")
+                                onLoginSuccess("")
                             }
                         }) {
                             Text("Skip")
@@ -278,8 +280,12 @@ struct LoginView: View {
                                 .keyboardType(.numberPad)
                                 .padding(.leading, 10)
                                 .frame(height: 50)
+                                .foregroundColor(.gray)
                                 .background(Color.white)
                                 .cornerRadius(5)
+                                
+                                
+                                
                         }
                         
                         if isLoading {
@@ -437,37 +443,41 @@ struct LoginView: View {
         }
 
     private func signInWithGoogle() {
-        guard let clientID = FirebaseApp.app()?.options.clientID else { return }
-        
-        _ = GIDConfiguration(clientID: clientID)
+            guard let clientID = FirebaseApp.app()?.options.clientID else { return }
+            
+            let config = GIDConfiguration(clientID: clientID)
 
-        // Access the root view controller from the active window scene
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let rootViewController = windowScene.windows.first?.rootViewController else { return }
+            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let rootViewController = windowScene.windows.first?.rootViewController else { return }
 
-        GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { result, error in
-            if let error = error {
-                print("Google Sign-In failed: \(error.localizedDescription)")
-                return
-            }
-
-            guard let user = result?.user,
-                  let idToken = user.idToken?.tokenString else { return }
-
-            let credential = GoogleAuthProvider.credential(withIDToken: idToken,
-                                                           accessToken: user.accessToken.tokenString)
-
-            Auth.auth().signIn(with: credential) { authResult, error in
+            GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { result, error in
                 if let error = error {
-                    print("Firebase Google Sign-In failed: \(error.localizedDescription)")
+                    print("Google Sign-In failed: \(error.localizedDescription)")
                     return
                 }
 
-                onLoginSuccess("Google User")
+                guard let user = result?.user,
+                      let idToken = user.idToken?.tokenString else { return }
+
+                let credential = GoogleAuthProvider.credential(withIDToken: idToken,
+                                                            accessToken: user.accessToken.tokenString)
+                
+                // Get the user's display name from Google Sign In
+                let displayName = user.profile?.name ?? "Google User"
+
+                Auth.auth().signIn(with: credential) { authResult, error in
+                    if let error = error {
+                        print("Firebase Google Sign-In failed: \(error.localizedDescription)")
+                        return
+                    }
+                    
+                    // Use the actual display name from Google
+                    DispatchQueue.main.async {
+                        onLoginSuccess(displayName)
+                    }
+                }
             }
         }
-    }
-
     private func getToken() -> String {
         return UserDefaults.standard.string(forKey: "tringboxToken") ?? ""
     }

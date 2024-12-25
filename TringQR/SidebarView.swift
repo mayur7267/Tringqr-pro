@@ -46,7 +46,7 @@ struct SidebarView: View {
         VStack(alignment: .leading, spacing: 20) {
             // Sidebar Header
             VStack {
-                if let userName = appState.userName {
+                if appState.isLoggedIn, let userName = appState.userName, !userName.isEmpty {
                     Image("Champion")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
@@ -133,7 +133,7 @@ struct SidebarView: View {
             ) {
                 if appState.isLoggedIn {
                     appState.toggleLogin()
-                    appState.setUserName(nil)
+                    appState.setUserName("")
                     showLoginView = true
                 } else {
                     showLoginView = true
