@@ -49,7 +49,7 @@ class APIManager {
     static let shared = APIManager()
     private init() {}
 
-    private let baseURL = "https://core-api-619357594029.asia-south1.run.app/api/Users"
+    private let baseURL = "https://core-api-619357594029.asia-south1.run.app"
 
     // Load config.plist
     private var config: [String: Any] {

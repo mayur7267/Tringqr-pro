@@ -8,6 +8,7 @@
 import SwiftUI
 import UIKit
 import Combine
+import WebKit
 
 struct ScannedHistoryItem: Identifiable, Codable {
     let id: UUID
@@ -66,7 +67,7 @@ class AppState: ObservableObject {
                 } else {
                     self.scannedHistory = []
                 }
-        self.isFirstLaunch = UserDefaults.standard.bool(forKey: "isFirstLaunch")
+        self.isFirstLaunch = UserDefaults.standard.object(forKey: "isFirstLaunch") == nil || UserDefaults.standard.bool(forKey: "isFirstLaunch")
         self.isSidebarVisible = UserDefaults.standard.bool(forKey: "isSidebarVisible")
     }
 
@@ -91,6 +92,7 @@ class AppState: ObservableObject {
 
     func completeFirstLaunch() {
         isFirstLaunch = false
+        UserDefaults.standard.set(false, forKey: "isFirstLaunch")
     }
 
     func toggleSidebar() {
@@ -143,7 +145,7 @@ struct ContentView: View {
                     } else {
                         GeometryReader { geometry in
                             ZStack(alignment: .leading) {
-                                if selectedTab != 0 {
+                                if selectedTab != 0 && selectedTab != 3 {
                                     GIFView(gifName: "main")
                                         .ignoresSafeArea(edges: .all)
                                 }
@@ -239,6 +241,8 @@ struct ContentView: View {
                                         .frame(width: geometry.size.width * 0.7)
                                         .background(Color.white)
                                         .edgesIgnoringSafeArea(.bottom)
+                                        .offset(x: appState.isSidebarVisible ? 0 : -geometry.size.width * 0.7) // Slide in/out
+                                    .animation(.easeInOut(duration: 0.3), value: appState.isSidebarVisible)
                                         .transition(.move(edge: .leading))
                                         
                                         Spacer()
@@ -306,22 +310,32 @@ struct HelpView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                gradient: Gradient(colors: [Color.gray, Color.black]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-
-            Text("Help Page")
-                .foregroundColor(.white)
+            Color(red: 220 / 255, green: 220 / 255, blue: 220 / 255)
+                .edgesIgnoringSafeArea(.all)
+            WebView(urlString: "https://cdn-tringbox-photos.s3.ap-south-1.amazonaws.com/about/index.html")
+                .edgesIgnoringSafeArea(.all)
         }
         .onAppear {
             isBackButtonVisible = true
         }
+        .navigationBarHidden(true)
     }
 }
 
+struct WebView: UIViewRepresentable {
+    let urlString: String
+
+    func makeUIView(context: Context) -> WKWebView {
+        WKWebView()
+    }
+
+    func updateUIView(_ webView: WKWebView, context: Context) {
+        if let url = URL(string: urlString) {
+            let request = URLRequest(url: url)
+            webView.load(request)
+        }
+    }
+}
 struct SignInView: View {
     @Binding var isBackButtonVisible: Bool
 

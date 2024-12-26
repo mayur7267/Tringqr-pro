@@ -9,6 +9,7 @@ import Combine
 import FirebaseAuth
 import FirebaseCore
 import GoogleSignIn
+import FirebaseMessaging
 
 // MARK: - Keyboard Observer
 class KeyboardObserver: ObservableObject {
@@ -362,7 +363,7 @@ struct LoginView: View {
                 isOTPViewPresented: $isOTPViewPresented,
                 phoneNumber: selectedCountry.code + phoneNumber,
                 onOTPVerified: {
-                    onLoginSuccess(selectedCountry.code + phoneNumber)
+                    registerUser()
                 }
             )
         }
@@ -392,92 +393,108 @@ struct LoginView: View {
     }
     
     func registerUser() {
-        _ = selectedCountry.code + phoneNumber.trimmingCharacters(in: .whitespaces)
-        
-        // Create a request object with the JSON data
-        _ = RegisterUserRequest(
-            first_name: "Tring",
-            last_name: "Box",
-            dob: "2024-08-01",
-            gender: "Male",
-            type: "User",
-            email: "support@tringbox.com",
-            display_name: "Tringbox",
-            phone_number: "+15146430901",
-            notificationId: "802a6eea-1ae2-4254-85fa-fd4b877c2dc3",
-            deviceId: "sampleDevice1"
-        )
-        
-       
+        let formattedPhoneNumber = selectedCountry.code + phoneNumber.trimmingCharacters(in: .whitespaces)
+
         guard let currentUser = Auth.auth().currentUser else {
-                print("No user is signed in.")
+            print("No user is signed in.")
+            return
+        }
+
+        
+        currentUser.getIDToken { idToken, error in
+            if let error = error {
+                print("Failed to fetch ID token: \(error.localizedDescription)")
                 return
             }
 
-            currentUser.getIDToken { idToken, error in
+            guard let idToken = idToken else {
+                print("ID token is nil.")
+                return
+            }
+
+           
+            Messaging.messaging().token { fcmToken, error in
                 if let error = error {
-                    print("Failed to fetch ID token: \(error.localizedDescription)")
+                    print("Error fetching FCM token: \(error.localizedDescription)")
+                    return
+                }
+                guard let fcmToken = fcmToken else {
+                    print("FCM token is nil.")
                     return
                 }
 
-                guard let idToken = idToken else {
-                    print("ID token is nil.")
-                    return
-                }
+                // Fetch device ID
+                let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "UnknownDeviceID"
 
-                // Call-thebackend API with fetchedID  token
-                APIManager.shared.sendIDTokenToBackend(idToken: idToken) { result in
-                    switch result {
-                    case .success(let success):
-                        if success {
-                            print("Token validated successfully.")
+                let registerRequest = RegisterUserRequest(
+                    first_name: "Tring",
+                    last_name: "Box",
+                    dob: "2024-08-01",
+                    gender: "Male",
+                    type: "User",
+                    email: "support@tringbox.com",
+                    display_name: "Tringbox",
+                    phone_number: formattedPhoneNumber,
+                    notificationId: fcmToken,
+                    deviceId: deviceId
+                )
+
+                // backend-call API to register the user
+                APIManager.shared.registerUser(request: registerRequest, token: idToken) { result in
+                    DispatchQueue.main.async {
+                        switch result {
+                        case .success(let response):
+                            print("User registered successfully: \(response)")
                             onLoginSuccess("User Registered")
-                        } else {
-                            print("Token validation failed.")
+                        case .failure(let error):
+                            print("Error during user registration: \(error.localizedDescription)")
+                            errorMessage = "Failed to register user. Please try again."
+                            showErrorAlert = true
                         }
-                    case .failure(let error):
-                        print("Error: \(error.localizedDescription)")
                     }
                 }
             }
         }
+    }
+
 
     private func signInWithGoogle() {
-            guard let clientID = FirebaseApp.app()?.options.clientID else { return }
-            
-            let config = GIDConfiguration(clientID: clientID)
+        guard let clientID = FirebaseApp.app()?.options.clientID else { return }
 
-            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                  let rootViewController = windowScene.windows.first?.rootViewController else { return }
+        let config = GIDConfiguration(clientID: clientID)
 
-            GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { result, error in
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = windowScene.windows.first?.rootViewController else { return }
+
+        GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { result, error in
+            if let error = error {
+                print("Google Sign-In failed: \(error.localizedDescription)")
+                return
+            }
+
+            guard let user = result?.user,
+                  let idToken = user.idToken?.tokenString else { return }
+
+            let credential = GoogleAuthProvider.credential(withIDToken: idToken,
+                                                           accessToken: user.accessToken.tokenString)
+
+            Auth.auth().signIn(with: credential) { authResult, error in
                 if let error = error {
-                    print("Google Sign-In failed: \(error.localizedDescription)")
+                    print("Firebase Google Sign-In failed: \(error.localizedDescription)")
                     return
                 }
 
-                guard let user = result?.user,
-                      let idToken = user.idToken?.tokenString else { return }
-
-                let credential = GoogleAuthProvider.credential(withIDToken: idToken,
-                                                            accessToken: user.accessToken.tokenString)
                 
-                // Get the user's display name from Google Sign In
-                let displayName = user.profile?.name ?? "Google User"
+                registerUser()
 
-                Auth.auth().signIn(with: credential) { authResult, error in
-                    if let error = error {
-                        print("Firebase Google Sign-In failed: \(error.localizedDescription)")
-                        return
-                    }
-                    
-                    // Use the actual display name from Google
-                    DispatchQueue.main.async {
-                        onLoginSuccess(displayName)
-                    }
+                
+                DispatchQueue.main.async {
+                    onLoginSuccess(user.profile?.name ?? "Google User")
                 }
             }
         }
+    }
+
     private func getToken() -> String {
         return UserDefaults.standard.string(forKey: "tringboxToken") ?? ""
     }
