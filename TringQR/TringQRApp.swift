@@ -7,10 +7,11 @@
 import SwiftUI
 import FirebaseCore
 import FirebaseAuth
+import FirebaseMessaging
 import UserNotifications
 import GoogleSignIn
 
-class AppDelegate: NSObject, UIApplicationDelegate {
+class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
@@ -21,14 +22,18 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
         // Request Notification Permissions
         requestNotificationPermissions(application)
-        GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: FirebaseApp.app()?.options.clientID ?? "")
 
-        
+        // Set the delegate for Firebase Messaging
+        Messaging.messaging().delegate = self
+
+        // Configure Google Sign-In
+        GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: FirebaseApp.app()?.options.clientID ?? "")
 
         return true
     }
 
     private func requestNotificationPermissions(_ application: UIApplication) {
+        UNUserNotificationCenter.current().delegate = self // Assign delegate for notifications
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
             DispatchQueue.main.async {
                 if let error = error {
@@ -58,13 +63,31 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         let tokenParts = deviceToken.map { String(format: "%02.2hhx", $0) }
         let token = tokenParts.joined()
         print("Device Token: \(token)")
+
+        // Register the APNS token with Firebase Messaging
+        Messaging.messaging().apnsToken = deviceToken
+
+        #if DEBUG
         Auth.auth().setAPNSToken(deviceToken, type: .sandbox)
+        #else
+        Auth.auth().setAPNSToken(deviceToken, type: .prod)
+        #endif
     }
 
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         print("Failed to register for remote notifications: \(error.localizedDescription)")
     }
 
+    // MARK: - Firebase Messaging Delegate
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        guard let fcmToken = fcmToken else {
+            print("Failed to receive FCM token")
+            return
+        }
+        print("FCM Token: \(fcmToken)")
+    }
+
+    // MARK: - Handle URL Schemes
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
         guard let scheme = url.scheme, let host = url.host else { return false }
         if scheme == "app-1-318092550249-ios-ae473cdeaea44f437042f8" {

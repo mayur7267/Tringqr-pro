@@ -392,7 +392,7 @@ struct LoginView: View {
         }
     }
     
-    func registerUser() {
+    func registerUser(displayName: String? = nil) {
         let formattedPhoneNumber = selectedCountry.code + phoneNumber.trimmingCharacters(in: .whitespaces)
 
         guard let currentUser = Auth.auth().currentUser else {
@@ -433,7 +433,7 @@ struct LoginView: View {
                     gender: "Male",
                     type: "User",
                     email: "support@tringbox.com",
-                    display_name: "Tringbox",
+                    display_name: displayName ?? "Tringbox",
                     phone_number: formattedPhoneNumber,
                     notificationId: fcmToken,
                     deviceId: deviceId
@@ -445,7 +445,7 @@ struct LoginView: View {
                         switch result {
                         case .success(let response):
                             print("User registered successfully: \(response)")
-                            onLoginSuccess("User Registered")
+                            onLoginSuccess(displayName ?? formattedPhoneNumber)
                         case .failure(let error):
                             print("Error during user registration: \(error.localizedDescription)")
                             errorMessage = "Failed to register user. Please try again."
@@ -474,9 +474,12 @@ struct LoginView: View {
 
             guard let user = result?.user,
                   let idToken = user.idToken?.tokenString else { return }
+            
 
             let credential = GoogleAuthProvider.credential(withIDToken: idToken,
                                                            accessToken: user.accessToken.tokenString)
+            
+            let displayName = user.profile?.name ?? "Google User"
 
             Auth.auth().signIn(with: credential) { authResult, error in
                 if let error = error {
@@ -485,12 +488,7 @@ struct LoginView: View {
                 }
 
                 
-                registerUser()
-
-                
-                DispatchQueue.main.async {
-                    onLoginSuccess(user.profile?.name ?? "Google User")
-                }
+                self.registerUser(displayName: displayName)
             }
         }
     }
