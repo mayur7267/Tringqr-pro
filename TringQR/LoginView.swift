@@ -199,12 +199,14 @@ struct LoginView: View {
     @State private var selectedCountry: Country = countries.first ?? Country(name: "India", code: "+91", flag: "🇮🇳")
     @State private var phoneNumber: String = ""
     @State private var isLoading: Bool = false
+    @State private var showLoginView: Bool = false
     @State private var isOTPViewPresented: Bool = false
     @State private var verificationID: String = ""
     @State private var isCountryPickerPresented: Bool = false
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
     @ObservedObject private var keyboardObserver = KeyboardObserver()
+    @State private var isPrivacyPolicyPresented: Bool = false
     
     var onLoginSuccess: (String) -> Void
     
@@ -281,7 +283,7 @@ struct LoginView: View {
                                 .keyboardType(.numberPad)
                                 .padding(.leading, 10)
                                 .frame(height: 50)
-                                .foregroundColor(.gray)
+                                .foregroundColor(.primary)
                                 .background(Color.white)
                                 .cornerRadius(5)
                                 
@@ -336,15 +338,24 @@ struct LoginView: View {
                     
                     VStack(spacing: 2) {
                         Text("By registering, you agree to our")
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.7))
-                        
-                        Text("Terms of Use & Privacy Policy")
-                            .font(.system(size: 12))
-                            .foregroundColor(.yellow)
-                    }
-                    .padding(.bottom, 10)
-                    .offset(y:-20)
+                                .font(.system(size: 12))
+                                .foregroundColor(.white.opacity(0.7))
+                            
+                            Button(action: {
+                                isPrivacyPolicyPresented = true
+                            }) {
+                                Text("Terms of Use & Privacy Policy")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.yellow)
+                                    .underline()
+                            }
+                        }
+                        .padding(.bottom, 10)
+                        .offset(y: -20)
+                        .sheet(isPresented: $isPrivacyPolicyPresented) {
+                            PrivacyPolicyView(isBackButtonVisible: .constant(false))
+                        }
+
                 }
                 .padding(.bottom, keyboardObserver.keyboardHeight)
                 .animation(.easeOut(duration: 0.3), value: keyboardObserver.keyboardHeight)
@@ -364,7 +375,9 @@ struct LoginView: View {
                 phoneNumber: selectedCountry.code + phoneNumber,
                 onOTPVerified: {
                     registerUser()
-                }
+                },
+                showLoginView: $showLoginView 
+                
             )
         }
     }
@@ -425,12 +438,9 @@ struct LoginView: View {
 
                 // Fetch device ID
                 let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "UnknownDeviceID"
+                print("Fetched Device ID: \(deviceId)")
 
                 let registerRequest = RegisterUserRequest(
-                    first_name: "Tring",
-                    last_name: "Box",
-                    dob: "2024-08-01",
-                    gender: "Male",
                     type: "User",
                     email: "support@tringbox.com",
                     display_name: displayName ?? "Tringbox",
@@ -438,6 +448,8 @@ struct LoginView: View {
                     notificationId: fcmToken,
                     deviceId: deviceId
                 )
+                
+                print("Register Request Payload: \(registerRequest)")
 
                 // backend-call API to register the user
                 APIManager.shared.registerUser(request: registerRequest, token: idToken) { result in
@@ -553,7 +565,22 @@ struct CountryPicker: View {
         }
     }
 }
+struct PrivacyPolicyView: View {
+    @Binding var isBackButtonVisible: Bool
 
+    var body: some View {
+        ZStack {
+            Color(red: 220 / 255, green: 220 / 255, blue: 220 / 255)
+                .edgesIgnoringSafeArea(.all)
+            WebView(urlString: "https://cdn-tringbox-photos.s3.ap-south-1.amazonaws.com/privacy-policy.html")
+                .edgesIgnoringSafeArea(.all)
+        }
+        .onAppear {
+            isBackButtonVisible = true
+        }
+        .navigationBarHidden(true)
+    }
+}
 #Preview {
     LoginView {_ in 
         print("Login Successful!")

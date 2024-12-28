@@ -41,6 +41,13 @@ struct SidebarView: View {
     @Binding var isBackButtonVisible: Bool
     @Binding var showShareSheet: Bool
     @Binding var showLoginView: Bool
+    
+    private var appVersion: String {
+            if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+                return version
+            }
+            return "Unknown Version"
+        }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -144,7 +151,7 @@ struct SidebarView: View {
 
             Spacer()
 
-            Text("Made in India")
+            Text("Made in India | v\(appVersion)")
                 .font(.footnote)
                 .foregroundColor(.black)
                 .padding(.bottom, 20)

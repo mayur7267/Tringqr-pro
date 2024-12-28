@@ -12,10 +12,12 @@ struct OTPView: View {
     @State private var isLoading: Bool = false
     @State private var errorMessage: String = ""
     @State private var verificationID: String
-
+    
     @Binding var isOTPViewPresented: Bool
     var phoneNumber: String
     var onOTPVerified: () -> Void
+    @Binding var showLoginView: Bool
+    
 
     @FocusState private var isOTPFieldFocused: Bool
     @State private var scrollViewProxy: ScrollViewProxy?
@@ -25,12 +27,15 @@ struct OTPView: View {
     @State private var remainingTime: Int = 60
     private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
-    init(verificationID: String, isOTPViewPresented: Binding<Bool>, phoneNumber: String, onOTPVerified: @escaping () -> Void) {
+    init(verificationID: String, isOTPViewPresented: Binding<Bool>, phoneNumber: String, onOTPVerified: @escaping () -> Void, showLoginView: Binding<Bool>) {
         self._verificationID = State(initialValue: verificationID)
         self._isOTPViewPresented = isOTPViewPresented
         self.phoneNumber = phoneNumber
         self.onOTPVerified = onOTPVerified
+        self._showLoginView = showLoginView
     }
+    
+    
 
     var body: some View {
         VStack {
@@ -45,12 +50,31 @@ struct OTPView: View {
             Spacer()
             Spacer()
 
-            // OTP Sent Message
-            Text("OTP has been sent to \(phoneNumber)")
-                .font(.headline)
-                .foregroundColor(.white)
+            // OTP Sent Message with Edit Button
+            HStack {
+                Text("OTP has been sent to: \(phoneNumber)")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.4)
+                        .padding(.trailing, 8)
+                    Button(action: {
+                        showLoginView = true
+                        isOTPViewPresented = false
+                    }) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "pencil")
+                                .font(.subheadline)
+                                .foregroundColor(.yellow)
+                            Text("Edit")
+                                .font(.subheadline)
+                                .foregroundColor(.yellow)
+                        }
+                    }
+                }
                 .padding()
-                .offset(y: -40)
+                .offset(y: -20)
+                
 
             // OTP Input Field
             TextField("Enter OTP", text: $otp)
@@ -66,6 +90,7 @@ struct OTPView: View {
                 .onTapGesture {
                     isOTPFieldFocused = true
                 }
+                .foregroundColor(.black)
                 .onChange(of: isOTPFieldFocused) { isFocused in
                     if isFocused {
                         scrollViewProxy?.scrollTo(otp, anchor: .bottom)
@@ -138,7 +163,7 @@ struct OTPView: View {
             hideKeyboard()
         }
         .onAppear {
-            startTimer() // Start the timer when the view appears
+            startTimer()
 
             NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
                 if isOTPFieldFocused {
@@ -228,6 +253,7 @@ struct OTPView: View {
     }
 }
 
+
 #Preview {
     OTPView(
         verificationID: "fakeVerificationID123",
@@ -235,6 +261,7 @@ struct OTPView: View {
         phoneNumber: "9284272940",
         onOTPVerified: {
             print("OTP Verified!")
-        }
+        },
+        showLoginView: .constant(false)
     )
 }

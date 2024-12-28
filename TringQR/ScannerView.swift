@@ -29,6 +29,9 @@ struct ScannerView: View {
     @EnvironmentObject var appState: AppState
     @State private var scannedCode: String = ""
     @State private var showGalleryPicker: Bool = false
+ 
+
+
     
     
     
@@ -195,8 +198,14 @@ struct ScannerView: View {
                 scannedCode = code
                 session.stopRunning()
                 deactivateScannerAnimation()
-                appState.addScannedCode(code)
+
+                
+                let deviceId = "device-unique-id-123"
+                let userId = "user-id-456"  
+                
+                appState.addScannedCode(code, deviceId: deviceId, userId: userId)
                 handleScannedCode(code)
+                
                 qrDelegate.scannedCode = nil
                 
                 // Restart scanning after processing
@@ -367,13 +376,20 @@ struct ScannerView: View {
         return (features.first as? CIQRCodeFeature)?.messageString
     }
     func handleScannedCode(_ code: String) {
+        let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "unknown-device-id"
+        let userId = "unknown-user-id"
+
+
+
+
+        appState.addScannedCode(code, deviceId: deviceId, userId: userId)
+
         guard let url = URL(string: code) else {
             presentError("Invalid QR code content: \(code)")
             return
         }
-        
+
         if code.lowercased().hasPrefix("upi://pay") {
-           
             if UIApplication.shared.canOpenURL(url) {
                 UIApplication.shared.open(url, options: [:]) { success in
                     if !success {
@@ -384,7 +400,6 @@ struct ScannerView: View {
                 presentError("No app available to handle UPI payment.")
             }
         } else {
-           
             if UIApplication.shared.canOpenURL(url) {
                 UIApplication.shared.open(url)
             } else {
@@ -392,6 +407,7 @@ struct ScannerView: View {
             }
         }
     }
+
 }
 
 #Preview {

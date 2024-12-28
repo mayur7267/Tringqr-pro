@@ -22,7 +22,6 @@ struct ScannedHistoryItem: Identifiable, Codable {
     }
 }
 
-
 class AppState: ObservableObject {
     @Published var isLoggedIn: Bool {
         didSet {
@@ -40,12 +39,12 @@ class AppState: ObservableObject {
         }
     }
     @Published var scannedHistory: [ScannedHistoryItem] {
-            didSet {
-                if let encoded = try? JSONEncoder().encode(scannedHistory) {
-                    UserDefaults.standard.set(encoded, forKey: "scannedHistory")
-                }
+        didSet {
+            if let encoded = try? JSONEncoder().encode(scannedHistory) {
+                UserDefaults.standard.set(encoded, forKey: "scannedHistory")
             }
         }
+    }
     @Published var isFirstLaunch: Bool {
         didSet {
             UserDefaults.standard.set(isFirstLaunch, forKey: "isFirstLaunch")
@@ -56,20 +55,21 @@ class AppState: ObservableObject {
             UserDefaults.standard.set(isSidebarVisible, forKey: "isSidebarVisible")
         }
     }
-    
+
     init() {
         self.isLoggedIn = UserDefaults.standard.bool(forKey: "isLoggedIn")
         self.userName = UserDefaults.standard.string(forKey: "userName") ?? ""
         self.phoneNumber = UserDefaults.standard.string(forKey: "phoneNumber")
         if let data = UserDefaults.standard.data(forKey: "scannedHistory"),
-                   let decoded = try? JSONDecoder().decode([ScannedHistoryItem].self, from: data) {
-                    self.scannedHistory = decoded
-                } else {
-                    self.scannedHistory = []
-                }
+           let decoded = try? JSONDecoder().decode([ScannedHistoryItem].self, from: data) {
+            self.scannedHistory = decoded
+        } else {
+            self.scannedHistory = []
+        }
         self.isFirstLaunch = UserDefaults.standard.object(forKey: "isFirstLaunch") == nil || UserDefaults.standard.bool(forKey: "isFirstLaunch")
         self.isSidebarVisible = UserDefaults.standard.bool(forKey: "isSidebarVisible")
     }
+    @Published var scannedHistorySet: Set<String> = []
 
     func toggleLogin() {
         isLoggedIn.toggle()
@@ -85,10 +85,17 @@ class AppState: ObservableObject {
         UserDefaults.standard.set(number, forKey: "phoneNumber")
     }
 
-    func addScannedCode(_ code: String) {
+    func addScannedCode(_ code: String, deviceId: String, userId: String) {
+        if !scannedHistorySet.contains(code) {
             let newItem = ScannedHistoryItem(code: code)
             scannedHistory.append(newItem)
+            scannedHistorySet.insert(code)  
+            sendToBackend(code: code, deviceId: deviceId, userId: userId)
         }
+    }
+
+
+
 
     func completeFirstLaunch() {
         isFirstLaunch = false
@@ -98,13 +105,49 @@ class AppState: ObservableObject {
     func toggleSidebar() {
         isSidebarVisible.toggle()
     }
-    
+
     func signOut() {
         isLoggedIn = false
         userName = ""
         phoneNumber = nil
         UserDefaults.standard.removeObject(forKey: "userName")
         UserDefaults.standard.removeObject(forKey: "phoneNumber")
+    }
+
+    /// Sends scanned code to the backend API
+    private func sendToBackend(code: String, deviceId: String, userId: String) {
+        guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/users/activity") else {
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let payload: [String: Any] = [
+            "deviceId": deviceId,
+            "eventName": code,
+            "event": "clicked/opened/scan",
+            "userId": userId
+        ]
+
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: payload) else {
+            print("Failed to serialize payload")
+            return
+        }
+
+        URLSession.shared.uploadTask(with: request, from: jsonData) { data, response, error in
+            if let error = error {
+                print("Error sending data to backend: \(error.localizedDescription)")
+                return
+            }
+
+            if let response = response as? HTTPURLResponse, response.statusCode == 200 {
+                print("Successfully sent data to backend.")
+            } else {
+                print("Failed with response: \(String(describing: response))")
+            }
+        }.resume()
     }
 }
 
@@ -214,6 +257,7 @@ struct ContentView: View {
                                             ShareView(isBackButtonVisible: $isBackButtonVisible)
                                         case 3:
                                             HelpView(isBackButtonVisible: $isBackButtonVisible)
+                                               
                                         default:
                                             Text("Unknown View")
                                         }
@@ -356,35 +400,53 @@ struct SignInView: View {
         }
     }
 }
-import SwiftUI
+
 
 struct HistoryView: View {
     @EnvironmentObject var appState: AppState
     @State private var showShareSheet = false
     @State private var selectedHistoryItem: ScannedHistoryItem? = nil
+    @State private var showDeleteConfirmation = false
+
     var body: some View {
         ZStack {
-           
             Color(red: 220 / 255, green: 220 / 255, blue: 220 / 255)
                 .edgesIgnoringSafeArea(.all)
-
+            
             VStack(spacing: 0) {
                 // Main Content
-                if appState.scannedHistory.isEmpty {
+                if filteredHistory.isEmpty {
                     Spacer()
-                    Text("No scan history available.")
-                        .foregroundColor(.gray)
-                        .font(.system(size: 17))
+                    VStack {
+                        Image(systemName: "doc.text.magnifyingglass")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 100, height: 100)
+                            .foregroundColor(.gray)
+                        Text("No scan history available.")
+                            .foregroundColor(.gray)
+                            .font(.system(size: 17))
+                        Text("Start scanning codes to see them here!")
+                            .foregroundColor(.gray)
+                            .font(.system(size: 14))
+                    }
                     Spacer()
                 } else {
                     ScrollView {
                         VStack(spacing: 12) {
-                            ForEach(appState.scannedHistory) { historyItem in
+                            ForEach(filteredHistory) { historyItem in
                                 HistoryItemView(
                                     historyItem: historyItem,
                                     showShareSheet: $showShareSheet,
                                     selectedHistoryItem: $selectedHistoryItem
                                 )
+                                .swipeActions {
+                                    Button(role: .destructive) {
+                                        deleteHistoryItem(historyItem)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
                             }
                         }
                         .padding(.horizontal, 16)
@@ -400,6 +462,17 @@ struct HistoryView: View {
             }
         }
     }
+
+    private var filteredHistory: [ScannedHistoryItem] {
+        return appState.scannedHistory
+    }
+
+    private func deleteHistoryItem(_ item: ScannedHistoryItem) {
+        showDeleteConfirmation = true
+        if let index = appState.scannedHistory.firstIndex(where: { $0.id == item.id }) {
+            appState.scannedHistory.remove(at: index)
+        }
+    }
 }
 
 struct HistoryItemView: View {
@@ -408,17 +481,17 @@ struct HistoryItemView: View {
     @Binding var selectedHistoryItem: ScannedHistoryItem?
     @EnvironmentObject var appState: AppState
     @Environment(\.colorScheme) var colorScheme // Detect light/dark mode
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(historyItem.code)
                     .font(.system(size: 16))
                     .lineLimit(1)
-                    .foregroundColor(colorScheme == .dark ? .white : .black) 
-
+                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                
                 Spacer()
-
+                
                 Button(action: {
                     if let url = URL(string: historyItem.code),
                        UIApplication.shared.canOpenURL(url) {
@@ -430,7 +503,7 @@ struct HistoryItemView: View {
                         .foregroundColor(colorScheme == .dark ? .white : .black)
                 }
                 .padding(.horizontal, 4)
-
+                
                 Button(action: {
                     selectedHistoryItem = historyItem
                     DispatchQueue.main.async {
@@ -442,7 +515,7 @@ struct HistoryItemView: View {
                         .foregroundColor(colorScheme == .dark ? .white : .black)
                 }
             }
-
+            
             Text(formattedDate(historyItem.date))
                 .font(.system(size: 12))
                 .foregroundColor(colorScheme == .dark ? .gray : .secondary)
@@ -460,7 +533,7 @@ struct HistoryItemView: View {
             }) {
                 Label("Share", systemImage: "square.and.arrow.up")
             }
-
+            
             Button(action: {
                 if let url = URL(string: historyItem.code),
                    UIApplication.shared.canOpenURL(url) {
@@ -469,7 +542,7 @@ struct HistoryItemView: View {
             }) {
                 Label("Open Link", systemImage: "arrow.up.right.square")
             }
-
+            
             Button(role: .destructive, action: {
                 deleteHistoryItem(historyItem)
             }) {
@@ -491,6 +564,7 @@ struct HistoryItemView: View {
         }
     }
 }
+
 
 
 #Preview {

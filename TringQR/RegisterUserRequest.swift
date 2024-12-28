@@ -8,14 +8,10 @@ import Foundation
 
 // MARK: - Request Models
 struct RegisterUserRequest: Codable {
-    let first_name: String
-    let last_name: String
-    let dob: String
-    let gender: String
     let type: String
-    let email: String
+    let email: String?
     let display_name: String
-    let phone_number: String
+    let phone_number: String?
     let notificationId: String
     let deviceId: String
 }
@@ -26,8 +22,6 @@ struct PostActivityRequest: Codable {
 
 // MARK: - Response Models
 struct RegisterUserResponse: Codable {
-    let first_name: String?
-    let last_name: String?
     let phone_number: String?
     let email: String?
 }
