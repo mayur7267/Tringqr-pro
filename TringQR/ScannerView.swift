@@ -8,6 +8,7 @@
 import SwiftUI
 import AVFoundation
 import PhotosUI
+import UIKit
 
 struct ScannerView: View {
     @State private var isScanning: Bool = true
@@ -173,6 +174,8 @@ struct ScannerView: View {
         .onAppear {
             checkCameraPermission()
             activateScannerAnimation()
+            let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "unknown-device-id"
+                appState.fetchUserActivity(for: deviceId)
         }
         .onDisappear {
             session.stopRunning()
@@ -199,16 +202,19 @@ struct ScannerView: View {
                 session.stopRunning()
                 deactivateScannerAnimation()
 
-                
-                let deviceId = "device-unique-id-123"
-                let userId = "user-id-456"  
-                
-                appState.addScannedCode(code, deviceId: deviceId, userId: userId)
+                let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "unknown-device-id"
+                let userId = appState.currentUserId ?? "unknown-user-id"
+
+                let event = "scan"
+                let eventName = code
+
+                appState.addScannedCode(code, deviceId: deviceId, userId: userId, event: event, eventName: eventName)
+
                 handleScannedCode(code)
                 
                 qrDelegate.scannedCode = nil
                 
-                // Restart scanning after processing
+                
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                     restartScanning()
                 }
@@ -375,14 +381,20 @@ struct ScannerView: View {
         let features = detector?.features(in: ciImage) ?? []
         return (features.first as? CIQRCodeFeature)?.messageString
     }
+    
+
     func handleScannedCode(_ code: String) {
+        //actual device ID
         let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "unknown-device-id"
-        let userId = "unknown-user-id"
-
-
-
-
-        appState.addScannedCode(code, deviceId: deviceId, userId: userId)
+        
+        //userId
+        let userId = appState.currentUserId ?? "unknown-user-id"
+        
+        let event = "scan"
+        let eventName = code
+        
+        
+        appState.addScannedCode(code, deviceId: deviceId, userId: userId, event: event, eventName: eventName)
 
         guard let url = URL(string: code) else {
             presentError("Invalid QR code content: \(code)")

@@ -23,6 +23,12 @@ struct ScannedHistoryItem: Identifiable, Codable {
 }
 
 class AppState: ObservableObject {
+    @Published var currentUserId: String? {
+            didSet {
+                UserDefaults.standard.set(currentUserId, forKey: "currentUserId")
+            }
+        }
+
     @Published var isLoggedIn: Bool {
         didSet {
             UserDefaults.standard.set(isLoggedIn, forKey: "isLoggedIn")
@@ -57,6 +63,7 @@ class AppState: ObservableObject {
     }
 
     init() {
+        self.currentUserId = UserDefaults.standard.string(forKey: "currentUserId")
         self.isLoggedIn = UserDefaults.standard.bool(forKey: "isLoggedIn")
         self.userName = UserDefaults.standard.string(forKey: "userName") ?? ""
         self.phoneNumber = UserDefaults.standard.string(forKey: "phoneNumber")
@@ -74,6 +81,10 @@ class AppState: ObservableObject {
     func toggleLogin() {
         isLoggedIn.toggle()
     }
+    
+    func setCurrentUserId(_ id: String?) {
+            currentUserId = id
+        }
 
     func setUserName(_ name: String) {
         userName = name
@@ -85,14 +96,15 @@ class AppState: ObservableObject {
         UserDefaults.standard.set(number, forKey: "phoneNumber")
     }
 
-    func addScannedCode(_ code: String, deviceId: String, userId: String) {
+    func addScannedCode(_ code: String, deviceId: String, userId: String, event: String, eventName: String) {
         if !scannedHistorySet.contains(code) {
             let newItem = ScannedHistoryItem(code: code)
             scannedHistory.append(newItem)
-            scannedHistorySet.insert(code)  
-            sendToBackend(code: code, deviceId: deviceId, userId: userId)
+            scannedHistorySet.insert(code)
+            sendToBackend(code: code, deviceId: deviceId, userId: userId, event: event, eventName: eventName)
         }
     }
+
 
 
 
@@ -115,7 +127,7 @@ class AppState: ObservableObject {
     }
 
     /// Sends scanned code to the backend API
-    private func sendToBackend(code: String, deviceId: String, userId: String) {
+    private func sendToBackend(code: String, deviceId: String, userId: String, event: String, eventName: String) {
         guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/users/activity") else {
             return
         }
@@ -149,6 +161,37 @@ class AppState: ObservableObject {
             }
         }.resume()
     }
+    
+    func fetchUserActivity(for deviceId: String) {
+        guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/users/activity/\(deviceId)") else {
+            print("Invalid URL")
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Error fetching activity: \(error.localizedDescription)")
+                return
+            }
+
+            if let data = data {
+                do {
+                    let activity = try JSONSerialization.jsonObject(with: data, options: [])
+                    DispatchQueue.main.async {
+                        print("Fetched activity: \(activity)")
+                        
+                    }
+                } catch {
+                    print("Error parsing JSON: \(error.localizedDescription)")
+                }
+            }
+        }.resume()
+    }
+
 }
 
 struct ContentView: View {
