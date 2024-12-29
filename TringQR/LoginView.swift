@@ -283,7 +283,7 @@ struct LoginView: View {
                                 .keyboardType(.numberPad)
                                 .padding(.leading, 10)
                                 .frame(height: 50)
-                                .foregroundColor(.primary)
+                                .foregroundColor(.black)
                                 .background(Color.white)
                                 .cornerRadius(5)
                                 
@@ -316,9 +316,12 @@ struct LoginView: View {
                             signInWithGoogle()
                         }) {
                             HStack {
-                                Image(systemName: "g.circle.fill")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(.black)
+                                
+                                Image("googleLogo")
+                                    .resizable()
+                                    .frame(width: 34, height: 34)
+                                    .padding(.trailing, 8)
+                                
                                 Text("Continue with Google")
                                     .font(.system(size: 16, weight: .medium))
                                     .foregroundColor(.black)
@@ -327,7 +330,9 @@ struct LoginView: View {
                             .padding()
                             .background(Color.white)
                             .cornerRadius(8)
+                            .shadow(color: Color.gray.opacity(0.3), radius: 4, x: 0, y: 2) 
                         }
+
                     }
                     .padding()
                     .background(Color.white.opacity(0.1))
