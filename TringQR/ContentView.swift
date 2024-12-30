@@ -96,15 +96,18 @@ class AppState: ObservableObject {
         UserDefaults.standard.set(number, forKey: "phoneNumber")
     }
 
+    private let lock = DispatchQueue(label: "appStateLock")
+
     func addScannedCode(_ code: String, deviceId: String, userId: String, event: String, eventName: String) {
-        if !scannedHistorySet.contains(code) {
+        lock.sync {
+            guard !scannedHistorySet.contains(code) else { return }
             let newItem = ScannedHistoryItem(code: code)
             scannedHistory.append(newItem)
             scannedHistorySet.insert(code)
-            sendToBackend(code: code, deviceId: deviceId, userId: userId, event: event, eventName: eventName)
         }
-    }
+        sendToBackend(code: "12345", deviceId: "abc123", event: "scan", eventName: "QR Code Scan")
 
+    }
 
 
 
@@ -127,7 +130,7 @@ class AppState: ObservableObject {
     }
 
     /// Sends scanned code to the backend API
-    private func sendToBackend(code: String, deviceId: String, userId: String, event: String, eventName: String) {
+    private func sendToBackend(code: String, deviceId: String, event: String, eventName: String) {
         guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/users/activity") else {
             return
         }
@@ -138,9 +141,9 @@ class AppState: ObservableObject {
 
         let payload: [String: Any] = [
             "deviceId": deviceId,
-            "eventName": code,
-            "event": "clicked/opened/scan",
-            "userId": userId
+            "eventName": eventName,
+            "event": event,
+            
         ]
 
         guard let jsonData = try? JSONSerialization.data(withJSONObject: payload) else {
@@ -162,9 +165,13 @@ class AppState: ObservableObject {
         }.resume()
     }
     
-    func fetchUserActivity(for deviceId: String) {
-        guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/users/activity/\(deviceId)") else {
-            print("Invalid URL")
+    private func initializeApp(deviceId: String) {
+        
+        fetchScanHistory(deviceId: deviceId)
+    }
+
+        func fetchScanHistory(deviceId: String) {
+        guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/users/scanHistory?deviceId=\(deviceId)") else {
             return
         }
 
@@ -174,24 +181,26 @@ class AppState: ObservableObject {
 
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
-                print("Error fetching activity: \(error.localizedDescription)")
+                print("Error fetching scan history: \(error.localizedDescription)")
                 return
             }
 
-            if let data = data {
-                do {
-                    let activity = try JSONSerialization.jsonObject(with: data, options: [])
-                    DispatchQueue.main.async {
-                        print("Fetched activity: \(activity)")
-                        
-                    }
-                } catch {
-                    print("Error parsing JSON: \(error.localizedDescription)")
+            guard let data = data else {
+                print("No data received from backend")
+                return
+            }
+
+            do {
+                if let scanHistory = try JSONSerialization.jsonObject(with: data, options: []) as? [[String: Any]] {
+                    print("Fetched scan history: \(scanHistory)")
+                    // Optionally store locally for session
+                    UserDefaults.standard.set(scanHistory, forKey: "ScanHistory")
                 }
+            } catch {
+                print("Failed to parse scan history: \(error.localizedDescription)")
             }
         }.resume()
     }
-
 }
 
 struct ContentView: View {
@@ -445,6 +454,8 @@ struct SignInView: View {
 }
 
 
+
+
 struct HistoryView: View {
     @EnvironmentObject var appState: AppState
     @State private var showShareSheet = false
@@ -502,6 +513,13 @@ struct HistoryView: View {
         .sheet(isPresented: $showShareSheet) {
             if let selectedHistoryItem = selectedHistoryItem {
                 ActivityView(activityItems: [selectedHistoryItem.code])
+            }
+        }
+        .onAppear {
+            if let deviceId = UIDevice.current.identifierForVendor?.uuidString {
+                appState.fetchScanHistory(deviceId: deviceId)
+            } else {
+                print("Failed to get device ID")
             }
         }
     }

@@ -175,7 +175,7 @@ struct ScannerView: View {
             checkCameraPermission()
             activateScannerAnimation()
             let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "unknown-device-id"
-                appState.fetchUserActivity(for: deviceId)
+            appState.fetchScanHistory(deviceId: deviceId)
         }
         .onDisappear {
             session.stopRunning()
@@ -203,7 +203,7 @@ struct ScannerView: View {
                 deactivateScannerAnimation()
 
                 let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "unknown-device-id"
-                let userId = appState.currentUserId ?? "unknown-user-id"
+                let userId = ""
 
                 let event = "scan"
                 let eventName = code
@@ -388,7 +388,7 @@ struct ScannerView: View {
         let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "unknown-device-id"
         
         //userId
-        let userId = appState.currentUserId ?? "unknown-user-id"
+        let userId = ""
         
         let event = "scan"
         let eventName = code
@@ -425,5 +425,9 @@ struct ScannerView: View {
 #Preview {
     ContentView(appState: AppState())
         .environmentObject(AppState())
+    ContentView(appState: AppState())
+        .environmentObject(AppState())
+        .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
+        .previewDisplayName("iPhone SE")
 }
 
