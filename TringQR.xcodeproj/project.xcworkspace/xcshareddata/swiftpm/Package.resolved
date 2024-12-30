@@ -1,5 +1,5 @@
 {
-  "originHash" : "12ac74c1c466aa897250313f2b4ec69615eb7c8e15ba630b623c805ee75e4dc8",
+  "originHash" : "4f0104b1d46ab47764c45dc1d0c215372392ed4c3926ae9ed09ca6999a1791ba",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -107,6 +107,15 @@
       "state" : {
         "revision" : "2d12673670417654f08f5f90fdd62926dc3a2648",
         "version" : "100.0.0"
+      }
+    },
+    {
+      "identity" : "keychainwrapper",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/jrendel/KeychainWrapper.git",
+      "state" : {
+        "revision" : "185a3165346a03767101c4f62e9a545a0fe0530f",
+        "version" : "4.0.1"
       }
     },
     {

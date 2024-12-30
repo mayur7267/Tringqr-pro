@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		18044FD92D227D5600D9F4F6 /* SwiftKeychainWrapper in Frameworks */ = {isa = PBXBuildFile; productRef = 18044FD82D227D5600D9F4F6 /* SwiftKeychainWrapper */; };
 		188C3A602CFB1EC40022D3F4 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 188C3A5F2CFB1EC40022D3F4 /* FirebaseCore */; };
 		188C3A622CFB1EC80022D3F4 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 188C3A612CFB1EC80022D3F4 /* FirebaseAuth */; };
 		188C3A692CFB29980022D3F4 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 188C3A682CFB29980022D3F4 /* GoogleSignIn */; };
@@ -80,6 +81,7 @@
 				188C3A712CFC782F0022D3F4 /* FirebaseMessaging in Frameworks */,
 				188C3A692CFB29980022D3F4 /* GoogleSignIn in Frameworks */,
 				188C3A6B2CFB29980022D3F4 /* GoogleSignInSwift in Frameworks */,
+				18044FD92D227D5600D9F4F6 /* SwiftKeychainWrapper in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -154,6 +156,7 @@
 				188C3A6A2CFB29980022D3F4 /* GoogleSignInSwift */,
 				188C3A702CFC782F0022D3F4 /* FirebaseMessaging */,
 				18FA5D372D182C69002BAA25 /* FirebaseDatabase */,
+				18044FD82D227D5600D9F4F6 /* SwiftKeychainWrapper */,
 			);
 			productName = TringQR;
 			productReference = 18C305772CFA532D00252B56 /* TringQR.app */;
@@ -241,6 +244,7 @@
 				188C3A5D2CFB1DB30022D3F4 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				188C3A672CFB29980022D3F4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 				18796E332D0F37720061AE94 /* XCRemoteSwiftPackageReference "PhoneNumberKit" */,
+				18044FD72D227D4300D9F4F6 /* XCRemoteSwiftPackageReference "KeychainWrapper" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 18C305782CFA532D00252B56 /* Products */;
@@ -638,6 +642,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		18044FD72D227D4300D9F4F6 /* XCRemoteSwiftPackageReference "KeychainWrapper" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/jrendel/KeychainWrapper.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.1;
+			};
+		};
 		18796E332D0F37720061AE94 /* XCRemoteSwiftPackageReference "PhoneNumberKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/marmelroy/PhoneNumberKit.git";
@@ -665,6 +677,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		18044FD82D227D5600D9F4F6 /* SwiftKeychainWrapper */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 18044FD72D227D4300D9F4F6 /* XCRemoteSwiftPackageReference "KeychainWrapper" */;
+			productName = SwiftKeychainWrapper;
+		};
 		188C3A5F2CFB1EC40022D3F4 /* FirebaseCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 188C3A5D2CFB1DB30022D3F4 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;

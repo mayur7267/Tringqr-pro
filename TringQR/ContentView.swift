@@ -9,127 +9,205 @@ import SwiftUI
 import UIKit
 import Combine
 import WebKit
+import SwiftKeychainWrapper
 
 struct ScannedHistoryItem: Identifiable, Codable {
     let id: UUID
     let code: String
     let date: Date
+    let eventName: String?
+    let event: String?
+    let timestamp: String?
 
-    init(code: String) {
+    init(code: String, eventName: String? = nil, event: String? = nil, timestamp: String? = nil) {
         self.id = UUID()
         self.code = code
         self.date = Date()
+        self.eventName = eventName
+        self.event = event
+        self.timestamp = timestamp
     }
 }
 
 class AppState: ObservableObject {
+    // MARK: - Published Properties
     @Published var currentUserId: String? {
-            didSet {
-                UserDefaults.standard.set(currentUserId, forKey: "currentUserId")
-            }
+        didSet {
+            UserDefaults.standard.set(currentUserId, forKey: "currentUserId")
         }
-
+    }
+    
     @Published var isLoggedIn: Bool {
         didSet {
             UserDefaults.standard.set(isLoggedIn, forKey: "isLoggedIn")
         }
     }
+    
     @Published var userName: String? {
         didSet {
             UserDefaults.standard.set(userName, forKey: "userName")
         }
     }
+    
     @Published var phoneNumber: String? {
         didSet {
             UserDefaults.standard.set(phoneNumber, forKey: "phoneNumber")
         }
     }
+    
     @Published var scannedHistory: [ScannedHistoryItem] {
         didSet {
             if let encoded = try? JSONEncoder().encode(scannedHistory) {
-                UserDefaults.standard.set(encoded, forKey: "scannedHistory")
+                KeychainWrapper.standard.set(encoded, forKey: "scannedHistory")
             }
+            // Update the set whenever history changes
+            scannedHistorySet = Set(scannedHistory.map { $0.code })
         }
     }
+    
     @Published var isFirstLaunch: Bool {
         didSet {
             UserDefaults.standard.set(isFirstLaunch, forKey: "isFirstLaunch")
         }
     }
+    
     @Published var isSidebarVisible: Bool {
         didSet {
             UserDefaults.standard.set(isSidebarVisible, forKey: "isSidebarVisible")
         }
     }
-
+    
+    // MARK: - Private Properties
+    @Published var scannedHistorySet: Set<String> = []
+    private let lock = DispatchQueue(label: "appStateLock")
+    
+    // MARK: - Initialization
     init() {
+        // Initialize from UserDefaults
         self.currentUserId = UserDefaults.standard.string(forKey: "currentUserId")
         self.isLoggedIn = UserDefaults.standard.bool(forKey: "isLoggedIn")
         self.userName = UserDefaults.standard.string(forKey: "userName") ?? ""
         self.phoneNumber = UserDefaults.standard.string(forKey: "phoneNumber")
-        if let data = UserDefaults.standard.data(forKey: "scannedHistory"),
-           let decoded = try? JSONDecoder().decode([ScannedHistoryItem].self, from: data) {
-            self.scannedHistory = decoded
-        } else {
-            self.scannedHistory = []
-        }
+        self.scannedHistory = []
         self.isFirstLaunch = UserDefaults.standard.object(forKey: "isFirstLaunch") == nil || UserDefaults.standard.bool(forKey: "isFirstLaunch")
         self.isSidebarVisible = UserDefaults.standard.bool(forKey: "isSidebarVisible")
-    }
-    @Published var scannedHistorySet: Set<String> = []
-
-    func toggleLogin() {
-        isLoggedIn.toggle()
+        
+        // Load cached history from Keychain
+        if let data = KeychainWrapper.standard.data(forKey: "scannedHistory"),
+           let decoded = try? JSONDecoder().decode([ScannedHistoryItem].self, from: data) {
+            self.scannedHistory = decoded
+            self.scannedHistorySet = Set(decoded.map { $0.code })
+        }
+        
+        // Fetch remote history
+        restoreHistoryFromBackend()
     }
     
-    func setCurrentUserId(_ id: String?) {
-            currentUserId = id
+    // MARK: - History Management
+    func restoreHistoryFromBackend() {
+        let deviceId = getDeviceId()
+        fetchScanHistory(deviceId: deviceId) { [weak self] history in
+            guard let self = self, let history = history else { return }
+            
+            DispatchQueue.main.async {
+                // Convert backend history format to ScannedHistoryItem
+                let newItems = history.compactMap { item -> ScannedHistoryItem? in
+                    guard let code = item["code"] as? String else { return nil }
+                    return ScannedHistoryItem(
+                        code: code,
+                        eventName: item["eventName"] as? String,
+                        event: item["event"] as? String,
+                        timestamp: item["timestamp"] as? String
+                    )
+                }
+                
+                // Append new items to existing history
+                if !newItems.isEmpty {
+                    self.lock.sync {
+                        self.scannedHistory.append(contentsOf: newItems)
+                        newItems.forEach { item in
+                            self.scannedHistorySet.insert(item.code)
+                        }
+                    }
+                }
+            }
         }
-
-    func setUserName(_ name: String) {
-        userName = name
-        UserDefaults.standard.set(name, forKey: "userName")
     }
-
-    func setPhoneNumber(_ number: String?) {
-        phoneNumber = number
-        UserDefaults.standard.set(number, forKey: "phoneNumber")
-    }
-
-    private let lock = DispatchQueue(label: "appStateLock")
-
+    
     func addScannedCode(_ code: String, deviceId: String, userId: String, event: String, eventName: String) {
         lock.sync {
             guard !scannedHistorySet.contains(code) else { return }
-            let newItem = ScannedHistoryItem(code: code)
+            let newItem = ScannedHistoryItem(code: code, eventName: eventName, event: event)
             scannedHistory.append(newItem)
             scannedHistorySet.insert(code)
         }
-        sendToBackend(code: "12345", deviceId: "abc123", event: "scan", eventName: "QR Code Scan")
-
+        sendToBackend(code: code, deviceId: deviceId, event: "scan", eventName: eventName)
     }
-
-
-
-
-    func completeFirstLaunch() {
-        isFirstLaunch = false
-        UserDefaults.standard.set(false, forKey: "isFirstLaunch")
+    
+    // MARK: - Network Requests
+    func fetchScanHistory(deviceId: String, completion: @escaping ([[String: Any]]?) -> Void) {
+        guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/users/activity/\(deviceId)") else {
+            print("Invalid URL for fetching history")
+            completion(nil)
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            if let error = error {
+                print("Error fetching history: \(error.localizedDescription)")
+                completion(nil)
+                return
+            }
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                print("Invalid response type")
+                completion(nil)
+                return
+            }
+            
+            guard httpResponse.statusCode == 200 else {
+                print("Server returned status code: \(httpResponse.statusCode)")
+                completion(nil)
+                return
+            }
+            
+            guard let data = data else {
+                print("No data received")
+                completion(nil)
+                return
+            }
+            
+            do {
+                guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let activities = json["activities"] as? [[String: Any]] else {
+                    print("Failed to parse JSON response")
+                    completion(nil)
+                    return
+                }
+                
+                let history = activities.map { activity -> [String: Any] in
+                    var mappedActivity: [String: Any] = [:]
+                    mappedActivity["code"] = activity["code"] as? String ?? ""
+                    mappedActivity["eventName"] = activity["eventName"] as? String ?? ""
+                    mappedActivity["event"] = activity["event"] as? String ?? ""
+                    mappedActivity["timestamp"] = activity["timestamp"] as? String ?? ""
+                    return mappedActivity
+                }
+                
+                print("Successfully fetched history: \(history)")
+                completion(history)
+                
+            } catch {
+                print("Error parsing response: \(error.localizedDescription)")
+                completion(nil)
+            }
+        }.resume()
     }
-
-    func toggleSidebar() {
-        isSidebarVisible.toggle()
-    }
-
-    func signOut() {
-        isLoggedIn = false
-        userName = ""
-        phoneNumber = nil
-        UserDefaults.standard.removeObject(forKey: "userName")
-        UserDefaults.standard.removeObject(forKey: "phoneNumber")
-    }
-
-    /// Sends scanned code to the backend API
+    
     private func sendToBackend(code: String, deviceId: String, event: String, eventName: String) {
         guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/users/activity") else {
             return
@@ -143,7 +221,7 @@ class AppState: ObservableObject {
             "deviceId": deviceId,
             "eventName": eventName,
             "event": event,
-            
+            "code": code
         ]
 
         guard let jsonData = try? JSONSerialization.data(withJSONObject: payload) else {
@@ -165,43 +243,53 @@ class AppState: ObservableObject {
         }.resume()
     }
     
-    private func initializeApp(deviceId: String) {
-        
-        fetchScanHistory(deviceId: deviceId)
+    // MARK: - User Management
+    func toggleLogin() {
+        isLoggedIn.toggle()
+    }
+    
+    func setCurrentUserId(_ id: String?) {
+        currentUserId = id
     }
 
-        func fetchScanHistory(deviceId: String) {
-        guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/users/scanHistory?deviceId=\(deviceId)") else {
-            return
+    func setUserName(_ name: String) {
+        userName = name
+    }
+
+    func setPhoneNumber(_ number: String?) {
+        phoneNumber = number
+    }
+    
+    func signOut() {
+        isLoggedIn = false
+        userName = ""
+        phoneNumber = nil
+        UserDefaults.standard.removeObject(forKey: "userName")
+        UserDefaults.standard.removeObject(forKey: "phoneNumber")
+    }
+    
+    // MARK: - UI State Management
+    func completeFirstLaunch() {
+        isFirstLaunch = false
+    }
+
+    func toggleSidebar() {
+        isSidebarVisible.toggle()
+    }
+    
+    // MARK: - Device Management
+    func getDeviceId() -> String {
+        let keychainKey = "com.app.uniqueDeviceId"
+        if let deviceId = KeychainWrapper.standard.string(forKey: keychainKey) {
+            return deviceId
+        } else {
+            let newDeviceId = UUID().uuidString
+            KeychainWrapper.standard.set(newDeviceId, forKey: keychainKey)
+            return newDeviceId
         }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("Error fetching scan history: \(error.localizedDescription)")
-                return
-            }
-
-            guard let data = data else {
-                print("No data received from backend")
-                return
-            }
-
-            do {
-                if let scanHistory = try JSONSerialization.jsonObject(with: data, options: []) as? [[String: Any]] {
-                    print("Fetched scan history: \(scanHistory)")
-                    // Optionally store locally for session
-                    UserDefaults.standard.set(scanHistory, forKey: "ScanHistory")
-                }
-            } catch {
-                print("Failed to parse scan history: \(error.localizedDescription)")
-            }
-        }.resume()
     }
 }
+
 
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
@@ -517,11 +605,32 @@ struct HistoryView: View {
         }
         .onAppear {
             if let deviceId = UIDevice.current.identifierForVendor?.uuidString {
-                appState.fetchScanHistory(deviceId: deviceId)
+                appState.fetchScanHistory(deviceId: deviceId) { history in
+                    guard let history = history else {
+                        print("No history found or an error occurred.")
+                        return
+                    }
+
+                    // Map the raw history to ScannedHistoryItem objects
+                    let scannedItems = history.compactMap { item -> ScannedHistoryItem? in
+                        guard let code = item["code"] as? String else { return nil }
+                        return ScannedHistoryItem(
+                            code: code,
+                            eventName: item["eventName"] as? String,
+                            event: item["event"] as? String,
+                            timestamp: item["timestamp"] as? String
+                        )
+                    }
+
+                    DispatchQueue.main.async {
+                        appState.scannedHistory = scannedItems
+                    }
+                }
             } else {
                 print("Failed to get device ID")
             }
         }
+
     }
 
     private var filteredHistory: [ScannedHistoryItem] {

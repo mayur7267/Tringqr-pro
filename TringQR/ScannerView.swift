@@ -175,8 +175,31 @@ struct ScannerView: View {
             checkCameraPermission()
             activateScannerAnimation()
             let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "unknown-device-id"
-            appState.fetchScanHistory(deviceId: deviceId)
+            
+            appState.fetchScanHistory(deviceId: deviceId) { history in
+                guard let history = history else {
+                    print("No history found or an error occurred.")
+                    return
+                }
+                
+                // Map the raw history to ScannedHistoryItem objects
+                let scannedItems = history.compactMap { item -> ScannedHistoryItem? in
+                    guard let code = item["code"] as? String else { return nil }
+                    return ScannedHistoryItem(
+                        code: code,
+                        eventName: item["eventName"] as? String,
+                        event: item["event"] as? String,
+                        timestamp: item["timestamp"] as? String
+                    )
+                }
+                
+                DispatchQueue.main.async {
+                    appState.scannedHistory = scannedItems
+                }
+            }
         }
+
+
         .onDisappear {
             session.stopRunning()
             deactivateScannerAnimation()
