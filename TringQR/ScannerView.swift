@@ -226,12 +226,12 @@ struct ScannerView: View {
                 deactivateScannerAnimation()
 
                 let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "unknown-device-id"
-                let userId = ""
-
+                let os = "iOS"
+   
                 let event = "scan"
                 let eventName = code
 
-                appState.addScannedCode(code, deviceId: deviceId, userId: userId, event: event, eventName: eventName)
+                appState.addScannedCode(code, deviceId: deviceId,os:os,event: event, eventName: eventName)
 
                 handleScannedCode(code)
                 
@@ -411,13 +411,13 @@ struct ScannerView: View {
         let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "unknown-device-id"
         
         //userId
-        let userId = ""
-        
+       
+        let os = "iOS"
         let event = "scan"
         let eventName = code
         
         
-        appState.addScannedCode(code, deviceId: deviceId, userId: userId, event: event, eventName: eventName)
+        appState.addScannedCode(code, deviceId: deviceId, os: os, event: event, eventName: eventName)
 
         guard let url = URL(string: code) else {
             presentError("Invalid QR code content: \(code)")

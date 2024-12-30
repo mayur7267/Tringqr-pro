@@ -134,14 +134,14 @@ class AppState: ObservableObject {
         }
     }
     
-    func addScannedCode(_ code: String, deviceId: String, userId: String, event: String, eventName: String) {
+    func addScannedCode(_ code: String, deviceId: String,os: String, event: String, eventName: String) {
         lock.sync {
             guard !scannedHistorySet.contains(code) else { return }
             let newItem = ScannedHistoryItem(code: code, eventName: eventName, event: event)
             scannedHistory.append(newItem)
             scannedHistorySet.insert(code)
         }
-        sendToBackend(code: code, deviceId: deviceId, event: "scan", eventName: eventName)
+        sendToBackend(code: code, deviceId: deviceId,os: "iOS", event: "scan", eventName: eventName)
     }
     
     // MARK: - Network Requests
@@ -208,7 +208,7 @@ class AppState: ObservableObject {
         }.resume()
     }
     
-    private func sendToBackend(code: String, deviceId: String, event: String, eventName: String) {
+    private func sendToBackend(code: String, deviceId: String, os: String, event: String, eventName: String) {
         guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/users/activity") else {
             return
         }
@@ -219,6 +219,7 @@ class AppState: ObservableObject {
 
         let payload: [String: Any] = [
             "deviceId": deviceId,
+            "os": os,
             "eventName": eventName,
             "event": event,
             "code": code
@@ -242,6 +243,7 @@ class AppState: ObservableObject {
             }
         }.resume()
     }
+
     
     // MARK: - User Management
     func toggleLogin() {
