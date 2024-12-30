@@ -110,7 +110,7 @@ class AppState: ObservableObject {
             guard let self = self, let history = history else { return }
             
             DispatchQueue.main.async {
-                // Convert backend history format to ScannedHistoryItem
+            
                 let newItems = history.compactMap { item -> ScannedHistoryItem? in
                     guard let code = item["code"] as? String else { return nil }
                     return ScannedHistoryItem(
