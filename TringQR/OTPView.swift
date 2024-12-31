@@ -55,6 +55,7 @@ struct OTPView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.4)
                     .padding(.trailing, 8)
+                    .underline()
                 Button(action: {
                     showLoginView = true
                     isOTPViewPresented = false
