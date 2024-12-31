@@ -17,7 +17,6 @@ struct OTPView: View {
     var phoneNumber: String
     var onOTPVerified: () -> Void
     @Binding var showLoginView: Bool
-    
 
     @FocusState private var isOTPFieldFocused: Bool
     @State private var scrollViewProxy: ScrollViewProxy?
@@ -34,8 +33,6 @@ struct OTPView: View {
         self.onOTPVerified = onOTPVerified
         self._showLoginView = showLoginView
     }
-    
-    
 
     var body: some View {
         VStack {
@@ -45,7 +42,7 @@ struct OTPView: View {
             GIFView(gifName: "otpgif")
                 .frame(height: 100)
                 .padding()
-                .offset(y:-25)
+                .offset(y: -25)
 
             Spacer()
             Spacer()
@@ -53,28 +50,27 @@ struct OTPView: View {
             // OTP Sent Message with Edit Button
             HStack {
                 Text("OTP has been sent to: \(phoneNumber)")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.4)
-                        .padding(.trailing, 8)
-                    Button(action: {
-                        showLoginView = true
-                        isOTPViewPresented = false
-                    }) {
-                        HStack(spacing: 3) {
-                            Image(systemName: "pencil")
-                                .font(.subheadline)
-                                .foregroundColor(.yellow)
-                            Text("Edit")
-                                .font(.subheadline)
-                                .foregroundColor(.yellow)
-                        }
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.4)
+                    .padding(.trailing, 8)
+                Button(action: {
+                    showLoginView = true
+                    isOTPViewPresented = false
+                }) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "pencil")
+                            .font(.subheadline)
+                            .foregroundColor(.yellow)
+                        Text("Edit")
+                            .font(.subheadline)
+                            .foregroundColor(.yellow)
                     }
                 }
-                .padding()
-                .offset(y: -20)
-                
+            }
+            .padding()
+            .offset(y: -20)
 
             // OTP Input Field
             TextField("Enter OTP", text: $otp)
@@ -82,6 +78,9 @@ struct OTPView: View {
                 .focused($isOTPFieldFocused)
                 .onChange(of: otp) { newValue in
                     otp = String(newValue.prefix(6).filter { $0.isNumber })
+                    if otp.count == 6 {
+                        autoVerifyOTP() // Auto-verify when OTP is complete
+                    }
                 }
                 .padding()
                 .background(Color.white)
@@ -130,7 +129,7 @@ struct OTPView: View {
                         .padding()
                         .background(Color.yellow)
                         .cornerRadius(8)
-                        .offset(y:-35)
+                        .offset(y: -35)
                 }
             }
             .disabled(isLoading || otp.isEmpty)
@@ -191,6 +190,12 @@ struct OTPView: View {
     private func startTimer() {
         isResendButtonEnabled = false
         remainingTime = 60
+    }
+
+    // MARK: - Auto-Verify OTP Logic
+    private func autoVerifyOTP() {
+        guard otp.count == 6 else { return }
+        verifyOTP()
     }
 
     // MARK: - Verify OTP Logic

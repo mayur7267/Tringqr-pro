@@ -43,124 +43,127 @@ struct SidebarView: View {
     @Binding var showLoginView: Bool
     
     private var appVersion: String {
-            if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
-                return version
-            }
-            return "Unknown Version"
-        }
-
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown Version"
+    }
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            // Sidebar Header
-            VStack {
-                if appState.isLoggedIn, let userName = appState.userName, !userName.isEmpty {
-                    Image("Champion")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 120, height: 120)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(Color.purple, lineWidth: 4)
-                        )
-                        .padding(.top, 15)
-                        .offset(y: 35)
-
-                    Text("Hi \(userName)!")
-                        .font(.headline)
-                        .foregroundColor(.black)
-                        .padding(50)
-                        .offset(y:20)
-                    
-                } else {
-                    Image("Champion")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 120, height: 120)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(Color.purple, lineWidth: 4)
-                        )
-                        .padding(.top, 15)
-                        .offset(y: 35)
-
-                    Text("Hi Champion!")
-                        .font(.headline)
-                        .foregroundColor(.black)
-                        .padding(50)
-                        .offset(y:20)
+        GeometryReader { geometry in
+            let isCompactDevice = geometry.size.height < 700
+            
+            VStack(alignment: .leading, spacing: isCompactDevice ? 10 : 20) {
+                // Sidebar Header
+                VStack {
+                    if appState.isLoggedIn, let userName = appState.userName, !userName.isEmpty {
+                        Image("Champion")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: isCompactDevice ? 90 : 120, height: isCompactDevice ? 90 : 120)
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.purple, lineWidth: 4)
+                            )
+                            .padding(.top, isCompactDevice ? 10 : 15)
+                            .offset(y: isCompactDevice ? 25 : 35)
+                        
+                        Text("Hi \(userName)!")
+                            .font(isCompactDevice ? .callout : .headline)
+                            .foregroundColor(.black)
+                            .padding(isCompactDevice ? 30 : 50)
+                            .offset(y: isCompactDevice ? 10 : 20)
+                        
+                    } else {
+                        Image("Champion")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: isCompactDevice ? 90 : 120, height: isCompactDevice ? 90 : 120)
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.purple, lineWidth: 4)
+                            )
+                            .padding(.top, isCompactDevice ? 10 : 15)
+                            .offset(y: isCompactDevice ? 25 : 35)
+                        
+                        Text("Hi Champion!")
+                            .font(isCompactDevice ? .callout : .headline)
+                            .foregroundColor(.black)
+                            .padding(isCompactDevice ? 30 : 50)
+                            .offset(y: isCompactDevice ? 10 : 20)
+                    }
                 }
+                .frame(maxWidth: .infinity)
+                .background(Color.yellow)
+                .frame(height: isCompactDevice ? 200 : 260)
+                .padding(.bottom, isCompactDevice ? 5 : 10)
+                
+                // Sidebar Items with adjusted padding
+                VStack(spacing: isCompactDevice ? 5 : 10) {
+                    SidebarItem(
+                        title: "Scan History",
+                        systemImage: "clock",
+                        isSelected: selectedTab == 0
+                    ) {
+                        selectedTab = 0
+                        isSidebarVisible = false
+                        isBackButtonVisible = true
+                    }
+                    
+                    SidebarItem(
+                        title: "Share",
+                        systemImage: "square.and.arrow.up",
+                        isSelected: false
+                    ) {
+                        withAnimation {
+                            isSidebarVisible = false
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            showShareSheet = true
+                        }
+                    }
+                    
+                    SidebarItem(
+                        title: "Help",
+                        systemImage: "questionmark.circle",
+                        isSelected: selectedTab == 3
+                    ) {
+                        selectedTab = 3
+                        isSidebarVisible = false
+                        isBackButtonVisible = true
+                    }
+                    
+                    SidebarItem(
+                        title: appState.isLoggedIn ? "Sign Out" : "Sign In",
+                        systemImage: "person.circle",
+                        isSelected: false
+                    ) {
+                        if appState.isLoggedIn {
+                            appState.toggleLogin()
+                            appState.setUserName("")
+                            showLoginView = true
+                        } else {
+                            showLoginView = true
+                        }
+                        isSidebarVisible = false
+                        isBackButtonVisible = false
+                    }
+                }
+                .padding(.vertical, isCompactDevice ? 5 : 10)
+                
+                Spacer()
+                
+                Text("Made in India | v\(appVersion)")
+                    .font(.footnote)
+                    .foregroundColor(.black)
+                    .padding(.bottom, isCompactDevice ? 10 : 20)
+                    .frame(maxWidth: .infinity, alignment: .center)
             }
             .frame(maxWidth: .infinity)
-            .background(Color.yellow)
-            .frame(height: 260)
-            .padding(.bottom,10)
-
-            // Sidebar Items
-            SidebarItem(
-                title: "Scan History",
-                systemImage: "clock",
-                isSelected: selectedTab == 0
-            ) {
-                selectedTab = 0
-                isSidebarVisible = false
-                isBackButtonVisible = true
-            }
-
-            SidebarItem(
-                title: "Share",
-                systemImage: "square.and.arrow.up",
-                isSelected: false
-            ) {
-                withAnimation {
-                    isSidebarVisible = false
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    showShareSheet = true
-                }
-            }
-
-
-            SidebarItem(
-                title: "Help",
-                systemImage: "questionmark.circle",
-                isSelected: selectedTab == 3
-            ) {
-                selectedTab = 3
-                isSidebarVisible = false
-                isBackButtonVisible = true
-            }
-            
-
-            SidebarItem(
-                title: appState.isLoggedIn ? "Sign Out" : "Sign In",
-                systemImage: "person.circle",
-                isSelected: false
-            ) {
-                if appState.isLoggedIn {
-                    appState.toggleLogin()
-                    appState.setUserName("")
-                    showLoginView = true
-                } else {
-                    showLoginView = true
-                }
-                isSidebarVisible = false
-                isBackButtonVisible = false
-            }
-
-            Spacer()
-
-            Text("Made in India | v\(appVersion)")
-                .font(.footnote)
-                .foregroundColor(.black)
-                .padding(.bottom, 20)
-                .frame(maxWidth: .infinity, alignment: .center)
+            .background(Color.white)
         }
-        .frame(maxWidth: .infinity)
-        .background(Color.white)
     }
 }
+
 
 
 #Preview {

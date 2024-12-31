@@ -141,7 +141,7 @@ class AppState: ObservableObject {
             scannedHistory.append(newItem)
             scannedHistorySet.insert(code)
         }
-        sendToBackend(code: code, deviceId: deviceId,os: "iOS", event: "scan", eventName: eventName)
+        sendToBackend(code: code, deviceId: deviceId,os: "ios", event: "scan", eventName: eventName)
     }
     
     // MARK: - Network Requests
@@ -309,26 +309,25 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             NavigationView {
-                ZStack {
-                    Color(red: 220 / 255, green: 220 / 255, blue: 220 / 255)
-                        .ignoresSafeArea()
-                    
-                    if showLoginView {
-                        LoginView(onLoginSuccess: { displayName in
-                            if displayName.isEmpty {
-                                appState.isLoggedIn = false
-                                appState.setUserName("") 
-                            } else {
-                                appState.isLoggedIn = true
-                                appState.setUserName(displayName)
-                            }
-                            showLoginView = false
-                            appState.completeFirstLaunch()
-                        })
-
-                        .transition(.move(edge: .leading))
-                    } else {
-                        GeometryReader { geometry in
+                GeometryReader { geometry in
+                    ZStack {
+                        Color(red: 220 / 255, green: 220 / 255, blue: 220 / 255)
+                            .ignoresSafeArea()
+                        
+                        if showLoginView {
+                            LoginView(onLoginSuccess: { displayName in
+                                if displayName.isEmpty {
+                                    appState.isLoggedIn = false
+                                    appState.setUserName("")
+                                } else {
+                                    appState.isLoggedIn = true
+                                    appState.setUserName(displayName)
+                                }
+                                showLoginView = false
+                                appState.completeFirstLaunch()
+                            })
+                            .transition(.move(edge: .leading))
+                        } else {
                             ZStack(alignment: .leading) {
                                 if selectedTab != 0 && selectedTab != 3 {
                                     GIFView(gifName: "main")
@@ -366,7 +365,7 @@ struct ContentView: View {
                                                     .contentShape(Rectangle())
                                             }
                                             .border(Color.clear)
-                                            .frame(width: 44, height: 44)
+                                            .frame(width: adaptiveButtonSize(for: geometry), height: adaptiveButtonSize(for: geometry))
                                             .background(Color.clear)
                                             .zIndex(1)
                                         }
@@ -375,15 +374,16 @@ struct ContentView: View {
                                         
                                         Text(selectedTab == 0 ? "Scan History" : "TringQR")
                                             .foregroundColor(.black)
-                                            .font(.headline)
+                                            .font(.system(size: adaptiveFontSize(for: geometry)))
                                             .frame(maxWidth: .infinity, alignment: .center)
-                                            .offset(x: -20)
+                                            .offset(x: isBackButtonVisible ? 0 : -20)
+                                        
                                         Spacer()
                                     }
-                                    .frame(height: 44)
-                                    .padding(.horizontal, 12)
+                                    .frame(height: adaptiveHeaderHeight(for: geometry))
+                                    .padding(.horizontal, adaptiveHorizontalPadding(for: geometry))
                                     .background(Color.white)
-                                    .padding(.vertical, 40)
+                                    .padding(.vertical, adaptiveVerticalPadding(for: geometry))
                                     .offset(y: 0)
                                     .zIndex(2)
                                     
@@ -399,7 +399,6 @@ struct ContentView: View {
                                             ShareView(isBackButtonVisible: $isBackButtonVisible)
                                         case 3:
                                             HelpView(isBackButtonVisible: $isBackButtonVisible)
-                                               
                                         default:
                                             Text("Unknown View")
                                         }
@@ -424,11 +423,11 @@ struct ContentView: View {
                                             showShareSheet: $showShareSheet,
                                             showLoginView: $showLoginView
                                         )
-                                        .frame(width: geometry.size.width * 0.7)
+                                        .frame(width: geometry.size.width * adaptiveSidebarWidth(for: geometry))
                                         .background(Color.white)
                                         .edgesIgnoringSafeArea(.bottom)
-                                        .offset(x: appState.isSidebarVisible ? 0 : -geometry.size.width * 0.7) // Slide in/out
-                                    .animation(.easeInOut(duration: 0.3), value: appState.isSidebarVisible)
+                                        .offset(x: appState.isSidebarVisible ? 0 : -geometry.size.width * adaptiveSidebarWidth(for: geometry))
+                                        .animation(.easeInOut(duration: 0.3), value: appState.isSidebarVisible)
                                         .transition(.move(edge: .leading))
                                         
                                         Spacer()
@@ -436,7 +435,6 @@ struct ContentView: View {
                                 }
                             }
                         }
-                        .navigationBarHidden(true)
                     }
                 }
                 .environmentObject(appState)
@@ -457,7 +455,64 @@ struct ContentView: View {
             }
         }
     }
+    
 }
+private func adaptiveHeaderHeight(for geometry: GeometryProxy) -> CGFloat {
+        let screenHeight = geometry.size.height
+        if screenHeight <= 667 { // iPhone SE, iPhone 8
+            return 40
+        } else if screenHeight <= 812 { // iPhone X, 11 Pro, 12 mini
+            return 44
+        } else { // Larger iPhones
+            return 44
+        }
+    }
+
+private func adaptiveFontSize(for geometry: GeometryProxy) -> CGFloat {
+       let screenWidth = geometry.size.width
+       if screenWidth <= 375 { // iPhone SE, iPhone 8
+           return 16
+       } else if screenWidth <= 428 { // iPhone X, 11 Pro, 12/13/14
+           return 17
+       } else { // Larger iPhones
+           return 17
+       }
+   }
+private func adaptiveHorizontalPadding(for geometry: GeometryProxy) -> CGFloat {
+        let screenWidth = geometry.size.width
+        if screenWidth <= 375 { // iPhone SE, iPhone 8
+            return 10
+        } else {
+            return 12
+        }
+    }
+private func adaptiveVerticalPadding(for geometry: GeometryProxy) -> CGFloat {
+        let screenHeight = geometry.size.height
+        if screenHeight <= 667 { // iPhone SE, iPhone 8
+            return 30
+        } else if screenHeight <= 812 { // iPhone X, 11 Pro, 12 mini
+            return 35
+        } else { // Larger iPhones
+            return 40
+        }
+    }
+private func adaptiveSidebarWidth(for geometry: GeometryProxy) -> CGFloat {
+        let screenWidth = geometry.size.width
+        if screenWidth <= 375 { // iPhone SE, iPhone 8
+            return 0.75
+        } else {
+            return 0.7
+        }
+    }
+private func adaptiveButtonSize(for geometry: GeometryProxy) -> CGFloat {
+       let screenWidth = geometry.size.width
+       if screenWidth <= 375 { // iPhone SE, iPhone 8
+           return 40
+       } else {
+           return 44
+       }
+   }
+
 struct ShareView: View {
     @Binding var isBackButtonVisible: Bool
     @State private var isSharing = true
@@ -738,8 +793,16 @@ struct HistoryItemView: View {
 }
 
 
-
-#Preview {
-    ContentView(appState: AppState())
-        .environmentObject(AppState())
+struct Preview_contentview: PreviewProvider {
+    static var previews: some View {
+        Group {
+            ContentView(appState: AppState())
+                .environmentObject(AppState())
+                .previewDevice("iPhone SE (3rd generation)")
+            
+            ContentView(appState: AppState())
+                .environmentObject(AppState())
+                .previewDevice("iPhone 14 Pro")
+        }
+    }
 }

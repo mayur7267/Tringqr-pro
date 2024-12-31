@@ -212,6 +212,7 @@ struct LoginView: View {
     
     var body: some View {
         GeometryReader { geometry in
+            let isCompactDevice = geometry.size.height < 700
             ZStack {
                 GIFView(gifName: "background2")
                     .ignoresSafeArea(edges: .top)
@@ -227,39 +228,39 @@ struct LoginView: View {
                             }
                         }) {
                             Text("Skip")
-                                .font(.headline)
+                                .font(isCompactDevice ? .callout : .headline)
                                 .foregroundColor(.black)
-                                .padding(.horizontal, 18)
-                                .padding(.vertical, 10)
+                                .padding(.horizontal, isCompactDevice ? 14 : 18)
+                                .padding(.vertical, isCompactDevice ? 8 : 10)
                                 .background(Color.yellow)
                                 .cornerRadius(25)
                             
                         }
-                        .padding(.trailing, 30)
-                        .padding(.top, 20)
+                        .padding(.trailing, isCompactDevice ? 20 : 30)
+                        .padding(.top, isCompactDevice ? 10 : 20)
                         .contentShape(Rectangle())
-                        .offset(y:-45)
+                        .offset(y: isCompactDevice ? -25 : -45)
 
                     }
 
                     
                     Spacer()
                     
-                    VStack(spacing: 5) {
+                    VStack(spacing: isCompactDevice ? 3 : 5) {
                         Text("TringQR")
-                            .font(.system(size: 36, weight: .bold))
+                            .font(.system(size: isCompactDevice ? 32 : 36, weight: .bold))
                             .foregroundColor(.white)
                         
                         Text("World's fastest QR Code scanner")
-                            .font(.system(size: 18))
+                            .font(.system(size: isCompactDevice ? 16 : 18))
                             .foregroundColor(.white.opacity(0.8))
                     }
                     
                     Spacer()
                     
-                    VStack(spacing: 20) {
+                    VStack(spacing: isCompactDevice ? 15 : 20) {
                         Text("Sign in with phone number")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.system(size: isCompactDevice ? 14 : 16, weight: .medium))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         
@@ -269,12 +270,12 @@ struct LoginView: View {
                             }) {
                                 HStack {
                                     Text(selectedCountry.flag)
-                                        .font(.system(size: 20))
+                                        .font(.system(size: isCompactDevice ? 18 : 20))
                                     Text(selectedCountry.code)
-                                        .font(.system(size: 16))
+                                        .font(.system(size: isCompactDevice ? 14 : 16))
                                         .foregroundColor(.black)
                                 }
-                                .frame(width: 80, height: 50)
+                                .frame(width: isCompactDevice ? 70 : 80, height: isCompactDevice ? 45 : 50)
                                 .background(Color.white)
                                 .cornerRadius(5)
                             }
@@ -282,7 +283,7 @@ struct LoginView: View {
                             TextField("Enter 10 Digits", text: $phoneNumber)
                                 .keyboardType(.numberPad)
                                 .padding(.leading, 10)
-                                .frame(height: 50)
+                                .frame(height: isCompactDevice ? 45 : 50)
                                 .foregroundColor(.black)
                                 .background(Color.white)
                                 .cornerRadius(5)
@@ -299,17 +300,17 @@ struct LoginView: View {
                                 sendOTP()
                             }) {
                                 Text("Send OTP")
-                                    .font(.system(size: 16, weight: .medium))
+                                    .font(.system(size: isCompactDevice ? 14 : 16, weight: .medium))
                                     .foregroundColor(.black)
                                     .frame(maxWidth: .infinity)
-                                    .padding()
+                                    .padding(isCompactDevice ? 12 : 16)
                                     .background(Color.yellow)
                                     .cornerRadius(8)
                             }
                         }
                         
                         Text("or continue with")
-                            .font(.system(size: 14))
+                            .font(.system(size: isCompactDevice ? 12 : 14))
                             .foregroundColor(.white.opacity(0.7))
                         
                         Button(action: {
@@ -319,44 +320,45 @@ struct LoginView: View {
                                 
                                 Image("googleLogo")
                                     .resizable()
-                                    .frame(width: 34, height: 34)
-                                    .padding(.trailing, 8)
+                                    .frame(width: isCompactDevice ? 30 : 34,
+                                            height: isCompactDevice ? 30 : 34)
+                                    .padding(.trailing, isCompactDevice ? 6 : 8)
                                 
                                 Text("Continue with Google")
-                                    .font(.system(size: 16, weight: .medium))
+                                    .font(.system(size: isCompactDevice ? 14 : 16, weight: .medium))
                                     .foregroundColor(.black)
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
                             .background(Color.white)
                             .cornerRadius(8)
-                            .shadow(color: Color.gray.opacity(0.3), radius: 4, x: 0, y: 2) 
+                            .shadow(color: Color.gray.opacity(0.3), radius: 4, x: 0, y: 2)
                         }
 
                     }
                     .padding()
                     .background(Color.white.opacity(0.1))
                     .cornerRadius(12)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, isCompactDevice ? 15 : 20)
                     
                     Spacer()
                     
                     VStack(spacing: 2) {
                         Text("By registering, you agree to our")
-                                .font(.system(size: 12))
+                                .font(.system(size: isCompactDevice ? 10 : 12))
                                 .foregroundColor(.white.opacity(0.7))
                             
                             Button(action: {
                                 isPrivacyPolicyPresented = true
                             }) {
                                 Text("Terms of Use & Privacy Policy")
-                                    .font(.system(size: 12))
+                                    .font(.system(size: isCompactDevice ? 10 : 12))
                                     .foregroundColor(.yellow)
                                     .underline()
                             }
                         }
-                        .padding(.bottom, 10)
-                        .offset(y: -20)
+                        .padding(.bottom, isCompactDevice ? 5 : 10)
+                        .offset(y: isCompactDevice ? -10 : -20)
                         .sheet(isPresented: $isPrivacyPolicyPresented) {
                             PrivacyPolicyView(isBackButtonVisible: .constant(false))
                         }
@@ -586,8 +588,12 @@ struct PrivacyPolicyView: View {
         .navigationBarHidden(true)
     }
 }
-#Preview {
-    LoginView {_ in 
-        print("Login Successful!")
+struct Preview_loginview: PreviewProvider {
+    static var previews: some View {
+        LoginView {_ in 
+            print("Login Successful!")
+        }
+        .previewDevice("iPhone SE (3rd generation)")
     }
 }
+

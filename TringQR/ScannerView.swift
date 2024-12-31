@@ -37,139 +37,145 @@ struct ScannerView: View {
     
     
     var body: some View {
-        NavigationStack{
-            VStack {
-                Spacer(minLength: 0)
+        NavigationStack {
+            GeometryReader { geometry in
+                let screenWidth = geometry.size.width
+                let screenHeight = geometry.size.height
+                let isCompactDevice = screenHeight < 700 // For iPhone SE and similar
                 
-                GeometryReader { geometry in
-                    let size = geometry.size
-                    ZStack {
-                        CameraView(frameSize: CGSize(width: size.width, height: size.width), session: $session)
-                            .frame(width: size.width, height: size.width)
-                        
-                        ForEach(0...3, id: \.self) { index in
-                            let rotation = Double(index) * 90
-                            RoundedRectangle(cornerRadius: 2, style: .circular)
-                                .stroke(.white, style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
-                                .rotationEffect(.init(degrees: rotation))
-                        }
-                    }
-                    .frame(width: size.width, height: size.width)
-                    .offset(y:-92)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                VStack {
+                    Spacer(minLength: 0)
                     
-                }
-                .padding(.horizontal, 45)
-                .edgesIgnoringSafeArea(.top)
-                
-                Spacer()
-                VStack(spacing: 12) {
-                    Text("Scan with TringQR")
-                        .font(.title)
-                        .bold()
-                        .foregroundStyle(.white)
-                    Text("World's fastest QR Code scanner")
-                        .font(.title3)
-                        .bold()
-                        .foregroundStyle(.white.opacity(0.8))
-                }
-                .offset(y:-90)
-                .padding(.vertical, 4)
-                
-                Spacer()
-                
-                VStack(spacing: 10) {
-                    HStack(spacing: 3) {
-                        Button(action: {
-                            updateZoomFactor(currentZoomFactor - 0.5)
-                        }) {
-                            Image(systemName: "minus.magnifyingglass")
-                                .font(.system(size: 20))
-                                .padding(6)
-                                .foregroundColor(.white)
-                        }
-                        .disabled(currentZoomFactor <= 1.0)
+                    GeometryReader { geometry in
+                        let size = geometry.size
+                        // Adjust scanner size based on device
+                        let scannerSize = isCompactDevice ? size.width - 20 : size.width
                         
-                        Slider(
-                            value: $currentZoomFactor,
-                            in: 1.0...5.0
-                        ) { isDragging in
-                            if !isDragging {
-                                updateZoomFactor(currentZoomFactor)
+                        ZStack {
+                            CameraView(frameSize: CGSize(width: scannerSize, height: scannerSize), session: $session)
+                                .frame(width: scannerSize, height: scannerSize)
+                            
+                            ForEach(0...3, id: \.self) { index in
+                                let rotation = Double(index) * 90
+                                RoundedRectangle(cornerRadius: 2, style: .circular)
+                                    .stroke(.white, style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
+                                    .rotationEffect(.init(degrees: rotation))
                             }
                         }
-                        .onChange(of: currentZoomFactor) { newValue in
-                            updateZoomFactor(newValue)
+                        .frame(width: scannerSize, height: scannerSize)
+                        // Adjust offset for different screen sizes
+                        .offset(y: isCompactDevice ? -45 : -92)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                    .padding(.horizontal, 45)
+                    .edgesIgnoringSafeArea(.top)
+                    
+                    Spacer()
+                    
+                    // Title section with adaptive spacing
+                    VStack(spacing: isCompactDevice ? 8 : 12) {
+                        Text("Scan with TringQR")
+                            .font(isCompactDevice ? .title2 : .title)
+                            .bold()
+                            .foregroundStyle(.white)
+                        Text("World's fastest QR Code scanner")
+                            .font(isCompactDevice ? .body : .title3)
+                            .bold()
+                            .foregroundStyle(.white.opacity(0.8))
+                    }
+                    .offset(y: isCompactDevice ? -45 : -90)
+                    .padding(.vertical, 4)
+                    
+                    Spacer()
+                    
+                    // Zoom controls with adaptive sizing
+                    VStack(spacing: isCompactDevice ? 5 : 10) {
+                        HStack(spacing: 3) {
+                            Button(action: {
+                                updateZoomFactor(currentZoomFactor - 0.5)
+                            }) {
+                                Image(systemName: "minus.magnifyingglass")
+                                    .font(.system(size: isCompactDevice ? 18 : 20))
+                                    .padding(6)
+                                    .foregroundColor(.white)
+                            }
+                            .disabled(currentZoomFactor <= 1.0)
+                            
+                            Slider(
+                                value: $currentZoomFactor,
+                                in: 1.0...5.0
+                            ) { isDragging in
+                                if !isDragging {
+                                    updateZoomFactor(currentZoomFactor)
+                                }
+                            }
+                            .onChange(of: currentZoomFactor) { newValue in
+                                updateZoomFactor(newValue)
+                            }
+                            .padding(.horizontal, isCompactDevice ? -30 : -45)
+                            .frame(height: 4)
+                            .accentColor(.purple)
+                            .scaleEffect(x: 0.6, y: 0.6)
+                            
+                            Button(action: {
+                                updateZoomFactor(currentZoomFactor + 0.5)
+                            }) {
+                                Image(systemName: "plus.magnifyingglass")
+                                    .font(.system(size: isCompactDevice ? 18 : 20))
+                                    .padding(6)
+                                    .foregroundColor(.white)
+                            }
+                            .disabled(currentZoomFactor >= 5.0)
                         }
-                        .padding(.horizontal,-45)
-                        .frame(height: 4)
-                        .accentColor(.purple)
-                        .scaleEffect(x: 0.6, y: 0.6)
+                        .frame(maxWidth: 200)
+                        .padding(.vertical, 5)
+                        .offset(y: isCompactDevice ? -40 : -80)
+                    }
+                    
+                    // Bottom controls with adaptive sizing
+                    HStack {
+                        Button(action: { isPickerPresented = true }) {
+                            HStack(spacing: isCompactDevice ? 8 : 10) {
+                                Image(systemName: "photo.circle.fill")
+                                    .font(isCompactDevice ? .title3 : .title2)
+                                    .foregroundColor(.black)
+                                Text("Gallery")
+                                    .font(isCompactDevice ? .callout : .headline)
+                                    .foregroundColor(.black)
+                            }
+                        }
+                        .sheet(isPresented: $isPickerPresented) {
+                            PhotoPicker { image in
+                                handleImageFromGallery(image)
+                            }
+                        }
                         
-                        Button(action: {
-                            updateZoomFactor(currentZoomFactor + 0.5)
-                        }) {
-                            Image(systemName: "plus.magnifyingglass")
-                                .font(.system(size: 20))
-                                .padding(6)
-                                .foregroundColor(.white)
+                        Divider()
+                            .frame(height: isCompactDevice ? 25 : 30)
+                            .background(Color.black)
+                        
+                        Button(action: toggleTorch) {
+                            HStack(spacing: isCompactDevice ? 8 : 10) {
+                                Image(systemName: isTorchOn ? "flashlight.on.fill" : "flashlight.off.fill")
+                                    .font(isCompactDevice ? .body : .title3)
+                                    .foregroundColor(.black)
+                                Text("Light")
+                                    .font(isCompactDevice ? .callout : .headline)
+                                    .foregroundColor(.black)
+                            }
                         }
-                        .disabled(currentZoomFactor >= 5.0)
                     }
-                    .frame(maxWidth: 200)
-                    .padding(.vertical, 5)
-                    .offset(y:-80)
+                    .padding(.horizontal, isCompactDevice ? 15 : 20)
+                    .padding(.vertical, isCompactDevice ? 10 : 15)
+                    .background(
+                        RoundedRectangle(cornerRadius: 25)
+                            .fill(Color.yellow)
+                    )
+                    .shadow(radius: 5)
+                    .offset(y: isCompactDevice ? -35 : -75)
                 }
-                
-                HStack {
-                    Button(action: { isPickerPresented = true }) {
-                        HStack(spacing: 10) {
-                            Image(systemName: "photo.circle.fill")
-                                .font(.title2)
-                                .foregroundColor(.black)
-                            Text("Gallery")
-                                .font(.headline)
-                                .foregroundColor(.black)
-                        }
-                    }
-                    .sheet(isPresented: $isPickerPresented) {
-                        PhotoPicker { image in
-                            handleImageFromGallery(image)
-                        }
-                    }
-                    
-                    Divider()
-                        .frame(height: 30)
-                        .background(Color.black)
-                    
-                    Button(action: toggleTorch) {
-                        HStack(spacing: 10) {
-                            Image(systemName: isTorchOn ? "flashlight.on.fill" : "flashlight.off.fill")
-                                .font(.title3)
-                                .foregroundColor(.black)
-                            Text("Light")
-                                .font(.headline)
-                                .foregroundColor(.black)
-                        }
-                    }
-                }
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 25)
-                        .fill(Color.yellow)
-                )
-                .shadow(radius: 5)
-                .offset(y:-75)
-                
-                if let errorMessage = errorMessage {
-                    Text(errorMessage)
-                        .foregroundColor(.red)
-                        .font(.caption)
-                        .padding()
-                }
+                .padding(.vertical, isCompactDevice ? 40 : 80)
             }
-            .padding(.vertical, 80)
-            
         }
         .onAppear {
             checkCameraPermission()
@@ -226,7 +232,7 @@ struct ScannerView: View {
                 deactivateScannerAnimation()
 
                 let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "unknown-device-id"
-                let os = "iOS"
+                let os = "ios"
    
                 let event = "scan"
                 let eventName = code
@@ -412,7 +418,7 @@ struct ScannerView: View {
         
         //userId
        
-        let os = "iOS"
+        let os = "ios"
         let event = "scan"
         let eventName = code
         
@@ -445,12 +451,10 @@ struct ScannerView: View {
 
 }
 
-#Preview {
-    ContentView(appState: AppState())
-        .environmentObject(AppState())
-    ContentView(appState: AppState())
-        .environmentObject(AppState())
-        .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
-        .previewDisplayName("iPhone SE")
+struct Preview_scannerview: PreviewProvider {
+    static var previews: some View {
+        ContentView(appState: AppState())
+            .environmentObject(AppState())
+            .previewDevice("iPhone SE (3rd generation)")
+    }
 }
-
