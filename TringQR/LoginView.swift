@@ -10,6 +10,7 @@ import FirebaseAuth
 import FirebaseCore
 import GoogleSignIn
 import FirebaseMessaging
+import AVKit
 
 // MARK: - Keyboard Observer
 class KeyboardObserver: ObservableObject {
@@ -33,46 +34,7 @@ class KeyboardObserver: ObservableObject {
     }
 }
 
-// MARK: - API Manager
-//class APIManager {
-//    static let shared = APIManager()
-//
-//    func makeRequest(endpoint: String, method: String, parameters: [String: Any]? = nil, headers: [String: String]? = nil, completion: @escaping (Result<Data, Error>) -> Void) {
-//        guard let url = URL(string: endpoint) else {
-//            completion(.failure(NSError(domain: "Invalid URL", code: 400, userInfo: nil)))
-//            return
-//        }
-//
-//        var request = URLRequest(url: url)
-//        request.httpMethod = method
-//
-//        if let headers = headers {
-//            for (key, value) in headers {
-//                request.setValue(value, forHTTPHeaderField: key)
-//            }
-//        }
-//
-//        if let parameters = parameters {
-//            request.httpBody = try? JSONSerialization.data(withJSONObject: parameters, options: [])
-//        }
-//
-//        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-//
-//        URLSession.shared.dataTask(with: request) { data, response, error in
-//            if let error = error {
-//                completion(.failure(error))
-//                return
-//            }
-//
-//            guard let data = data else {
-//                completion(.failure(NSError(domain: "No data", code: 500, userInfo: nil)))
-//                return
-//            }
-//
-//            completion(.success(data))
-//        }.resume()
-//    }
-//}
+
 
 // MARK: - Login View
 struct Country: Identifiable {
@@ -200,151 +162,148 @@ struct LoginView: View {
     @State private var phoneNumber: String = ""
     @State private var isLoading: Bool = false
     @State private var showLoginView: Bool = false
-    @State private var isOTPViewPresented: Bool = false
     @State private var verificationID: String = ""
     @State private var isCountryPickerPresented: Bool = false
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
+    @State private var navigateToOTP: Bool = false // New state for navigation
     @ObservedObject private var keyboardObserver = KeyboardObserver()
     @State private var isPrivacyPolicyPresented: Bool = false
     
     var onLoginSuccess: (String) -> Void
     
     var body: some View {
-        GeometryReader { geometry in
-            let isCompactDevice = geometry.size.height < 700
-            ZStack {
-                GIFView(gifName: "background2")
-                    .ignoresSafeArea(edges: .top)
+        NavigationStack { // Wrap in NavigationStack
+            GeometryReader { geometry in
+                let isCompactDevice = geometry.size.height < 700
+                ZStack {
+                    VideoBackgroundView()
+                                   .ignoresSafeArea()
                     
-                
-                VStack {
-                    Spacer()
-                    HStack {
+                    VStack {
                         Spacer()
-                        Button(action: {
-                            DispatchQueue.main.async {
-                                onLoginSuccess("")
-                            }
-                        }) {
-                            Text("Skip")
-                                .font(isCompactDevice ? .callout : .headline)
-                                .foregroundColor(.black)
-                                .padding(.horizontal, isCompactDevice ? 14 : 18)
-                                .padding(.vertical, isCompactDevice ? 8 : 10)
-                                .background(Color.yellow)
-                                .cornerRadius(25)
-                            
+                        Spacer()
+                        
+                        VStack(spacing: isCompactDevice ? 3 : 5) {
+                            Text("TringQR")
+                                .font(.system(size: isCompactDevice ? 55 : 42, weight: .bold))
+                                .foregroundColor(.white)
+                                .offset(
+                                        x: isCompactDevice ? -106 : -80,
+                                        y: isCompactDevice ? 30 : 20
+                                    )
+                                
+                            Text("World's fastest QR Code scanner")
+                                .font(.system(size: isCompactDevice ? 20 : 14 ,weight: .bold))
+                                .foregroundColor(.white)
+                                .offset(
+                                    x: isCompactDevice ? -42 : -35,
+                                    y: isCompactDevice ? 30 : 20
+                                )
                         }
-                        .padding(.trailing, isCompactDevice ? 20 : 30)
-                        .padding(.top, isCompactDevice ? 10 : 20)
-                        .contentShape(Rectangle())
-                        .offset(y: isCompactDevice ? -25 : -45)
-
-                    }
-
-                    
-                    Spacer()
-                    
-                    VStack(spacing: isCompactDevice ? 3 : 5) {
-                        Text("TringQR")
-                            .font(.system(size: isCompactDevice ? 32 : 36, weight: .bold))
-                            .foregroundColor(.white)
+                       
                         
-                        Text("World's fastest QR Code scanner")
-                            .font(.system(size: isCompactDevice ? 16 : 18))
-                            .foregroundColor(.white.opacity(0.8))
-                    }
-                    
-                    Spacer()
-                    
-                    VStack(spacing: isCompactDevice ? 15 : 20) {
-                        Text("Sign in with phone number")
-                            .font(.system(size: isCompactDevice ? 14 : 16, weight: .medium))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Spacer()
                         
-                        HStack(spacing: 0) {
+                        VStack(spacing: isCompactDevice ? 15 : 20) {
+                            Text("Sign in with phone number")
+                                .font(.system(size: isCompactDevice ? 14 : 16, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            HStack(spacing: 0) {
+                                Button(action: {
+                                    isCountryPickerPresented = true
+                                }) {
+                                    HStack {
+                                        Text(selectedCountry.flag)
+                                            .font(.system(size: isCompactDevice ? 18 : 20))
+                                        Text(selectedCountry.code)
+                                            .font(.system(size: isCompactDevice ? 14 : 16))
+                                            .foregroundColor(.black)
+                                    }
+                                    .frame(width: isCompactDevice ? 70 : 80, height: isCompactDevice ? 45 : 50)
+                                    .background(Color.white)
+                                    .cornerRadius(5)
+                                }
+                                
+                                TextField("Enter 10 Digits", text: $phoneNumber)
+                                    .keyboardType(.numberPad)
+                                    .padding(.leading, 10)
+                                    .frame(height: isCompactDevice ? 45 : 50)
+                                    .foregroundColor(.black)
+                                    .background(Color.white)
+                                    .cornerRadius(5)
+                                    .onChange(of: phoneNumber) { newValue in
+                                            phoneNumber = String(newValue.prefix(10))
+                                            if phoneNumber.count == 10 {
+                                              sendOTP()
+                                         }
+                                    }
+                                    .toolbar {
+                                        ToolbarItemGroup(placement: .keyboard) {
+                                            Spacer()
+                                            Button("Done") {
+                                                self.hideKeyboard()
+                                            }
+                                        }
+                                    }
+                            }
+                            
+                            if isLoading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .yellow))
+                            } else {
+                                Button(action: {
+                                    sendOTP()
+                                }) {
+                                    Text("Send OTP")
+                                        .font(.system(size: isCompactDevice ? 14 : 16, weight: .medium))
+                                        .foregroundColor(.black)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(isCompactDevice ? 12 : 16)
+                                        .background(Color.yellow)
+                                        .cornerRadius(8)
+                                }
+                            }
+                            
+                            Text("or continue with")
+                                .font(.system(size: isCompactDevice ? 12 : 14))
+                                .foregroundColor(.white.opacity(0.7))
+                            
                             Button(action: {
-                                isCountryPickerPresented = true
+                                signInWithGoogle()
                             }) {
                                 HStack {
-                                    Text(selectedCountry.flag)
-                                        .font(.system(size: isCompactDevice ? 18 : 20))
-                                    Text(selectedCountry.code)
-                                        .font(.system(size: isCompactDevice ? 14 : 16))
-                                        .foregroundColor(.black)
-                                }
-                                .frame(width: isCompactDevice ? 70 : 80, height: isCompactDevice ? 45 : 50)
-                                .background(Color.white)
-                                .cornerRadius(5)
-                            }
-                            
-                            TextField("Enter 10 Digits", text: $phoneNumber)
-                                .keyboardType(.numberPad)
-                                .padding(.leading, 10)
-                                .frame(height: isCompactDevice ? 45 : 50)
-                                .foregroundColor(.black)
-                                .background(Color.white)
-                                .cornerRadius(5)
-                                
-                                
-                                
-                        }
-                        
-                        if isLoading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .yellow))
-                        } else {
-                            Button(action: {
-                                sendOTP()
-                            }) {
-                                Text("Send OTP")
-                                    .font(.system(size: isCompactDevice ? 14 : 16, weight: .medium))
-                                    .foregroundColor(.black)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(isCompactDevice ? 12 : 16)
-                                    .background(Color.yellow)
-                                    .cornerRadius(8)
-                            }
-                        }
-                        
-                        Text("or continue with")
-                            .font(.system(size: isCompactDevice ? 12 : 14))
-                            .foregroundColor(.white.opacity(0.7))
-                        
-                        Button(action: {
-                            signInWithGoogle()
-                        }) {
-                            HStack {
-                                
-                                Image("googleLogo")
-                                    .resizable()
-                                    .frame(width: isCompactDevice ? 30 : 34,
-                                            height: isCompactDevice ? 30 : 34)
-                                    .padding(.trailing, isCompactDevice ? 6 : 8)
-                                
-                                Text("Continue with Google")
-                                    .font(.system(size: isCompactDevice ? 14 : 16, weight: .medium))
-                                    .foregroundColor(.black)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.white)
-                            .cornerRadius(8)
-                            .shadow(color: Color.gray.opacity(0.3), radius: 4, x: 0, y: 2)
-                        }
+                                    Image("googleLogo")
+                                        .resizable()
+                                        .frame(width: isCompactDevice ? 30 : 34,
+                                               height: isCompactDevice ? 30 : 34)
+                                        .padding(.leading, isCompactDevice ? 15 : 17)
+                                        
 
-                    }
-                    .padding()
-                    .background(Color.white.opacity(0.1))
-                    .cornerRadius(12)
-                    .padding(.horizontal, isCompactDevice ? 15 : 20)
-                    
-                    Spacer()
-                    
-                    VStack(spacing: 2) {
-                        Text("By registering, you agree to our")
+                                    
+                                    Text("Continue with Google")
+                                        .font(.system(size: isCompactDevice ? 14 : 16, weight: .medium))
+                                        .foregroundColor(.black)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(isCompactDevice ? 12 : 16)
+                                }
+                            
+                                .background(Color.white)
+                                .cornerRadius(8)
+                                .shadow(color: Color.gray.opacity(0.3), radius: 4, x: 0, y: 2)
+                            }
+                        }
+                        .padding()
+                        .background(Color.white.opacity(0.1))
+                        .cornerRadius(12)
+                        .padding(.horizontal, isCompactDevice ? 15 : 20)
+                        
+                        Spacer()
+                        
+                        VStack(spacing: 2) {
+                            Text("By registering, you agree to our")
                                 .font(.system(size: isCompactDevice ? 10 : 12))
                                 .foregroundColor(.white.opacity(0.7))
                             
@@ -359,33 +318,37 @@ struct LoginView: View {
                         }
                         .padding(.bottom, isCompactDevice ? 5 : 10)
                         .offset(y: isCompactDevice ? -10 : -20)
-                        .sheet(isPresented: $isPrivacyPolicyPresented) {
-                            PrivacyPolicyView(isBackButtonVisible: .constant(false))
-                        }
-
+                    }
+                    .ignoresSafeArea(.keyboard)
+//                    .padding(.bottom, keyboardObserver.keyboardHeight)
+//                    .animation(.easeOut(duration: 0.3), value: keyboardObserver.keyboardHeight)
                 }
-                .padding(.bottom, keyboardObserver.keyboardHeight)
-                .animation(.easeOut(duration: 0.3), value: keyboardObserver.keyboardHeight)
-                .alert(isPresented: $showErrorAlert) {
-                    Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
+                .ignoresSafeArea()
+                .onTapGesture {
+                    self.hideKeyboard()
                 }
             }
-            .ignoresSafeArea()
-        }
-        .sheet(isPresented: $isCountryPickerPresented) {
-            CountryPicker(selectedCountry: $selectedCountry)
-        }
-        .sheet(isPresented: $isOTPViewPresented) {
-            OTPView(
-                verificationID: verificationID,
-                isOTPViewPresented: $isOTPViewPresented,
-                phoneNumber: selectedCountry.code + phoneNumber,
-                onOTPVerified: {
-                    registerUser()
-                },
-                showLoginView: $showLoginView 
-                
-            )
+            .navigationDestination(isPresented: $navigateToOTP) {
+                OTPView(
+                    verificationID: verificationID,
+                    isOTPViewPresented: $navigateToOTP,
+                    phoneNumber: selectedCountry.code + phoneNumber,
+                    onOTPVerified: {
+                        registerUser()
+                    },
+                    showLoginView: $showLoginView
+                )
+                .navigationBarBackButtonHidden(true)
+            }
+            .sheet(isPresented: $isCountryPickerPresented) {
+                CountryPicker(selectedCountry: $selectedCountry)
+            }
+            .sheet(isPresented: $isPrivacyPolicyPresented) {
+                PrivacyPolicyView(isBackButtonVisible: .constant(false))
+            }
+            .alert(isPresented: $showErrorAlert) {
+                Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
+            }
         }
     }
     
@@ -407,11 +370,10 @@ struct LoginView: View {
                     return
                 }
                 self.verificationID = id
-                self.isOTPViewPresented = true
+                self.navigateToOTP = true // Navigate to OTP view
             }
         }
     }
-    
     func registerUser(displayName: String? = nil) {
         let formattedPhoneNumber = selectedCountry.code + phoneNumber.trimmingCharacters(in: .whitespaces)
 
@@ -586,6 +548,39 @@ struct PrivacyPolicyView: View {
             isBackButtonVisible = true
         }
         .navigationBarHidden(true)
+    }
+}
+struct VideoBackgroundView: UIViewRepresentable {
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView(frame: .zero)
+        
+        // Get the video URL from the bundle
+        guard let path = Bundle.main.path(forResource: "logback", ofType: "mp4") else {
+            fatalError("Video file not found.")
+        }
+        let videoURL = URL(fileURLWithPath: path)
+        
+        // Create AVPlayer and AVPlayerLayer
+        let player = AVPlayer(url: videoURL)
+        let playerLayer = AVPlayerLayer(player: player)
+        playerLayer.videoGravity = .resizeAspectFill // Ensure video fills the screen
+        playerLayer.frame = UIScreen.main.bounds // Adjust frame to screen size
+        view.layer.addSublayer(playerLayer)
+        
+        // Loop the video
+        NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: player.currentItem, queue: .main) { _ in
+            player.seek(to: .zero)
+            player.play()
+        }
+        
+        player.isMuted = true // Mute the video
+        player.play() // Auto-play the video
+        
+        return view
+    }
+    
+    func updateUIView(_ uiView: UIView, context: Context) {
+        // No updates required
     }
 }
 struct Preview_loginview: PreviewProvider {

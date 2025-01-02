@@ -30,6 +30,8 @@ struct ScannerView: View {
     @EnvironmentObject var appState: AppState
     @State private var scannedCode: String = ""
     @State private var showGalleryPicker: Bool = false
+    
+    
  
 
 

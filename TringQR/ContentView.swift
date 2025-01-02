@@ -133,9 +133,16 @@ class AppState: ObservableObject {
             }
         }
     }
+    private var pendingCodes = Set<String>()
     
     func addScannedCode(_ code: String, deviceId: String,os: String, event: String, eventName: String) {
         lock.sync {
+            print("addScannedCode called with code: \(code)")
+                    guard !scannedHistorySet.contains(code), !pendingCodes.contains(code) else {
+                        print("Code already exists or is pending.")
+                        return
+                    }
+            pendingCodes.insert(code)
             guard !scannedHistorySet.contains(code) else { return }
             let newItem = ScannedHistoryItem(code: code, eventName: eventName, event: event)
             scannedHistory.append(newItem)
@@ -210,6 +217,7 @@ class AppState: ObservableObject {
     
     private func sendToBackend(code: String, deviceId: String, os: String, event: String, eventName: String) {
         guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/users/activity") else {
+            pendingCodes.remove(code)
             return
         }
 
@@ -231,6 +239,7 @@ class AppState: ObservableObject {
         }
 
         URLSession.shared.uploadTask(with: request, from: jsonData) { data, response, error in
+            defer { self.pendingCodes.remove(code) }
             if let error = error {
                 print("Error sending data to backend: \(error.localizedDescription)")
                 return

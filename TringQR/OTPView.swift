@@ -12,6 +12,7 @@ struct OTPView: View {
     @State private var isLoading: Bool = false
     @State private var errorMessage: String = ""
     @State private var verificationID: String
+    @State private var navigateToContent: Bool = false
     
     @Binding var isOTPViewPresented: Bool
     var phoneNumber: String
@@ -110,6 +111,8 @@ struct OTPView: View {
                         }
                     }
             }
+            
+          
 
             // Verify Button
             Button(action: {
@@ -163,7 +166,9 @@ struct OTPView: View {
             hideKeyboard()
         }
         .onAppear {
+            otp = "" 
             startTimer()
+                
 
             NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
                 if isOTPFieldFocused {
@@ -185,6 +190,10 @@ struct OTPView: View {
                 timer.upstream.connect().cancel() // Stop the timer
             }
         }
+        .navigationDestination(isPresented: $navigateToContent) {
+            ContentView(appState: AppState())
+                            .navigationBarBackButtonHidden(true)
+                    }
     }
 
     // MARK: - Start Timer
@@ -221,6 +230,8 @@ struct OTPView: View {
                 }
                 print("User signed in successfully.")
                 onOTPVerified()
+                
+                navigateToContent = true
             }
         }
     }
