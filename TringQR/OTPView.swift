@@ -12,27 +12,24 @@ struct OTPView: View {
     @State private var isLoading: Bool = false
     @State private var errorMessage: String = ""
     @State private var verificationID: String
-    @State private var navigateToContent: Bool = false
-    
     @Binding var isOTPViewPresented: Bool
+    @Binding var navigateToContent: Bool
     var phoneNumber: String
     var onOTPVerified: () -> Void
-    @Binding var showLoginView: Bool
 
     @FocusState private var isOTPFieldFocused: Bool
     @State private var scrollViewProxy: ScrollViewProxy?
 
-    // Timer-related states
     @State private var isResendButtonEnabled = false
     @State private var remainingTime: Int = 60
     private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
-    init(verificationID: String, isOTPViewPresented: Binding<Bool>, phoneNumber: String, onOTPVerified: @escaping () -> Void, showLoginView: Binding<Bool>) {
+    init(verificationID: String, isOTPViewPresented: Binding<Bool>, phoneNumber: String, onOTPVerified: @escaping () -> Void,navigateToContent: Binding<Bool>) {
         self._verificationID = State(initialValue: verificationID)
         self._isOTPViewPresented = isOTPViewPresented
         self.phoneNumber = phoneNumber
         self.onOTPVerified = onOTPVerified
-        self._showLoginView = showLoginView
+        self._navigateToContent = navigateToContent 
     }
 
     var body: some View {
@@ -48,7 +45,6 @@ struct OTPView: View {
             Spacer()
             Spacer()
 
-            // OTP Sent Message with Edit Button
             HStack {
                 Text("OTP has been sent to: \(phoneNumber)")
                     .font(.headline)
@@ -58,7 +54,6 @@ struct OTPView: View {
                     .padding(.trailing, 8)
                     .underline()
                 Button(action: {
-                    showLoginView = true
                     isOTPViewPresented = false
                 }) {
                     HStack(spacing: 3) {
@@ -74,14 +69,13 @@ struct OTPView: View {
             .padding()
             .offset(y: -20)
 
-            // OTP Input Field
             TextField("Enter OTP", text: $otp)
                 .keyboardType(.numberPad)
                 .focused($isOTPFieldFocused)
                 .onChange(of: otp) { newValue in
                     otp = String(newValue.prefix(6).filter { $0.isNumber })
                     if otp.count == 6 {
-                        autoVerifyOTP() // Auto-verify when OTP is complete
+                        autoVerifyOTP()
                     }
                 }
                 .padding()
@@ -99,7 +93,6 @@ struct OTPView: View {
                 }
                 .offset(y: -35)
 
-            // Error Message
             if !errorMessage.isEmpty {
                 Text(errorMessage)
                     .foregroundColor(.red)
@@ -111,10 +104,7 @@ struct OTPView: View {
                         }
                     }
             }
-            
-          
 
-            // Verify Button
             Button(action: {
                 verifyOTP()
             }) {
@@ -141,7 +131,6 @@ struct OTPView: View {
 
             Spacer()
 
-            // Resend OTP Button
             Button(action: {
                 resendOTP()
             }) {
@@ -166,9 +155,8 @@ struct OTPView: View {
             hideKeyboard()
         }
         .onAppear {
-            otp = "" 
+            otp = ""
             startTimer()
-                
 
             NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
                 if isOTPFieldFocused {
@@ -187,28 +175,25 @@ struct OTPView: View {
                 remainingTime -= 1
             } else {
                 isResendButtonEnabled = true
-                timer.upstream.connect().cancel() // Stop the timer
+                timer.upstream.connect().cancel()
             }
         }
         .navigationDestination(isPresented: $navigateToContent) {
             ContentView(appState: AppState())
-                            .navigationBarBackButtonHidden(true)
-                    }
+                .navigationBarBackButtonHidden(true)
+        }
     }
 
-    // MARK: - Start Timer
     private func startTimer() {
         isResendButtonEnabled = false
         remainingTime = 60
     }
 
-    // MARK: - Auto-Verify OTP Logic
     private func autoVerifyOTP() {
         guard otp.count == 6 else { return }
         verifyOTP()
     }
 
-    // MARK: - Verify OTP Logic
     private func verifyOTP() {
         guard !otp.isEmpty else {
             errorMessage = "Please enter the OTP."
@@ -230,17 +215,15 @@ struct OTPView: View {
                 }
                 print("User signed in successfully.")
                 onOTPVerified()
-                
-                navigateToContent = true
+//               
             }
         }
     }
 
-    // MARK: - Resend OTP Logic
     private func resendOTP() {
         isLoading = true
         errorMessage = ""
-        startTimer() // Restart the timer
+        startTimer()
         PhoneAuthProvider.provider().verifyPhoneNumber(phoneNumber, uiDelegate: nil) { verificationID, error in
             if let error = error {
                 print("Error during phone number verification: \(error.localizedDescription)")
@@ -248,19 +231,19 @@ struct OTPView: View {
             }
             if let verificationID = verificationID {
                 DispatchQueue.main.async {
-                    self.isOTPViewPresented = true
                     self.verificationID = verificationID
                 }
             }
         }
     }
 
-    // MARK: - Hide Keyboard
+
+   
     private func hideKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
-    // MARK: - Adjust view for keyboard
+   
     private func adjustViewForKeyboard(notification: Notification) {
         if let userInfo = notification.userInfo, let _ = (userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue {
             withAnimation {
@@ -279,6 +262,7 @@ struct OTPView: View {
         onOTPVerified: {
             print("OTP Verified!")
         },
-        showLoginView: .constant(false)
+        navigateToContent: .constant(false)
+        
     )
 }

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		18044FD92D227D5600D9F4F6 /* SwiftKeychainWrapper in Frameworks */ = {isa = PBXBuildFile; productRef = 18044FD82D227D5600D9F4F6 /* SwiftKeychainWrapper */; };
+		187E2A8E2D29549D00494B26 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 187E2A8D2D29549D00494B26 /* FirebaseCrashlytics */; };
 		188C3A602CFB1EC40022D3F4 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 188C3A5F2CFB1EC40022D3F4 /* FirebaseCore */; };
 		188C3A622CFB1EC80022D3F4 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 188C3A612CFB1EC80022D3F4 /* FirebaseAuth */; };
 		188C3A692CFB29980022D3F4 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 188C3A682CFB29980022D3F4 /* GoogleSignIn */; };
@@ -80,6 +81,7 @@
 				188C3A622CFB1EC80022D3F4 /* FirebaseAuth in Frameworks */,
 				188C3A712CFC782F0022D3F4 /* FirebaseMessaging in Frameworks */,
 				188C3A692CFB29980022D3F4 /* GoogleSignIn in Frameworks */,
+				187E2A8E2D29549D00494B26 /* FirebaseCrashlytics in Frameworks */,
 				188C3A6B2CFB29980022D3F4 /* GoogleSignInSwift in Frameworks */,
 				18044FD92D227D5600D9F4F6 /* SwiftKeychainWrapper in Frameworks */,
 			);
@@ -157,6 +159,7 @@
 				188C3A702CFC782F0022D3F4 /* FirebaseMessaging */,
 				18FA5D372D182C69002BAA25 /* FirebaseDatabase */,
 				18044FD82D227D5600D9F4F6 /* SwiftKeychainWrapper */,
+				187E2A8D2D29549D00494B26 /* FirebaseCrashlytics */,
 			);
 			productName = TringQR;
 			productReference = 18C305772CFA532D00252B56 /* TringQR.app */;
@@ -681,6 +684,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 18044FD72D227D4300D9F4F6 /* XCRemoteSwiftPackageReference "KeychainWrapper" */;
 			productName = SwiftKeychainWrapper;
+		};
+		187E2A8D2D29549D00494B26 /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 188C3A5D2CFB1DB30022D3F4 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
 		};
 		188C3A5F2CFB1EC40022D3F4 /* FirebaseCore */ = {
 			isa = XCSwiftPackageProductDependency;

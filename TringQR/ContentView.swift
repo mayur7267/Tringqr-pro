@@ -30,235 +30,242 @@ struct ScannedHistoryItem: Identifiable, Codable {
 }
 
 class AppState: ObservableObject {
-    // MARK: - Published Properties
     @Published var currentUserId: String? {
         didSet {
             UserDefaults.standard.set(currentUserId, forKey: "currentUserId")
         }
     }
-    
+
     @Published var isLoggedIn: Bool {
         didSet {
             UserDefaults.standard.set(isLoggedIn, forKey: "isLoggedIn")
         }
     }
-    
+
     @Published var userName: String? {
         didSet {
             UserDefaults.standard.set(userName, forKey: "userName")
         }
     }
-    
+
     @Published var phoneNumber: String? {
         didSet {
             UserDefaults.standard.set(phoneNumber, forKey: "phoneNumber")
         }
     }
-    
-    @Published var scannedHistory: [ScannedHistoryItem] {
-        didSet {
-            if let encoded = try? JSONEncoder().encode(scannedHistory) {
-                KeychainWrapper.standard.set(encoded, forKey: "scannedHistory")
-            }
-            // Update the set whenever history changes
-            scannedHistorySet = Set(scannedHistory.map { $0.code })
-        }
-    }
-    
+
+    @Published var scannedHistory: [ScannedHistoryItem] = []
+
     @Published var isFirstLaunch: Bool {
         didSet {
             UserDefaults.standard.set(isFirstLaunch, forKey: "isFirstLaunch")
         }
     }
-    
+
     @Published var isSidebarVisible: Bool {
         didSet {
             UserDefaults.standard.set(isSidebarVisible, forKey: "isSidebarVisible")
         }
     }
-    
-    // MARK: - Private Properties
+
     @Published var scannedHistorySet: Set<String> = []
     private let lock = DispatchQueue(label: "appStateLock")
-    
-    // MARK: - Initialization
+
     init() {
-        // Initialize from UserDefaults
         self.currentUserId = UserDefaults.standard.string(forKey: "currentUserId")
         self.isLoggedIn = UserDefaults.standard.bool(forKey: "isLoggedIn")
         self.userName = UserDefaults.standard.string(forKey: "userName") ?? ""
         self.phoneNumber = UserDefaults.standard.string(forKey: "phoneNumber")
-        self.scannedHistory = []
         self.isFirstLaunch = UserDefaults.standard.object(forKey: "isFirstLaunch") == nil || UserDefaults.standard.bool(forKey: "isFirstLaunch")
         self.isSidebarVisible = UserDefaults.standard.bool(forKey: "isSidebarVisible")
         
-        // Load cached history from Keychain
-        if let data = KeychainWrapper.standard.data(forKey: "scannedHistory"),
-           let decoded = try? JSONDecoder().decode([ScannedHistoryItem].self, from: data) {
-            self.scannedHistory = decoded
-            self.scannedHistorySet = Set(decoded.map { $0.code })
-        }
-        
-        // Fetch remote history
         restoreHistoryFromBackend()
     }
-    
-    // MARK: - History Management
+
     func restoreHistoryFromBackend() {
         let deviceId = getDeviceId()
+        print("Starting history fetch for deviceId: \(deviceId)")
+        
         fetchScanHistory(deviceId: deviceId) { [weak self] history in
-            guard let self = self, let history = history else { return }
-            
+            guard let self = self else { return }
+            print("Received history response: \(String(describing: history))")
+
             DispatchQueue.main.async {
-            
+                guard let history = history else {
+                    print("History is nil")
+                    return
+                }
+
                 let newItems = history.compactMap { item -> ScannedHistoryItem? in
-                    guard let code = item["code"] as? String else { return nil }
-                    return ScannedHistoryItem(
+                    guard let code = item["eventName"] as? String else {
+                        print("Failed to extract code from item: \(item)")
+                        return nil
+                    }
+                    let historyItem = ScannedHistoryItem(
                         code: code,
                         eventName: item["eventName"] as? String,
                         event: item["event"] as? String,
-                        timestamp: item["timestamp"] as? String
+                        timestamp: item["updatedAt"] as? String
                     )
+                    print("Created history item: \(historyItem)")
+                    return historyItem
                 }
-                
-                // Append new items to existing history
-                if !newItems.isEmpty {
-                    self.lock.sync {
-                        self.scannedHistory.append(contentsOf: newItems)
-                        newItems.forEach { item in
-                            self.scannedHistorySet.insert(item.code)
-                        }
-                    }
-                }
+
+                print("Processing \(newItems.count) new history items")
+                self.scannedHistory = newItems
+                self.scannedHistorySet = Set(newItems.map { $0.code })
+                print("Updated scannedHistory count: \(self.scannedHistory.count)")
             }
         }
     }
-    private var pendingCodes = Set<String>()
-    
-    func addScannedCode(_ code: String, deviceId: String,os: String, event: String, eventName: String) {
-        lock.sync {
-            print("addScannedCode called with code: \(code)")
-                    guard !scannedHistorySet.contains(code), !pendingCodes.contains(code) else {
-                        print("Code already exists or is pending.")
-                        return
+
+
+    func addScannedCode(_ code: String, deviceId: String, os: String, event: String, eventName: String, completion: @escaping () -> Void) {
+        print("Adding scanned code: \(code)")
+        
+        let newItem = ScannedHistoryItem(
+            code: code,
+            eventName: eventName,
+            event: event,
+            timestamp: ISO8601DateFormatter().string(from: Date())
+        )
+
+       
+        sendToBackend(code: code, deviceId: deviceId, os: os, event: event, eventName: eventName) { [weak self] success in
+            guard let self = self else { return }
+            
+            if success {
+                print("Successfully saved to backend")
+                
+               
+                DispatchQueue.main.async {
+                    if !self.scannedHistorySet.contains(code) {
+                        self.scannedHistorySet.insert(code)
+                        self.scannedHistory.insert(newItem, at: 0)
+                        print("Added to local history. Current count: \(self.scannedHistory.count)")
                     }
-            pendingCodes.insert(code)
-            guard !scannedHistorySet.contains(code) else { return }
-            let newItem = ScannedHistoryItem(code: code, eventName: eventName, event: event)
-            scannedHistory.append(newItem)
-            scannedHistorySet.insert(code)
+                }
+            } else {
+                print("Failed to save to backend")
+            }
+            completion()
         }
-        sendToBackend(code: code, deviceId: deviceId,os: "ios", event: "scan", eventName: eventName)
     }
-    
-    // MARK: - Network Requests
+    func sendToBackend(code: String, deviceId: String, os: String, event: String, eventName: String, completion: @escaping (Bool) -> Void) {
+            guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/users/activity") else {
+                print("Invalid URL")
+                completion(false)
+                return
+            }
+
+            let payload: [String: Any] = [
+                "code": code,
+                "deviceId": deviceId,
+                "os": os,
+                "event": event,
+                "eventName": eventName
+            ]
+
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+            do {
+                request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [])
+                print("Sending payload to backend: \(payload)")
+            } catch {
+                print("Error encoding JSON: \(error)")
+                completion(false)
+                return
+            }
+
+            URLSession.shared.dataTask(with: request) { data, response, error in
+                if let error = error {
+                    print("Error sending data to backend: \(error.localizedDescription)")
+                    completion(false)
+                    return
+                }
+
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    print("Invalid response type")
+                    completion(false)
+                    return
+                }
+
+                print("Backend response status code: \(httpResponse.statusCode)")
+                
+                if let data = data, let responseString = String(data: data, encoding: .utf8) {
+                    print("Backend response data: \(responseString)")
+                }
+
+                completion(httpResponse.statusCode == 200 || httpResponse.statusCode == 201)
+            }.resume()
+        }
     func fetchScanHistory(deviceId: String, completion: @escaping ([[String: Any]]?) -> Void) {
         guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/users/activity/\(deviceId)") else {
-            print("Invalid URL for fetching history")
+            print("Invalid URL")
             completion(nil)
             return
         }
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        URLSession.shared.dataTask(with: url) { data, response, error in
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
-                print("Error fetching history: \(error.localizedDescription)")
+                print("Network error: \(error.localizedDescription)")
                 completion(nil)
                 return
             }
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
-                print("Invalid response type")
-                completion(nil)
-                return
-            }
-            
-            guard httpResponse.statusCode == 200 else {
-                print("Server returned status code: \(httpResponse.statusCode)")
-                completion(nil)
-                return
-            }
-            
+
             guard let data = data else {
                 print("No data received")
                 completion(nil)
                 return
             }
+
             
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("Raw response: \(responseString)")
+            }
+
             do {
-                guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                      let activities = json["activities"] as? [[String: Any]] else {
-                    print("Failed to parse JSON response")
+                
+                if let jsonArray = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                    print("Successfully parsed JSON array: \(jsonArray)")
+                    completion(jsonArray)
+                } else if let jsonDict = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                          let jsonArray = jsonDict["data"] as? [[String: Any]] {
+                    
+                    print("Successfully parsed JSON array from 'data' key: \(jsonArray)")
+                    completion(jsonArray)
+                } else {
+                    print("Failed to parse JSON as array or dictionary")
                     completion(nil)
-                    return
                 }
-                
-                let history = activities.map { activity -> [String: Any] in
-                    var mappedActivity: [String: Any] = [:]
-                    mappedActivity["code"] = activity["code"] as? String ?? ""
-                    mappedActivity["eventName"] = activity["eventName"] as? String ?? ""
-                    mappedActivity["event"] = activity["event"] as? String ?? ""
-                    mappedActivity["timestamp"] = activity["timestamp"] as? String ?? ""
-                    return mappedActivity
-                }
-                
-                print("Successfully fetched history: \(history)")
-                completion(history)
-                
             } catch {
-                print("Error parsing response: \(error.localizedDescription)")
+                print("JSON parsing error: \(error)")
+                print("Raw data: \(data)")
                 completion(nil)
             }
         }.resume()
     }
-    
-    private func sendToBackend(code: String, deviceId: String, os: String, event: String, eventName: String) {
-        guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/users/activity") else {
-            pendingCodes.remove(code)
-            return
+    func getDeviceId() -> String {
+        let keychainKey = "com.app.uniqueDeviceId"
+        if let deviceId = KeychainWrapper.standard.string(forKey: keychainKey) {
+            return deviceId
+        } else {
+            let newDeviceId = UUID().uuidString
+            KeychainWrapper.standard.set(newDeviceId, forKey: keychainKey)
+            return newDeviceId
         }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        let payload: [String: Any] = [
-            "deviceId": deviceId,
-            "os": os,
-            "eventName": eventName,
-            "event": event,
-            "code": code
-        ]
-
-        guard let jsonData = try? JSONSerialization.data(withJSONObject: payload) else {
-            print("Failed to serialize payload")
-            return
-        }
-
-        URLSession.shared.uploadTask(with: request, from: jsonData) { data, response, error in
-            defer { self.pendingCodes.remove(code) }
-            if let error = error {
-                print("Error sending data to backend: \(error.localizedDescription)")
-                return
-            }
-
-            if let response = response as? HTTPURLResponse, response.statusCode == 200 {
-                print("Successfully sent data to backend.")
-            } else {
-                print("Failed with response: \(String(describing: response))")
-            }
-        }.resume()
     }
 
-    
-    // MARK: - User Management
     func toggleLogin() {
         isLoggedIn.toggle()
     }
-    
+
     func setCurrentUserId(_ id: String?) {
         currentUserId = id
     }
@@ -270,7 +277,7 @@ class AppState: ObservableObject {
     func setPhoneNumber(_ number: String?) {
         phoneNumber = number
     }
-    
+
     func signOut() {
         isLoggedIn = false
         userName = ""
@@ -278,25 +285,16 @@ class AppState: ObservableObject {
         UserDefaults.standard.removeObject(forKey: "userName")
         UserDefaults.standard.removeObject(forKey: "phoneNumber")
     }
-    
-    // MARK: - UI State Management
+
     func completeFirstLaunch() {
         isFirstLaunch = false
     }
 
     func toggleSidebar() {
-        isSidebarVisible.toggle()
-    }
-    
-    // MARK: - Device Management
-    func getDeviceId() -> String {
-        let keychainKey = "com.app.uniqueDeviceId"
-        if let deviceId = KeychainWrapper.standard.string(forKey: keychainKey) {
-            return deviceId
-        } else {
-            let newDeviceId = UUID().uuidString
-            KeychainWrapper.standard.set(newDeviceId, forKey: keychainKey)
-            return newDeviceId
+        DispatchQueue.main.async {
+            withAnimation(.easeInOut) {
+                self.isSidebarVisible.toggle()
+            }
         }
     }
 }
@@ -307,22 +305,24 @@ struct ContentView: View {
     
     @State private var selectedTab = 1
     @State private var isBackButtonVisible = false
-    @State private var showLoginView: Bool
+    @State private var showLoginView: Bool = false
     @State private var showShareSheet = false
     @Environment(\.scenePhase) private var scenePhase
     
+    
     init(appState: AppState) {
         _showLoginView = State(initialValue: !appState.isLoggedIn && appState.isFirstLaunch)
+        
     }
     
     var body: some View {
         NavigationStack {
-            NavigationView {
+//            NavigationView {
                 GeometryReader { geometry in
                     ZStack {
                         Color(red: 220 / 255, green: 220 / 255, blue: 220 / 255)
                             .ignoresSafeArea()
-                        
+                                                    
                         if showLoginView {
                             LoginView(onLoginSuccess: { displayName in
                                 if displayName.isEmpty {
@@ -363,20 +363,20 @@ struct ContentView: View {
                                             }
                                         } else {
                                             Button(action: {
-                                                withAnimation(.easeInOut) {
-                                                    appState.toggleSidebar()
-                                                }
+                                                print("Hamburger tapped! Sidebar visibility: \(appState.isSidebarVisible)")
+                                                appState.toggleSidebar()
                                             }) {
                                                 Image(systemName: "line.3.horizontal")
                                                     .bold()
                                                     .foregroundColor(.black)
                                                     .imageScale(.large)
                                                     .contentShape(Rectangle())
+                                                    .frame(width: adaptiveButtonSize(for: geometry), height: adaptiveButtonSize(for: geometry))
+                                                    .background(Color.clear)
                                             }
-                                            .border(Color.clear)
-                                            .frame(width: adaptiveButtonSize(for: geometry), height: adaptiveButtonSize(for: geometry))
-                                            .background(Color.clear)
-                                            .zIndex(1)
+                                            .buttonStyle(PlainButtonStyle())
+                                        
+                                            
                                         }
                                         
                                         Spacer()
@@ -418,10 +418,9 @@ struct ContentView: View {
                                     Color.black.opacity(0.5)
                                         .ignoresSafeArea()
                                         .onTapGesture {
-                                            withAnimation(.easeInOut) {
-                                                appState.isSidebarVisible = false
-                                            }
+                                            appState.toggleSidebar()
                                         }
+                                        
                                         .transition(.opacity)
                                     
                                     HStack(spacing: 0) {
@@ -435,14 +434,15 @@ struct ContentView: View {
                                         .frame(width: geometry.size.width * adaptiveSidebarWidth(for: geometry))
                                         .background(Color.white)
                                         .edgesIgnoringSafeArea(.bottom)
-                                        .offset(x: appState.isSidebarVisible ? 0 : -geometry.size.width * adaptiveSidebarWidth(for: geometry))
-                                        .animation(.easeInOut(duration: 0.3), value: appState.isSidebarVisible)
+//
                                         .transition(.move(edge: .leading))
+                                        .zIndex(4)
                                         
                                         Spacer()
                                     }
                                 }
                             }
+                            
                         }
                     }
                 }
@@ -453,43 +453,50 @@ struct ContentView: View {
                     let shareURL = URL(string: "https://example.com")!
                     ShareSheet(items: [shareText, shareURL])
                 }
-            }
+            
         }
         .onAppear {
-            appState.isSidebarVisible = false
-        }
-        .onChange(of: scenePhase) { newPhase in
-            if newPhase == .active {
+            withAnimation(.easeInOut) {
                 appState.isSidebarVisible = false
             }
         }
+
+        .onChange(of: scenePhase) { newPhase in
+            if (newPhase == .inactive || newPhase == .background) && appState.isSidebarVisible {
+                print("App moved to background. Hiding sidebar.")
+                withAnimation {
+                    appState.isSidebarVisible = false
+                }
+            }
+        }
+
     }
     
 }
 private func adaptiveHeaderHeight(for geometry: GeometryProxy) -> CGFloat {
         let screenHeight = geometry.size.height
-        if screenHeight <= 667 { // iPhone SE, iPhone 8
+        if screenHeight <= 667 {
             return 40
-        } else if screenHeight <= 812 { // iPhone X, 11 Pro, 12 mini
+        } else if screenHeight <= 812 {
             return 44
-        } else { // Larger iPhones
+        } else {
             return 44
         }
     }
 
 private func adaptiveFontSize(for geometry: GeometryProxy) -> CGFloat {
        let screenWidth = geometry.size.width
-       if screenWidth <= 375 { // iPhone SE, iPhone 8
+       if screenWidth <= 375 {
            return 16
-       } else if screenWidth <= 428 { // iPhone X, 11 Pro, 12/13/14
+       } else if screenWidth <= 428 {
            return 17
-       } else { // Larger iPhones
+       } else {
            return 17
        }
    }
 private func adaptiveHorizontalPadding(for geometry: GeometryProxy) -> CGFloat {
         let screenWidth = geometry.size.width
-        if screenWidth <= 375 { // iPhone SE, iPhone 8
+        if screenWidth <= 375 { 
             return 10
         } else {
             return 12
@@ -497,17 +504,17 @@ private func adaptiveHorizontalPadding(for geometry: GeometryProxy) -> CGFloat {
     }
 private func adaptiveVerticalPadding(for geometry: GeometryProxy) -> CGFloat {
         let screenHeight = geometry.size.height
-        if screenHeight <= 667 { // iPhone SE, iPhone 8
+        if screenHeight <= 667 {
             return 30
-        } else if screenHeight <= 812 { // iPhone X, 11 Pro, 12 mini
+        } else if screenHeight <= 812 {
             return 35
-        } else { // Larger iPhones
+        } else {
             return 40
         }
     }
 private func adaptiveSidebarWidth(for geometry: GeometryProxy) -> CGFloat {
         let screenWidth = geometry.size.width
-        if screenWidth <= 375 { // iPhone SE, iPhone 8
+        if screenWidth <= 375 {
             return 0.75
         } else {
             return 0.7
@@ -515,7 +522,7 @@ private func adaptiveSidebarWidth(for geometry: GeometryProxy) -> CGFloat {
     }
 private func adaptiveButtonSize(for geometry: GeometryProxy) -> CGFloat {
        let screenWidth = geometry.size.width
-       if screenWidth <= 375 { // iPhone SE, iPhone 8
+       if screenWidth <= 375 {
            return 40
        } else {
            return 44
@@ -614,7 +621,8 @@ struct HistoryView: View {
     @EnvironmentObject var appState: AppState
     @State private var showShareSheet = false
     @State private var selectedHistoryItem: ScannedHistoryItem? = nil
-    @State private var showDeleteConfirmation = false
+    @State private var isRefreshing = false
+    @State private var errorMessage: String? = nil
 
     var body: some View {
         ZStack {
@@ -622,45 +630,49 @@ struct HistoryView: View {
                 .edgesIgnoringSafeArea(.all)
             
             VStack(spacing: 0) {
-                // Main Content
-                if filteredHistory.isEmpty {
-                    Spacer()
-                    VStack {
-                        Image(systemName: "doc.text.magnifyingglass")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 100, height: 100)
-                            .foregroundColor(.gray)
-                        Text("No scan history available.")
-                            .foregroundColor(.gray)
-                            .font(.system(size: 17))
-                        Text("Start scanning codes to see them here!")
-                            .foregroundColor(.gray)
-                            .font(.system(size: 14))
+                ScrollView {
+                    PullToRefresh(coordinateSpaceName: "pullToRefresh") {
+                        refreshScanHistory()
                     }
-                    Spacer()
-                } else {
-                    ScrollView {
+                    
+                    
+                    if let error = errorMessage {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .padding()
+                    }
+                    
+                    if appState.scannedHistory.isEmpty {
+                        VStack {
+                            Image(systemName: "doc.text.magnifyingglass")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 100, height: 100)
+                                .foregroundColor(.gray)
+                            Text("No scan history available.")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 17))
+                            Text("Start scanning codes to see them here!")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 14))
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.top, 100)
+                    } else {
                         VStack(spacing: 12) {
-                            ForEach(filteredHistory) { historyItem in
+                            ForEach(appState.scannedHistory) { historyItem in
                                 HistoryItemView(
                                     historyItem: historyItem,
                                     showShareSheet: $showShareSheet,
                                     selectedHistoryItem: $selectedHistoryItem
                                 )
-                                .swipeActions {
-                                    Button(role: .destructive) {
-                                        deleteHistoryItem(historyItem)
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
                             }
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 12)
                     }
                 }
+                .coordinateSpace(name: "pullToRefresh")
             }
         }
         .navigationBarHidden(true)
@@ -670,53 +682,87 @@ struct HistoryView: View {
             }
         }
         .onAppear {
-            if let deviceId = UIDevice.current.identifierForVendor?.uuidString {
-                appState.fetchScanHistory(deviceId: deviceId) { history in
-                    guard let history = history else {
-                        print("No history found or an error occurred.")
-                        return
-                    }
+            refreshScanHistory()
+        }
+    }
 
-                    // Map the raw history to ScannedHistoryItem objects
+    private func refreshScanHistory() {
+        isRefreshing = true
+        
+        let deviceId = appState.getDeviceId()
+        print("Refreshing scan history for device: \(deviceId)")
+        
+        appState.fetchScanHistory(deviceId: deviceId) { history in
+            DispatchQueue.main.async {
+                isRefreshing = false
+                
+                if let history = history {
+                    
                     let scannedItems = history.compactMap { item -> ScannedHistoryItem? in
-                        guard let code = item["code"] as? String else { return nil }
+                        guard let code = item["eventName"] as? String else { return nil }
                         return ScannedHistoryItem(
                             code: code,
                             eventName: item["eventName"] as? String,
                             event: item["event"] as? String,
-                            timestamp: item["timestamp"] as? String
+                            timestamp: item["updatedAt"] as? String
                         )
                     }
-
-                    DispatchQueue.main.async {
+                    
+                   
+                    if !scannedItems.isEmpty {
                         appState.scannedHistory = scannedItems
+                        errorMessage = nil
+                    } else if appState.scannedHistory.isEmpty {
+                        
+                        errorMessage = "No scan history available yet"
                     }
                 }
-            } else {
-                print("Failed to get device ID")
+                
+                print("History refresh complete. Items count: \(appState.scannedHistory.count)")
             }
-        }
-
-    }
-
-    private var filteredHistory: [ScannedHistoryItem] {
-        return appState.scannedHistory
-    }
-
-    private func deleteHistoryItem(_ item: ScannedHistoryItem) {
-        showDeleteConfirmation = true
-        if let index = appState.scannedHistory.firstIndex(where: { $0.id == item.id }) {
-            appState.scannedHistory.remove(at: index)
         }
     }
 }
-
+struct PullToRefresh: View {
+    var coordinateSpaceName: String
+    var onRefresh: () -> Void
+    
+    @State private var isRefreshing = false
+    
+    var body: some View {
+        GeometryReader { geometry in
+            if geometry.frame(in: .named(coordinateSpaceName)).midY > 50 {
+                Spacer()
+                    .onAppear {
+                        if !isRefreshing {
+                            isRefreshing = true
+                            onRefresh()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                                isRefreshing = false
+                            }
+                        }
+                    }
+            }
+            
+            HStack {
+                Spacer()
+                if isRefreshing {
+                    ProgressView()
+                }
+                Spacer()
+            }
+        }
+        .padding(.top, isRefreshing ? 0 : -50)
+    }
+}
 struct HistoryItemView: View {
     let historyItem: ScannedHistoryItem
     @Binding var showShareSheet: Bool
     @Binding var selectedHistoryItem: ScannedHistoryItem?
     @EnvironmentObject var appState: AppState
-    @Environment(\.colorScheme) var colorScheme // Detect light/dark mode
+    @Environment(\.colorScheme) var colorScheme
+    
+    @State private var showDeleteConfirmation = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -780,10 +826,18 @@ struct HistoryItemView: View {
             }
             
             Button(role: .destructive, action: {
-                deleteHistoryItem(historyItem)
+                showDeleteConfirmation = true
             }) {
                 Label("Delete", systemImage: "trash")
             }
+        }
+        .alert("Delete Item", isPresented: $showDeleteConfirmation) {
+            Button("Delete", role: .destructive) {
+                deleteHistoryItem(historyItem)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to delete this item?")
         }
     }
 
@@ -800,7 +854,6 @@ struct HistoryItemView: View {
         }
     }
 }
-
 
 struct Preview_contentview: PreviewProvider {
     static var previews: some View {

@@ -32,30 +32,34 @@ struct ScannerView: View {
     @State private var showGalleryPicker: Bool = false
     
     
- 
-
-
+    
+    
+    
     
     
     
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
-                let screenWidth = geometry.size.width
+                let _ = geometry.size.width
                 let screenHeight = geometry.size.height
-                let isCompactDevice = screenHeight < 700 // For iPhone SE and similar
+                let isCompactDevice = screenHeight < 700
                 
                 VStack {
                     Spacer(minLength: 0)
                     
                     GeometryReader { geometry in
                         let size = geometry.size
-                        // Adjust scanner size based on device
-                        let scannerSize = isCompactDevice ? size.width - 20 : size.width
+                        
+                        let scannerSize = max(isCompactDevice ? size.width - 20 : size.width, 300)
                         
                         ZStack {
                             CameraView(frameSize: CGSize(width: scannerSize, height: scannerSize), session: $session)
                                 .frame(width: scannerSize, height: scannerSize)
+                                .onAppear {
+                                    let safeSize = max(scannerSize, 200)
+                                    print("Scanner size updated to: \(safeSize)")
+                                }
                             
                             ForEach(0...3, id: \.self) { index in
                                 let rotation = Double(index) * 90
@@ -65,7 +69,7 @@ struct ScannerView: View {
                             }
                         }
                         .frame(width: scannerSize, height: scannerSize)
-                        // Adjust offset for different screen sizes
+                        
                         .offset(y: isCompactDevice ? -45 : -92)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
@@ -74,7 +78,7 @@ struct ScannerView: View {
                     
                     Spacer()
                     
-                    // Title section with adaptive spacing
+                    
                     VStack(spacing: isCompactDevice ? 8 : 12) {
                         Text("Scan with TringQR")
                             .font(isCompactDevice ? .title2 : .title)
@@ -90,7 +94,7 @@ struct ScannerView: View {
                     
                     Spacer()
                     
-                    // Zoom controls with adaptive sizing
+                    
                     VStack(spacing: isCompactDevice ? 5 : 10) {
                         HStack(spacing: 3) {
                             Button(action: {
@@ -134,7 +138,7 @@ struct ScannerView: View {
                         .offset(y: isCompactDevice ? -40 : -80)
                     }
                     
-                    // Bottom controls with adaptive sizing
+                    
                     HStack {
                         Button(action: { isPickerPresented = true }) {
                             HStack(spacing: isCompactDevice ? 8 : 10) {
@@ -190,7 +194,7 @@ struct ScannerView: View {
                     return
                 }
                 
-                // Map the raw history to ScannedHistoryItem objects
+                
                 let scannedItems = history.compactMap { item -> ScannedHistoryItem? in
                     guard let code = item["code"] as? String else { return nil }
                     return ScannedHistoryItem(
@@ -206,8 +210,8 @@ struct ScannerView: View {
                 }
             }
         }
-
-
+        
+        
         .onDisappear {
             session.stopRunning()
             deactivateScannerAnimation()
@@ -228,30 +232,20 @@ struct ScannerView: View {
             }
         }
         .onChange(of: qrDelegate.scannedCode) { newValue in
-            if let code = newValue {
-                scannedCode = code
-                session.stopRunning()
-                deactivateScannerAnimation()
-
-                let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "unknown-device-id"
-                let os = "ios"
-   
-                let event = "scan"
-                let eventName = code
-
-                appState.addScannedCode(code, deviceId: deviceId,os:os,event: event, eventName: eventName)
-
-                handleScannedCode(code)
-                
-                qrDelegate.scannedCode = nil
-                
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    restartScanning()
+                    if let code = newValue {
+                        print("Scanned code detected: \(code)")
+                        scannedCode = code
+                        session.stopRunning()
+                        deactivateScannerAnimation()
+                        handleScannedCode(code)
+                        qrDelegate.scannedCode = nil
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            restartScanning()
+                        }
+                    }
                 }
             }
-        }
-    }
+
     func restartScanning() {
         DispatchQueue.global(qos: .background).async {
             if !session.isRunning {
@@ -413,46 +407,54 @@ struct ScannerView: View {
         return (features.first as? CIQRCodeFeature)?.messageString
     }
     
-
     func handleScannedCode(_ code: String) {
-        //actual device ID
-        let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "unknown-device-id"
+        print("Handling scanned code: \(code)")
         
-        //userId
-       
+        
+        let deviceId = appState.getDeviceId()
         let os = "ios"
         let event = "scan"
         let eventName = code
         
+        print("Using deviceId: \(deviceId)") 
         
-        appState.addScannedCode(code, deviceId: deviceId, os: os, event: event, eventName: eventName)
-
+       
         guard let url = URL(string: code) else {
             presentError("Invalid QR code content: \(code)")
             return
         }
-
-        if code.lowercased().hasPrefix("upi://pay") {
-            if UIApplication.shared.canOpenURL(url) {
-                UIApplication.shared.open(url, options: [:]) { success in
-                    if !success {
-                        presentError("Unable to open UPI link. Please ensure a UPI app is installed.")
+        
+        
+        appState.addScannedCode(code, deviceId: deviceId, os: os, event: event, eventName: eventName) {
+            print("Scan history updated, handling URL opening")
+            
+           
+            DispatchQueue.main.async {
+                if code.lowercased().hasPrefix("upi://pay") {
+                    print("Handling UPI URL: \(code)")
+                    
+                    if UIApplication.shared.canOpenURL(url) {
+                        UIApplication.shared.open(url, options: [:]) { success in
+                            if !success {
+                                self.presentError("Unable to open UPI link. Please ensure a UPI app is installed.")
+                            }
+                        }
+                    } else {
+                        self.presentError("No app available to handle UPI payment.")
+                    }
+                } else {
+                    print("Handling regular URL: \(code)") 
+                    
+                    if UIApplication.shared.canOpenURL(url) {
+                        UIApplication.shared.open(url)
+                    } else {
+                        self.presentError("Scanned code is not a valid URL: \(code)")
                     }
                 }
-            } else {
-                presentError("No app available to handle UPI payment.")
-            }
-        } else {
-            if UIApplication.shared.canOpenURL(url) {
-                UIApplication.shared.open(url)
-            } else {
-                presentError("Scanned code is not a valid URL: \(code)")
             }
         }
     }
-
 }
-
 struct Preview_scannerview: PreviewProvider {
     static var previews: some View {
         ContentView(appState: AppState())

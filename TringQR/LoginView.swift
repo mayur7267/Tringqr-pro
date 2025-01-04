@@ -12,7 +12,7 @@ import GoogleSignIn
 import FirebaseMessaging
 import AVKit
 
-// MARK: - Keyboard Observer
+
 class KeyboardObserver: ObservableObject {
     @Published var keyboardHeight: CGFloat = 0
     private var cancellable: AnyCancellable?
@@ -36,7 +36,7 @@ class KeyboardObserver: ObservableObject {
 
 
 
-// MARK: - Login View
+
 struct Country: Identifiable {
     let id = UUID()
     let name: String
@@ -44,7 +44,7 @@ struct Country: Identifiable {
     let flag: String
 }
 
-// Sample country data
+
 let countries = [
     Country(name: "India", code: "+91", flag: "🇮🇳"),
     Country(name: "Albania", code: "+355", flag: "🇦🇱"),
@@ -156,29 +156,30 @@ extension View {
 
 
 
-// MARK: - Login View
+
 struct LoginView: View {
     @State private var selectedCountry: Country = countries.first ?? Country(name: "India", code: "+91", flag: "🇮🇳")
     @State private var phoneNumber: String = ""
     @State private var isLoading: Bool = false
-    @State private var showLoginView: Bool = false
     @State private var verificationID: String = ""
     @State private var isCountryPickerPresented: Bool = false
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
-    @State private var navigateToOTP: Bool = false // New state for navigation
-    @ObservedObject private var keyboardObserver = KeyboardObserver()
+    @State private var navigateToOTP: Bool = false
+    @State private var navigateToContent: Bool = false
     @State private var isPrivacyPolicyPresented: Bool = false
+    
+    @ObservedObject private var keyboardObserver = KeyboardObserver()
     
     var onLoginSuccess: (String) -> Void
     
     var body: some View {
-        NavigationStack { // Wrap in NavigationStack
+        NavigationStack {
             GeometryReader { geometry in
                 let isCompactDevice = geometry.size.height < 700
                 ZStack {
                     VideoBackgroundView()
-                                   .ignoresSafeArea()
+                        .ignoresSafeArea()
                     
                     VStack {
                         Spacer()
@@ -186,22 +187,15 @@ struct LoginView: View {
                         
                         VStack(spacing: isCompactDevice ? 3 : 5) {
                             Text("TringQR")
-                                .font(.system(size: isCompactDevice ? 55 : 42, weight: .bold))
+                                .font(.system(size: isCompactDevice ? 50 : 55, weight: .bold))
                                 .foregroundColor(.white)
-                                .offset(
-                                        x: isCompactDevice ? -106 : -80,
-                                        y: isCompactDevice ? 30 : 20
-                                    )
                                 
+                            
                             Text("World's fastest QR Code scanner")
-                                .font(.system(size: isCompactDevice ? 20 : 14 ,weight: .bold))
+                                .font(.system(size: isCompactDevice ? 8 : 14, weight: .bold))
                                 .foregroundColor(.white)
-                                .offset(
-                                    x: isCompactDevice ? -42 : -35,
-                                    y: isCompactDevice ? 30 : 20
-                                )
+                                
                         }
-                       
                         
                         Spacer()
                         
@@ -235,10 +229,10 @@ struct LoginView: View {
                                     .background(Color.white)
                                     .cornerRadius(5)
                                     .onChange(of: phoneNumber) { newValue in
-                                            phoneNumber = String(newValue.prefix(10))
-                                            if phoneNumber.count == 10 {
-                                              sendOTP()
-                                         }
+                                        phoneNumber = String(newValue.prefix(10))
+                                        if phoneNumber.count == 10 {
+                                            sendOTP()
+                                        }
                                     }
                                     .toolbar {
                                         ToolbarItemGroup(placement: .keyboard) {
@@ -280,8 +274,6 @@ struct LoginView: View {
                                         .frame(width: isCompactDevice ? 30 : 34,
                                                height: isCompactDevice ? 30 : 34)
                                         .padding(.leading, isCompactDevice ? 15 : 17)
-                                        
-
                                     
                                     Text("Continue with Google")
                                         .font(.system(size: isCompactDevice ? 14 : 16, weight: .medium))
@@ -289,7 +281,6 @@ struct LoginView: View {
                                         .frame(maxWidth: .infinity)
                                         .padding(isCompactDevice ? 12 : 16)
                                 }
-                            
                                 .background(Color.white)
                                 .cornerRadius(8)
                                 .shadow(color: Color.gray.opacity(0.3), radius: 4, x: 0, y: 2)
@@ -320,8 +311,6 @@ struct LoginView: View {
                         .offset(y: isCompactDevice ? -10 : -20)
                     }
                     .ignoresSafeArea(.keyboard)
-//                    .padding(.bottom, keyboardObserver.keyboardHeight)
-//                    .animation(.easeOut(duration: 0.3), value: keyboardObserver.keyboardHeight)
                 }
                 .ignoresSafeArea()
                 .onTapGesture {
@@ -333,12 +322,21 @@ struct LoginView: View {
                     verificationID: verificationID,
                     isOTPViewPresented: $navigateToOTP,
                     phoneNumber: selectedCountry.code + phoneNumber,
-                    onOTPVerified: {
-                        registerUser()
+                    onOTPVerified: {[self] in
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            registerUser()
+                        }
+//
+                       
                     },
-                    showLoginView: $showLoginView
+                    navigateToContent: $navigateToContent 
                 )
                 .navigationBarBackButtonHidden(true)
+            }
+            .navigationDestination(isPresented: $navigateToContent) {
+                ContentView(appState: AppState())
+                    .navigationBarBackButtonHidden(true)
             }
             .sheet(isPresented: $isCountryPickerPresented) {
                 CountryPicker(selectedCountry: $selectedCountry)
@@ -370,31 +368,30 @@ struct LoginView: View {
                     return
                 }
                 self.verificationID = id
-                self.navigateToOTP = true // Navigate to OTP view
+                self.navigateToOTP = true
             }
         }
     }
+    
     func registerUser(displayName: String? = nil) {
         let formattedPhoneNumber = selectedCountry.code + phoneNumber.trimmingCharacters(in: .whitespaces)
-
+        
         guard let currentUser = Auth.auth().currentUser else {
             print("No user is signed in.")
             return
         }
-
         
         currentUser.getIDToken { idToken, error in
             if let error = error {
                 print("Failed to fetch ID token: \(error.localizedDescription)")
                 return
             }
-
+            
             guard let idToken = idToken else {
                 print("ID token is nil.")
                 return
             }
-
-           
+            
             Messaging.messaging().token { fcmToken, error in
                 if let error = error {
                     print("Error fetching FCM token: \(error.localizedDescription)")
@@ -404,11 +401,10 @@ struct LoginView: View {
                     print("FCM token is nil.")
                     return
                 }
-
-                // Fetch device ID
+                
                 let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "UnknownDeviceID"
                 print("Fetched Device ID: \(deviceId)")
-
+                
                 let registerRequest = RegisterUserRequest(
                     type: "User",
                     email: "support@tringbox.com",
@@ -419,14 +415,14 @@ struct LoginView: View {
                 )
                 
                 print("Register Request Payload: \(registerRequest)")
-
-                // backend-call API to register the user
+                
                 APIManager.shared.registerUser(request: registerRequest, token: idToken) { result in
                     DispatchQueue.main.async {
                         switch result {
                         case .success(let response):
                             print("User registered successfully: \(response)")
                             onLoginSuccess(displayName ?? formattedPhoneNumber)
+                            navigateToContent = true
                         case .failure(let error):
                             print("Error during user registration: \(error.localizedDescription)")
                             errorMessage = "Failed to register user. Please try again."
@@ -554,33 +550,33 @@ struct VideoBackgroundView: UIViewRepresentable {
     func makeUIView(context: Context) -> UIView {
         let view = UIView(frame: .zero)
         
-        // Get the video URL from the bundle
+        
         guard let path = Bundle.main.path(forResource: "logback", ofType: "mp4") else {
             fatalError("Video file not found.")
         }
         let videoURL = URL(fileURLWithPath: path)
         
-        // Create AVPlayer and AVPlayerLayer
+        
         let player = AVPlayer(url: videoURL)
         let playerLayer = AVPlayerLayer(player: player)
-        playerLayer.videoGravity = .resizeAspectFill // Ensure video fills the screen
-        playerLayer.frame = UIScreen.main.bounds // Adjust frame to screen size
+        playerLayer.videoGravity = .resizeAspectFill
+        playerLayer.frame = UIScreen.main.bounds
         view.layer.addSublayer(playerLayer)
         
-        // Loop the video
+        
         NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: player.currentItem, queue: .main) { _ in
             player.seek(to: .zero)
             player.play()
         }
         
-        player.isMuted = true // Mute the video
-        player.play() // Auto-play the video
+        player.isMuted = true
+        player.play()
         
         return view
     }
     
     func updateUIView(_ uiView: UIView, context: Context) {
-        // No updates required
+        
     }
 }
 struct Preview_loginview: PreviewProvider {
