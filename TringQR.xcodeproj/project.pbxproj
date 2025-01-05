@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		18044FD92D227D5600D9F4F6 /* SwiftKeychainWrapper in Frameworks */ = {isa = PBXBuildFile; productRef = 18044FD82D227D5600D9F4F6 /* SwiftKeychainWrapper */; };
+		18159D272D2A740D00D16ADC /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18159D262D2A740D00D16ADC /* AppConfig.swift */; };
 		187E2A8E2D29549D00494B26 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 187E2A8D2D29549D00494B26 /* FirebaseCrashlytics */; };
 		188C3A602CFB1EC40022D3F4 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 188C3A5F2CFB1EC40022D3F4 /* FirebaseCore */; };
 		188C3A622CFB1EC80022D3F4 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 188C3A612CFB1EC80022D3F4 /* FirebaseAuth */; };
@@ -35,6 +36,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		18159D262D2A740D00D16ADC /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		18C305772CFA532D00252B56 /* TringQR.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TringQR.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		18C305872CFA533000252B56 /* TringQRTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TringQRTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		18C305912CFA533000252B56 /* TringQRUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TringQRUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -114,6 +116,7 @@
 		18C3056E2CFA532D00252B56 = {
 			isa = PBXGroup;
 			children = (
+				18159D262D2A740D00D16ADC /* AppConfig.swift */,
 				18C305792CFA532D00252B56 /* TringQR */,
 				18C3058A2CFA533000252B56 /* TringQRTests */,
 				18C305942CFA533000252B56 /* TringQRUITests */,
@@ -290,6 +293,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				18159D272D2A740D00D16ADC /* AppConfig.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -449,6 +453,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				BASE_URL = "https://core-api-619357594029.asia-south1.run.app";
 				CODE_SIGN_ENTITLEMENTS = TringQR/TringQR.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
@@ -492,6 +497,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				BASE_URL = "https://api.tringbox.com";
 				CODE_SIGN_ENTITLEMENTS = TringQR/TringQR.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";

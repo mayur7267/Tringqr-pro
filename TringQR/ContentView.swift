@@ -14,7 +14,7 @@ import SwiftKeychainWrapper
 struct ScannedHistoryItem: Identifiable, Codable {
     let id: UUID
     let code: String
-    let date: Date
+    let date: Date 
     let eventName: String?
     let event: String?
     let timestamp: String?
@@ -22,13 +22,31 @@ struct ScannedHistoryItem: Identifiable, Codable {
     init(code: String, eventName: String? = nil, event: String? = nil, timestamp: String? = nil) {
         self.id = UUID()
         self.code = code
-        self.date = Date()
         self.eventName = eventName
         self.event = event
         self.timestamp = timestamp
+
+     
+        if let timestamp = timestamp {
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+            dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+            dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+
+            if let parsedDate = dateFormatter.date(from: timestamp) {
+                self.date = parsedDate
+            } else {
+               
+                print("Invalid timestamp: \(timestamp)")
+                self.date = Date.distantPast
+            }
+        } else {
+            
+            print("Missing timestamp for scanned item")
+            self.date = Date.distantPast
+        }
     }
 }
-
 class AppState: ObservableObject {
     @Published var currentUserId: String? {
         didSet {

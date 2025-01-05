@@ -6,7 +6,7 @@
 //
 import Foundation
 
-// MARK: - Request Models
+
 struct RegisterUserRequest: Codable {
     let type: String
     let email: String?
@@ -20,7 +20,7 @@ struct PostActivityRequest: Codable {
     let activity: String
 }
 
-// MARK: - Response Models
+
 struct RegisterUserResponse: Codable {
     let phone_number: String?
     let email: String?
@@ -35,17 +35,16 @@ struct GetActivityResponse: Codable {
     let activities: [String]
 }
 
-// MARK: - API Manager
-import Foundation
 
-// MARK: - API Manager
+
 class APIManager {
     static let shared = APIManager()
     private init() {}
 
-    private let baseURL = "https://core-api-619357594029.asia-south1.run.app"
+   
+    private let baseURL = AppConfig.baseURL
 
-    // Load config.plist
+    
     private var config: [String: Any] {
         guard let path = Bundle.main.path(forResource: "config", ofType: "plist"),
               let dict = NSDictionary(contentsOfFile: path) as? [String: Any] else {
@@ -54,7 +53,7 @@ class APIManager {
         return dict
     }
 
-    // MARK: Send ID Token to Backend
+   
     func sendIDTokenToBackend(idToken: String, completion: @escaping (Result<Bool, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)/v1/users/validateToken") else {
             completion(.failure(NSError(domain: "Invalid URL", code: -1, userInfo: nil)))
@@ -87,7 +86,7 @@ class APIManager {
         }.resume()
     }
 
-    // MARK: Register User
+    
     func registerUser(request: RegisterUserRequest, token: String, completion: @escaping (Result<RegisterUserResponse, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)/v1/users/qr") else {
             completion(.failure(NSError(domain: "Invalid URL", code: -1, userInfo: nil)))
@@ -133,7 +132,7 @@ class APIManager {
         }.resume()
     }
 
-    // MARK: Post Activity
+    
     func postActivity(request: PostActivityRequest, token: String, completion: @escaping (Result<PostActivityResponse, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)/postActivity") else {
             completion(.failure(NSError(domain: "Invalid URL", code: -1, userInfo: nil)))
@@ -173,7 +172,7 @@ class APIManager {
         }.resume()
     }
 
-    // MARK: Get Activities
+    
     func getActivities(token: String, completion: @escaping (Result<GetActivityResponse, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)/getActivity") else {
             completion(.failure(NSError(domain: "Invalid URL", code: -1, userInfo: nil)))
