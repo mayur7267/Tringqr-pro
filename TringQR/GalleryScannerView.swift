@@ -59,6 +59,7 @@ struct PhotoPicker: UIViewControllerRepresentable {
 }
 
 struct GalleryScannerView: View {
+    @EnvironmentObject var appState: AppState 
     @Binding var scannedCode: String
     @State private var isPickerPresented: Bool = false
     @State private var errorMessage: String?
@@ -93,21 +94,31 @@ struct GalleryScannerView: View {
         }
     }
 
-    
     private func handleImageFromGallery(_ image: UIImage?) {
         guard let image = image else {
-            
+            errorMessage = "Failed to load image from gallery."
             return
         }
         
-       
         if let qrCode = extractQRCode(from: image) {
             scannedCode = qrCode
             errorMessage = nil
-        } 
+
+           
+            appState.addScannedCode(
+                qrCode,
+                deviceId: appState.getDeviceId(),
+                os: "iOS",
+                event: "gallery_scan",
+                eventName: "Gallery Scan"
+            ) {
+                print("Scanned code saved to history")
+            }
+        } else {
+            errorMessage = "No QR code found in the selected image."
+        }
     }
 
-   
     private func extractQRCode(from image: UIImage) -> String? {
         guard let ciImage = CIImage(image: image) else { return nil }
         let context = CIContext()

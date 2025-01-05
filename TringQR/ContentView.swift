@@ -335,7 +335,7 @@ struct ContentView: View {
     
     var body: some View {
         NavigationStack {
-//            NavigationView {
+
                 GeometryReader { geometry in
                     ZStack {
                         Color(red: 220 / 255, green: 220 / 255, blue: 220 / 255)
