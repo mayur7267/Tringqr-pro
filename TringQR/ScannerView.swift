@@ -31,13 +31,7 @@ struct ScannerView: View {
     @State private var scannedCode: String = ""
     @State private var showGalleryPicker: Bool = false
     
-    
-    
-    
-    
-    
-    
-    
+
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
@@ -63,7 +57,7 @@ struct ScannerView: View {
                             
                             ForEach(0...3, id: \.self) { index in
                                 let rotation = Double(index) * 90
-                                RoundedRectangle(cornerRadius: 2, style: .circular)
+                                RoundedRectangle(cornerRadius: 11, style: .circular)
                                     .stroke(.white, style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
                                     .rotationEffect(.init(degrees: rotation))
                             }
@@ -409,42 +403,45 @@ struct ScannerView: View {
     
     func handleScannedCode(_ code: String) {
         print("Handling scanned code: \(code)")
-        
-        
+
         let deviceId = appState.getDeviceId()
         let os = "ios"
         let event = "scan"
         let eventName = code
-        
-        print("Using deviceId: \(deviceId)") 
-        
-       
+
+        print("Using deviceId: \(deviceId)")
+
         guard let url = URL(string: code) else {
             presentError("Invalid QR code content: \(code)")
             return
         }
-        
-        
+
         appState.addScannedCode(code, deviceId: deviceId, os: os, event: event, eventName: eventName) {
             print("Scan history updated, handling URL opening")
-            
-           
+
             DispatchQueue.main.async {
                 if code.lowercased().hasPrefix("upi://pay") {
                     print("Handling UPI URL: \(code)")
+
                     
-                    if UIApplication.shared.canOpenURL(url) {
-                        UIApplication.shared.open(url, options: [:]) { success in
+                    let credAppURL = URL(string: "cred://pay?\(url.query ?? "")")!
+                    if UIApplication.shared.canOpenURL(credAppURL) {
+                        UIApplication.shared.open(credAppURL) { success in
                             if !success {
-                                self.presentError("Unable to open UPI link. Please ensure a UPI app is installed.")
+                                
+                                self.openUPIURL(url)
                             }
                         }
                     } else {
-                        self.presentError("No app available to handle UPI payment.")
+                        
+                        self.showError = true
+                        self.errormessage = "CRED app is not installed or not supported in your region."
+                       
+                        self.openURL(URL(string: "https://apps.apple.com/app/id1428580080")!)
                     }
                 } else {
-                    print("Handling regular URL: \(code)") 
-                    
+                    print("Handling regular URL: \(code)")
+
                     if UIApplication.shared.canOpenURL(url) {
                         UIApplication.shared.open(url)
                     } else {
@@ -452,6 +449,18 @@ struct ScannerView: View {
                     }
                 }
             }
+        }
+    }
+
+    func openUPIURL(_ url: URL) {
+        if UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url) { success in
+                if !success {
+                    self.presentError("Unable to open UPI link. Please ensure a UPI app is installed.")
+                }
+            }
+        } else {
+            self.presentError("No app available to handle UPI payment.")
         }
     }
 }

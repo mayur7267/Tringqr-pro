@@ -325,6 +325,7 @@ struct ContentView: View {
     @State private var isBackButtonVisible = false
     @State private var showLoginView: Bool = false
     @State private var showShareSheet = false
+    @State private var dragOffset = CGSize.zero
     @Environment(\.scenePhase) private var scenePhase
     
     
@@ -433,10 +434,12 @@ struct ContentView: View {
                                 }
                                 
                                 if appState.isSidebarVisible {
-                                    Color.black.opacity(0.5)
+                                    Color.black.opacity(0.3)
                                         .ignoresSafeArea()
                                         .onTapGesture {
-                                            appState.toggleSidebar()
+                                            withAnimation(.easeInOut) {
+                                                appState.toggleSidebar()
+                                          }
                                         }
                                         
                                         .transition(.opacity)
@@ -452,7 +455,34 @@ struct ContentView: View {
                                         .frame(width: geometry.size.width * adaptiveSidebarWidth(for: geometry))
                                         .background(Color.white)
                                         .edgesIgnoringSafeArea(.bottom)
-//
+                                        .offset(x: appState.isSidebarVisible ? 0 + dragOffset.width : -geometry.size.width * adaptiveSidebarWidth(for: geometry) + dragOffset.width)
+                                            .gesture(
+                                                DragGesture()
+                                                    .onChanged { gesture in
+                                                        if !appState.isSidebarVisible {
+                                                            // Right swipe to open
+                                                            dragOffset.width = max(gesture.translation.width, 0)
+                                                        } else {
+                                                            // Left swipe to close
+                                                            dragOffset.width = min(gesture.translation.width, 0)
+                                                        }
+                                                    }
+                                                    .onEnded { gesture in
+                                                        let threshold = geometry.size.width * 0.25
+                                                        if dragOffset.width > threshold {
+                                                            // Open the sidebar
+                                                            withAnimation {
+                                                                appState.isSidebarVisible = true
+                                                            }
+                                                        } else if dragOffset.width < -threshold {
+                                                            // Close the sidebar
+                                                            withAnimation {
+                                                                appState.isSidebarVisible = false
+                                                            }
+                                                        }
+                                                        dragOffset = .zero
+                                                    }
+                                            )
                                         .transition(.move(edge: .leading))
                                         .zIndex(4)
                                         
@@ -521,15 +551,18 @@ private func adaptiveHorizontalPadding(for geometry: GeometryProxy) -> CGFloat {
         }
     }
 private func adaptiveVerticalPadding(for geometry: GeometryProxy) -> CGFloat {
-        let screenHeight = geometry.size.height
-        if screenHeight <= 667 {
-            return 30
-        } else if screenHeight <= 812 {
-            return 35
-        } else {
-            return 40
-        }
+    let screenHeight = geometry.size.height
+    let device = UIDevice.current
+    let hasNotch = UIApplication.shared.windows.first?.safeAreaInsets.top ?? 0 > 20
+    
+    if screenHeight <= 667 { // iPhone SE, 7, 8
+        return hasNotch ? 30 : 15
+    } else if screenHeight <= 812 { // iPhone X, 11 Pro, 12 mini
+        return hasNotch ? 35 : 20
+    } else { // Larger devices
+        return hasNotch ? 40 : 25
     }
+}
 private func adaptiveSidebarWidth(for geometry: GeometryProxy) -> CGFloat {
         let screenWidth = geometry.size.width
         if screenWidth <= 375 {
