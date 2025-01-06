@@ -51,7 +51,7 @@ struct ScannerView: View {
                     GeometryReader { geometry in
                         let size = geometry.size
                         
-                        let scannerSize = max(isCompactDevice ? size.width - 20 : size.width, 320)
+                        let scannerSize = max(isCompactDevice ? size.width - 20 : size.width,320)
                         
                         ZStack {
                             CameraView(frameSize: CGSize(width: scannerSize, height: scannerSize), session: $session)
@@ -70,10 +70,10 @@ struct ScannerView: View {
                         }
                         .frame(width: scannerSize, height: scannerSize)
                         
-                        .offset(y: isCompactDevice ? -45 : -92)
+                        .offset(y: isCompactDevice ? -50 : -92)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
-                    .padding(.horizontal, 35)
+                    .padding(.horizontal, isCompactDevice ? 25 : 35)
                     .edgesIgnoringSafeArea(.top)
                     
                     Spacer()
@@ -89,7 +89,7 @@ struct ScannerView: View {
                             .bold()
                             .foregroundStyle(.white.opacity(0.8))
                     }
-                    .offset(y: isCompactDevice ? -45 : -90)
+                    .offset(y: isCompactDevice ? -35 : -90)
                     .padding(.vertical, 4)
                     
                     Spacer()
