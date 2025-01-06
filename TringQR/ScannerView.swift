@@ -73,7 +73,7 @@ struct ScannerView: View {
                         .offset(y: isCompactDevice ? -50 : -92)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
-                    .padding(.horizontal, isCompactDevice ? 25 : 35)
+                    .padding(.horizontal, isCompactDevice ? 25 : 38)
                     .edgesIgnoringSafeArea(.top)
                     
                     Spacer()
