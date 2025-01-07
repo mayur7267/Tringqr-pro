@@ -320,7 +320,6 @@ class AppState: ObservableObject {
 
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
-    
     @State private var selectedTab = 1
     @State private var isBackButtonVisible = false
     @State private var showLoginView: Bool = false
@@ -328,187 +327,176 @@ struct ContentView: View {
     @State private var dragOffset = CGSize.zero
     @Environment(\.scenePhase) private var scenePhase
     
-    
     init(appState: AppState) {
         _showLoginView = State(initialValue: !appState.isLoggedIn && appState.isFirstLaunch)
-        
     }
     
     var body: some View {
         NavigationStack {
-
-                GeometryReader { geometry in
-                    ZStack {
-                        Color(red: 220 / 255, green: 220 / 255, blue: 220 / 255)
-                            .ignoresSafeArea()
-                                                    
-                        if showLoginView {
-                            LoginView(onLoginSuccess: { displayName in
-                                if displayName.isEmpty {
-                                    appState.isLoggedIn = false
-                                    appState.setUserName("")
-                                } else {
-                                    appState.isLoggedIn = true
-                                    appState.setUserName(displayName)
-                                }
-                                showLoginView = false
-                                appState.completeFirstLaunch()
-                            })
-                            .transition(.move(edge: .leading))
-                        } else {
-                            ZStack(alignment: .leading) {
-                                if selectedTab != 0 && selectedTab != 3 {
-                                    GIFView(gifName: "main")
-                                        .ignoresSafeArea(edges: .all)
-                                }
-                                
-                                VStack(spacing: 0) {
-                                    HStack(alignment: .center) {
-                                        if isBackButtonVisible {
-                                            Button(action: {
-                                                withAnimation {
-                                                    selectedTab = 1
-                                                    isBackButtonVisible = false
-                                                }
-                                            }) {
-                                                HStack(spacing: 4) {
-                                                    Image(systemName: "chevron.left")
-                                                        .foregroundColor(.black)
-                                                        .imageScale(.medium)
-                                                    Text("Back")
-                                                        .foregroundColor(.black)
-                                                        .font(.subheadline)
-                                                }
+            GeometryReader { geometry in
+                ZStack {
+                    Color(red: 220 / 255, green: 220 / 255, blue: 220 / 255)
+                        .ignoresSafeArea()
+                    
+                    if showLoginView {
+                        LoginView(onLoginSuccess: { displayName in
+                            if displayName.isEmpty {
+                                appState.isLoggedIn = false
+                                appState.setUserName("")
+                            } else {
+                                appState.isLoggedIn = true
+                                appState.setUserName(displayName)
+                            }
+                            showLoginView = false
+                            appState.completeFirstLaunch()
+                        })
+                        .transition(.move(edge: .leading))
+                    } else {
+                        ZStack(alignment: .leading) {
+                            if selectedTab != 0 && selectedTab != 3 && selectedTab != 4 {
+                                GIFView(gifName: "main")
+                                    .ignoresSafeArea(edges: .all)
+                            }
+                            
+                            VStack(spacing: 0) {
+                                HStack(alignment: .center) {
+                                    if isBackButtonVisible {
+                                        Button(action: {
+                                            withAnimation {
+                                                selectedTab = 1
+                                                isBackButtonVisible = false
                                             }
-                                        } else {
-                                            Button(action: {
-                                                print("Hamburger tapped! Sidebar visibility: \(appState.isSidebarVisible)")
-                                                appState.toggleSidebar()
-                                            }) {
-                                                Image(systemName: "line.3.horizontal")
-                                                    .bold()
+                                        }) {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: "chevron.left")
                                                     .foregroundColor(.black)
-                                                    .imageScale(.large)
-                                                    .contentShape(Rectangle())
-                                                    .frame(width: adaptiveButtonSize(for: geometry), height: adaptiveButtonSize(for: geometry))
-                                                    .background(Color.clear)
+                                                    .imageScale(.medium)
+                                                Text("Back")
+                                                    .foregroundColor(.black)
+                                                    .font(.subheadline)
                                             }
-                                            .buttonStyle(PlainButtonStyle())
-                                        
-                                            
                                         }
-                                        
-                                        Spacer()
-                                        
-                                        Text(selectedTab == 0 ? "Scan History" : "TringQR")
-                                            .foregroundColor(.black)
-                                            .font(.system(size: adaptiveFontSize(for: geometry)))
-                                            .frame(maxWidth: .infinity, alignment: .center)
-                                            .offset(x: isBackButtonVisible ? 0 : -20)
-                                        
-                                        Spacer()
+                                    } else {
+                                        Button(action: {
+                                            print("Hamburger tapped! Sidebar visibility: \(appState.isSidebarVisible)")
+                                            appState.toggleSidebar()
+                                        }) {
+                                            Image(systemName: "line.3.horizontal")
+                                                .bold()
+                                                .foregroundColor(.black)
+                                                .imageScale(.large)
+                                                .contentShape(Rectangle())
+                                                .frame(width: adaptiveButtonSize(for: geometry), height: adaptiveButtonSize(for: geometry))
+                                                .background(Color.clear)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
                                     }
-                                    .frame(height: adaptiveHeaderHeight(for: geometry))
-                                    .padding(.horizontal, adaptiveHorizontalPadding(for: geometry))
-                                    .background(Color.white)
-                                    .padding(.vertical, adaptiveVerticalPadding(for: geometry))
-                                    .offset(y: 0)
-                                    .zIndex(2)
                                     
-                                    Group {
-                                        switch selectedTab {
-                                        case 0:
-                                            HistoryView()
-                                                .environmentObject(appState)
-                                        case 1:
-                                            ScannerView()
-                                                .environmentObject(appState)
-                                        case 2:
-                                            ShareView(isBackButtonVisible: $isBackButtonVisible)
-                                        case 3:
-                                            HelpView(isBackButtonVisible: $isBackButtonVisible)
-                                        default:
-                                            Text("Unknown View")
-                                        }
-                                    }
+                                    Spacer()
+                                    
+                                    Text(selectedTab == 0 ? "Scan History" : selectedTab == 4 ? "Create QR" : "TringQR")
+                                        .foregroundColor(.black)
+                                        .font(.system(size: adaptiveFontSize(for: geometry)))
+                                        .frame(maxWidth: .infinity, alignment: .center)
+                                        .offset(x: isBackButtonVisible ? 0 : -20)
+                                    
+                                    Spacer()
                                 }
+                                .frame(height: adaptiveHeaderHeight(for: geometry))
+                                .padding(.horizontal, adaptiveHorizontalPadding(for: geometry))
+                                .background(Color.white)
+                                .padding(.vertical, adaptiveVerticalPadding(for: geometry))
+                                .offset(y: 0)
+                                .zIndex(2)
                                 
-                                if appState.isSidebarVisible {
-                                    Color.black.opacity(0.3)
-                                        .ignoresSafeArea()
-                                        .onTapGesture {
-                                            withAnimation(.easeInOut) {
-                                                appState.toggleSidebar()
-                                          }
-                                        }
-                                        
-                                        .transition(.opacity)
-                                    
-                                    HStack(spacing: 0) {
-                                        SidebarView(
-                                            isSidebarVisible: $appState.isSidebarVisible,
-                                            selectedTab: $selectedTab,
-                                            isBackButtonVisible: $isBackButtonVisible,
-                                            showShareSheet: $showShareSheet,
-                                            showLoginView: $showLoginView
-                                        )
-                                        .frame(width: geometry.size.width * adaptiveSidebarWidth(for: geometry))
-                                        .background(Color.white)
-                                        .edgesIgnoringSafeArea(.bottom)
-                                        .offset(x: appState.isSidebarVisible ? 0 + dragOffset.width : -geometry.size.width * adaptiveSidebarWidth(for: geometry) + dragOffset.width)
-                                            .gesture(
-                                                DragGesture()
-                                                    .onChanged { gesture in
-                                                        if !appState.isSidebarVisible {
-                                                            // Right swipe to open
-                                                            dragOffset.width = max(gesture.translation.width, 0)
-                                                        } else {
-                                                            // Left swipe to close
-                                                            dragOffset.width = min(gesture.translation.width, 0)
-                                                        }
-                                                    }
-                                                    .onEnded { gesture in
-                                                        let threshold = geometry.size.width * 0.25
-                                                        if dragOffset.width > threshold {
-                                                            // Open the sidebar
-                                                            withAnimation {
-                                                                appState.isSidebarVisible = true
-                                                            }
-                                                        } else if dragOffset.width < -threshold {
-                                                            // Close the sidebar
-                                                            withAnimation {
-                                                                appState.isSidebarVisible = false
-                                                            }
-                                                        }
-                                                        dragOffset = .zero
-                                                    }
-                                            )
-                                        .transition(.move(edge: .leading))
-                                        .zIndex(4)
-                                        
-                                        Spacer()
+                                Group {
+                                    switch selectedTab {
+                                    case 0:
+                                        HistoryView()
+                                            .environmentObject(appState)
+                                    case 1:
+                                        ScannerView()
+                                            .environmentObject(appState)
+                                    case 2:
+                                        ShareView(isBackButtonVisible: $isBackButtonVisible)
+                                    case 3:
+                                        HelpView(isBackButtonVisible: $isBackButtonVisible)
+                                    case 4:
+                                        CreateQRView()
+                                    default:
+                                        Text("Unknown View")
                                     }
                                 }
                             }
                             
+                            if appState.isSidebarVisible {
+                                Color.black.opacity(0.3)
+                                    .ignoresSafeArea()
+                                    .onTapGesture {
+                                        withAnimation(.easeInOut) {
+                                            appState.toggleSidebar()
+                                        }
+                                    }
+                                    .transition(.opacity)
+                                
+                                HStack(spacing: 0) {
+                                    SidebarView(
+                                        isSidebarVisible: $appState.isSidebarVisible,
+                                        selectedTab: $selectedTab,
+                                        isBackButtonVisible: $isBackButtonVisible,
+                                        showShareSheet: $showShareSheet,
+                                        showLoginView: $showLoginView
+                                    )
+                                    .frame(width: geometry.size.width * adaptiveSidebarWidth(for: geometry))
+                                    .background(Color.white)
+                                    .edgesIgnoringSafeArea(.bottom)
+                                    .offset(x: appState.isSidebarVisible ? 0 + dragOffset.width : -geometry.size.width * adaptiveSidebarWidth(for: geometry) + dragOffset.width)
+                                    .gesture(
+                                        DragGesture()
+                                            .onChanged { gesture in
+                                                if !appState.isSidebarVisible {
+                                                    dragOffset.width = max(gesture.translation.width, 0)
+                                                } else {
+                                                    dragOffset.width = min(gesture.translation.width, 0)
+                                                }
+                                            }
+                                            .onEnded { gesture in
+                                                let threshold = geometry.size.width * 0.25
+                                                if dragOffset.width > threshold {
+                                                    withAnimation {
+                                                        appState.isSidebarVisible = true
+                                                    }
+                                                } else if dragOffset.width < -threshold {
+                                                    withAnimation {
+                                                        appState.isSidebarVisible = false
+                                                    }
+                                                }
+                                                dragOffset = .zero
+                                            }
+                                    )
+                                    .transition(.move(edge: .leading))
+                                    .zIndex(4)
+                                    
+                                    Spacer()
+                                }
+                            }
                         }
                     }
                 }
-                .environmentObject(appState)
-                .ignoresSafeArea(edges: .all)
-                .sheet(isPresented: $showShareSheet) {
-                    let shareText = "Check out this amazing app!"
-                    let shareURL = URL(string: "https://example.com")!
-                    ShareSheet(items: [shareText, shareURL])
-                }
-            
+            }
+            .environmentObject(appState)
+            .ignoresSafeArea(edges: .all)
+            .sheet(isPresented: $showShareSheet) {
+                let shareText = "Check out this amazing app!"
+                let shareURL = URL(string: "https://example.com")!
+                ShareSheet(items: [shareText, shareURL])
+            }
         }
         .onAppear {
             withAnimation(.easeInOut) {
                 appState.isSidebarVisible = false
             }
         }
-
         .onChange(of: scenePhase) { newPhase in
             if (newPhase == .inactive || newPhase == .background) && appState.isSidebarVisible {
                 print("App moved to background. Hiding sidebar.")
@@ -517,9 +505,7 @@ struct ContentView: View {
                 }
             }
         }
-
     }
-    
 }
 private func adaptiveHeaderHeight(for geometry: GeometryProxy) -> CGFloat {
         let screenHeight = geometry.size.height

@@ -51,7 +51,7 @@ struct SidebarView: View {
             let isCompactDevice = geometry.size.height < 700
             
             VStack(alignment: .leading, spacing: isCompactDevice ? 10 : 20) {
-                // Sidebar Header
+               
                 VStack {
                     if appState.isLoggedIn, let userName = appState.userName, !userName.isEmpty {
                         Image("Champion")
@@ -97,7 +97,7 @@ struct SidebarView: View {
                 .frame(height: isCompactDevice ? 200 : 260)
                 .padding(.bottom, isCompactDevice ? 5 : 10)
                 
-                // Sidebar Items with adjusted padding
+                
                 VStack(spacing: isCompactDevice ? 5 : 10) {
                     SidebarItem(
                         title: "Scan History",
@@ -131,6 +131,15 @@ struct SidebarView: View {
                         isSidebarVisible = false
                         isBackButtonVisible = true
                     }
+                    SidebarItem(
+                            title: "Create QR",
+                            systemImage: "qrcode",
+                            isSelected: selectedTab == 4
+                        ) {
+                            selectedTab = 4
+                            isSidebarVisible = false
+                            isBackButtonVisible = true
+                                        }
                     
                     SidebarItem(
                         title: appState.isLoggedIn ? "Sign Out" : "Sign In",
