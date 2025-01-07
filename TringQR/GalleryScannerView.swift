@@ -162,7 +162,7 @@ struct GIFView: UIViewRepresentable {
 
     func updateUIView(_ uiView: UIImageView, context: Context) {}
 
-    // Helper to load GIF data
+   
     private func loadGIF(for imageView: UIImageView) {
         DispatchQueue.global(qos: .userInteractive).async {
             // Check cache first

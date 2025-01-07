@@ -403,50 +403,108 @@ struct ScannerView: View {
     
     func handleScannedCode(_ code: String) {
         print("Handling scanned code: \(code)")
-
         let deviceId = appState.getDeviceId()
         let os = "ios"
         let event = "scan"
         let eventName = code
-
+        
         print("Using deviceId: \(deviceId)")
-
+        
         guard let url = URL(string: code) else {
             presentError("Invalid QR code content: \(code)")
             return
         }
-
+        
+        
+        session.stopRunning()
+        deactivateScannerAnimation()
+        
         appState.addScannedCode(code, deviceId: deviceId, os: os, event: event, eventName: eventName) {
             print("Scan history updated, handling URL opening")
-
+            
             DispatchQueue.main.async {
                 if code.lowercased().hasPrefix("upi://pay") {
                     print("Handling UPI URL: \(code)")
-
                     
-                    let credAppURL = URL(string: "cred://pay?\(url.query ?? "")")!
-                    if UIApplication.shared.canOpenURL(credAppURL) {
-                        UIApplication.shared.open(credAppURL) { success in
+                   
+                    let gpayURL = URL(string: "tez://upi/pay?\(url.query ?? "")")!
+                    
+                    if UIApplication.shared.canOpenURL(gpayURL) {
+                        UIApplication.shared.open(gpayURL) { success in
                             if !success {
-                                
-                                self.openUPIURL(url)
+                               
+                                self.handleCredPayment(url)
                             }
                         }
                     } else {
-                        
-                        self.showError = true
-                        self.errormessage = "CRED app is not installed or not supported in your region."
                        
-                        self.openURL(URL(string: "https://apps.apple.com/app/id1428580080")!)
+                        self.handleCredPayment(url)
                     }
                 } else {
                     print("Handling regular URL: \(code)")
-
                     if UIApplication.shared.canOpenURL(url) {
-                        UIApplication.shared.open(url)
+                        UIApplication.shared.open(url) { _ in
+                            
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                self.restartScanning()
+                            }
+                        }
                     } else {
                         self.presentError("Scanned code is not a valid URL: \(code)")
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            self.restartScanning()
+                        }
                     }
+                }
+            }
+        }
+    }
+
+    
+    private func handleCredPayment(_ url: URL) {
+        let credAppURL = URL(string: "cred://pay?\(url.query ?? "")")!
+        if UIApplication.shared.canOpenURL(credAppURL) {
+            UIApplication.shared.open(credAppURL) { success in
+                if !success {
+                    self.openUPIURL(url)
+                }
+               
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    self.restartScanning()
+                }
+            }
+        } else {
+            
+            DispatchQueue.main.async {
+                let installAlert = UIAlertController(
+                    title: "CRED App Required",
+                    message: "CRED app is not installed on your device. Tap 'Install' to download it from the App Store.",
+                    preferredStyle: .alert
+                )
+                
+                installAlert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                        self.restartScanning()
+                    }
+                })
+                
+                installAlert.addAction(UIAlertAction(title: "Install", style: .default) { _ in
+                    if let appStoreURL = URL(string: "https://apps.apple.com/app/id1428580080") {
+                        UIApplication.shared.open(appStoreURL) { _ in
+                            
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                                self.restartScanning()
+                            }
+                        }
+                    }
+                })
+                
+                
+                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                   let rootViewController = windowScene.windows.first?.rootViewController {
+                    rootViewController.present(installAlert, animated: true)
                 }
             }
         }
@@ -458,11 +516,20 @@ struct ScannerView: View {
                 if !success {
                     self.presentError("Unable to open UPI link. Please ensure a UPI app is installed.")
                 }
+               
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    self.restartScanning()
+                }
             }
         } else {
             self.presentError("No app available to handle UPI payment.")
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                self.restartScanning()
+            }
         }
     }
+
 }
 struct Preview_scannerview: PreviewProvider {
     static var previews: some View {
