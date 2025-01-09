@@ -347,6 +347,7 @@ struct LoginView: View {
             .alert(isPresented: $showErrorAlert) {
                 Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
             }
+            .preferredColorScheme(.light)
         }
     }
     

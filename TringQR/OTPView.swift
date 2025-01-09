@@ -147,6 +147,7 @@ struct OTPView: View {
             .disabled(!isResendButtonEnabled || isLoading)
 
             Spacer()
+            .preferredColorScheme(.light)
         }
         .padding()
         .background(LinearGradient(colors: [Color.purple, Color.black], startPoint: .top, endPoint: .bottom))

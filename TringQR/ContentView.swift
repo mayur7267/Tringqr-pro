@@ -11,6 +11,53 @@ import Combine
 import WebKit
 import SwiftKeychainWrapper
 
+
+struct QRHistoryItem: Identifiable, Codable {
+    let id: UUID
+    let content: String
+    let date: Date
+    let timestamp: String?
+    
+    
+    var image: UIImage? {
+        didSet {
+           
+        }
+    }
+    
+    enum CodingKeys: CodingKey {
+        case id
+        case content
+        case date
+        case timestamp
+       
+    }
+    
+    init(content: String, image: UIImage? = nil, timestamp: String? = nil) {
+        self.id = UUID()
+        self.content = content
+        self.image = image
+        self.timestamp = timestamp
+        
+        if let timestamp = timestamp {
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+            dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+            dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+            
+            if let parsedDate = dateFormatter.date(from: timestamp) {
+                self.date = parsedDate
+            } else {
+                print("Invalid timestamp: \(timestamp)")
+                self.date = Date.distantPast
+            }
+        } else {
+            print("Missing timestamp for QR item")
+            self.date = Date.distantPast
+        }
+    }
+}
+
 struct ScannedHistoryItem: Identifiable, Codable {
     let id: UUID
     let code: String
@@ -47,6 +94,7 @@ struct ScannedHistoryItem: Identifiable, Codable {
         }
     }
 }
+
 class AppState: ObservableObject {
     @Published var currentUserId: String? {
         didSet {
@@ -72,7 +120,7 @@ class AppState: ObservableObject {
         }
     }
 
-    @Published var scannedHistory: [ScannedHistoryItem] = []
+   
 
     @Published var isFirstLaunch: Bool {
         didSet {
@@ -85,9 +133,14 @@ class AppState: ObservableObject {
             UserDefaults.standard.set(isSidebarVisible, forKey: "isSidebarVisible")
         }
     }
-
+  
+    @Published var scannedHistory: [ScannedHistoryItem] = []
     @Published var scannedHistorySet: Set<String> = []
     private let lock = DispatchQueue(label: "appStateLock")
+    
+    @Published var qrHistory: [QRHistoryItem] = []
+    @Published var qrHistorySet: Set<String> = []
+    
 
     init() {
         self.currentUserId = UserDefaults.standard.string(forKey: "currentUserId")
@@ -269,6 +322,194 @@ class AppState: ObservableObject {
             }
         }.resume()
     }
+    
+    func restoreQRHistoryFromBackend() {
+            let deviceId = getDeviceId()
+            print("Starting QR history fetch for deviceId: \(deviceId)")
+            
+            fetchQRHistory(deviceId: deviceId) { [weak self] history in
+                guard let self = self else { return }
+                print("Received QR history response: \(String(describing: history))")
+                
+                DispatchQueue.main.async {
+                    guard let history = history else {
+                        print("QR History is nil")
+                        return
+                    }
+                    
+                    let newItems = history.compactMap { item -> QRHistoryItem? in
+                        guard let content = item["content"] as? String else {
+                            print("Failed to extract content from item: \(item)")
+                            return nil
+                        }
+                        
+                        // Generate QR image from content
+                        let qrImage = self.generateQRImage(from: content)
+                        
+                        let historyItem = QRHistoryItem(
+                            content: content,
+                            image: qrImage,
+                            timestamp: item["updatedAt"] as? String
+                        )
+                        print("Created QR history item: \(historyItem)")
+                        return historyItem
+                    }
+                    
+                    print("Processing \(newItems.count) new QR history items")
+                    self.qrHistory = newItems
+                    self.qrHistorySet = Set(newItems.map { $0.content })
+                    print("Updated qrHistory count: \(self.qrHistory.count)")
+                }
+            }
+        }
+        
+        func addQRCode(_ content: String, image: UIImage, completion: @escaping () -> Void) {
+            print("Adding QR code: \(content)")
+            
+            let deviceId = getDeviceId()
+            
+            let newItem = QRHistoryItem(
+                content: content,
+                image: image,
+                timestamp: ISO8601DateFormatter().string(from: Date())
+            )
+            
+            sendQRToBackend(content: content, deviceId: deviceId) { [weak self] success in
+                guard let self = self else { return }
+                
+                if success {
+                    print("Successfully saved QR to backend")
+                    
+                    DispatchQueue.main.async {
+                        if !self.qrHistorySet.contains(content) {
+                            self.qrHistorySet.insert(content)
+                            self.qrHistory.insert(newItem, at: 0)
+                            print("Added to local QR history. Current count: \(self.qrHistory.count)")
+                        }
+                    }
+                } else {
+                    print("Failed to save QR to backend")
+                }
+                completion()
+            }
+        }
+        
+        private func sendQRToBackend(content: String, deviceId: String, completion: @escaping (Bool) -> Void) {
+            guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/qr/scan/create") else {
+                print("Invalid URL")
+                completion(false)
+                return
+            }
+            
+            let payload: [String: Any] = [
+                "content": content,
+                "deviceId": deviceId,
+                "event": "create qr"
+            ]
+            
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            do {
+                request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [])
+                print("Sending QR payload to backend: \(payload)")
+            } catch {
+                print("Error encoding JSON: \(error)")
+                completion(false)
+                return
+            }
+            
+            URLSession.shared.dataTask(with: request) { data, response, error in
+                if let error = error {
+                    print("Error sending QR data to backend: \(error.localizedDescription)")
+                    completion(false)
+                    return
+                }
+                
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    print("Invalid response type")
+                    completion(false)
+                    return
+                }
+                
+                print("Backend QR response status code: \(httpResponse.statusCode)")
+                
+                if let data = data, let responseString = String(data: data, encoding: .utf8) {
+                    print("Backend QR response data: \(responseString)")
+                }
+                
+                completion(httpResponse.statusCode == 200 || httpResponse.statusCode == 201)
+            }.resume()
+        }
+        
+        private func fetchQRHistory(deviceId: String, completion: @escaping ([[String: Any]]?) -> Void) {
+            guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/qr/scan/\(deviceId)") else {
+                print("Invalid URL")
+                completion(nil)
+                return
+            }
+            
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            URLSession.shared.dataTask(with: request) { data, response, error in
+                if let error = error {
+                    print("Network error: \(error.localizedDescription)")
+                    completion(nil)
+                    return
+                }
+                
+                guard let data = data else {
+                    print("No data received")
+                    completion(nil)
+                    return
+                }
+                
+                if let responseString = String(data: data, encoding: .utf8) {
+                    print("Raw QR response: \(responseString)")
+                }
+                
+                do {
+                    if let jsonArray = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                        print("Successfully parsed QR JSON array: \(jsonArray)")
+                        completion(jsonArray)
+                    } else if let jsonDict = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                              let jsonArray = jsonDict["data"] as? [[String: Any]] {
+                        print("Successfully parsed QR JSON array from 'data' key: \(jsonArray)")
+                        completion(jsonArray)
+                    } else {
+                        print("Failed to parse QR JSON as array or dictionary")
+                        completion(nil)
+                    }
+                } catch {
+                    print("QR JSON parsing error: \(error)")
+                    print("Raw data: \(data)")
+                    completion(nil)
+                }
+            }.resume()
+        }
+    
+    private func generateQRImage(from content: String) -> UIImage? {
+            let context = CIContext()
+            let filter = CIFilter.qrCodeGenerator()
+            
+            let data = Data(content.utf8)
+            filter.setValue(data, forKey: "inputMessage")
+            
+            if let outputImage = filter.outputImage {
+                let transform = CGAffineTransform(scaleX: 10, y: 10)
+                let scaledImage = outputImage.transformed(by: transform)
+                
+                if let cgimg = context.createCGImage(scaledImage, from: scaledImage.extent) {
+                    return UIImage(cgImage: cgimg)
+                }
+            }
+            return nil
+        }
+    
+    
     func getDeviceId() -> String {
         let keychainKey = "com.app.uniqueDeviceId"
         if let deviceId = KeychainWrapper.standard.string(forKey: keychainKey) {
@@ -359,55 +600,57 @@ struct ContentView: View {
                             }
                             
                             VStack(spacing: 0) {
-                                HStack(alignment: .center) {
-                                    if isBackButtonVisible {
-                                        Button(action: {
-                                            withAnimation {
-                                                selectedTab = 1
-                                                isBackButtonVisible = false
+                                if selectedTab != 4 {
+                                    HStack(alignment: .center) {
+                                        if isBackButtonVisible {
+                                            Button(action: {
+                                                withAnimation {
+                                                    selectedTab = 1
+                                                    isBackButtonVisible = false
+                                                }
+                                            }) {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: "chevron.left")
+                                                        .foregroundColor(.black)
+                                                        .imageScale(.medium)
+                                                    Text("Back")
+                                                        .foregroundColor(.black)
+                                                        .font(.subheadline)
+                                                }
                                             }
-                                        }) {
-                                            HStack(spacing: 4) {
-                                                Image(systemName: "chevron.left")
+                                        } else {
+                                            Button(action: {
+                                                print("Hamburger tapped! Sidebar visibility: \(appState.isSidebarVisible)")
+                                                appState.toggleSidebar()
+                                            }) {
+                                                Image(systemName: "line.3.horizontal")
+                                                    .bold()
                                                     .foregroundColor(.black)
-                                                    .imageScale(.medium)
-                                                Text("Back")
-                                                    .foregroundColor(.black)
-                                                    .font(.subheadline)
+                                                    .imageScale(.large)
+                                                    .contentShape(Rectangle())
+                                                    .frame(width: adaptiveButtonSize(for: geometry), height: adaptiveButtonSize(for: geometry))
+                                                    .background(Color.clear)
                                             }
+                                            .buttonStyle(PlainButtonStyle())
                                         }
-                                    } else {
-                                        Button(action: {
-                                            print("Hamburger tapped! Sidebar visibility: \(appState.isSidebarVisible)")
-                                            appState.toggleSidebar()
-                                        }) {
-                                            Image(systemName: "line.3.horizontal")
-                                                .bold()
-                                                .foregroundColor(.black)
-                                                .imageScale(.large)
-                                                .contentShape(Rectangle())
-                                                .frame(width: adaptiveButtonSize(for: geometry), height: adaptiveButtonSize(for: geometry))
-                                                .background(Color.clear)
-                                        }
-                                        .buttonStyle(PlainButtonStyle())
+                                        
+                                        Spacer()
+                                        
+                                        Text(selectedTab == 0 ? "Scan History" : "TringQR")
+                                            .foregroundColor(.black)
+                                            .font(.system(size: adaptiveFontSize(for: geometry)))
+                                            .frame(maxWidth: .infinity, alignment: .center)
+                                            .offset(x: isBackButtonVisible ? 0 : -20)
+                                        
+                                        Spacer()
                                     }
-                                    
-                                    Spacer()
-                                    
-                                    Text(selectedTab == 0 ? "Scan History" : selectedTab == 4 ? "Create QR" : "TringQR")
-                                        .foregroundColor(.black)
-                                        .font(.system(size: adaptiveFontSize(for: geometry)))
-                                        .frame(maxWidth: .infinity, alignment: .center)
-                                        .offset(x: isBackButtonVisible ? 0 : -20)
-                                    
-                                    Spacer()
+                                    .frame(height: adaptiveHeaderHeight(for: geometry))
+                                    .padding(.horizontal, adaptiveHorizontalPadding(for: geometry))
+                                    .background(Color.white)
+                                    .padding(.vertical, adaptiveVerticalPadding(for: geometry))
+                                    .offset(y: 0)
+                                    .zIndex(2)
                                 }
-                                .frame(height: adaptiveHeaderHeight(for: geometry))
-                                .padding(.horizontal, adaptiveHorizontalPadding(for: geometry))
-                                .background(Color.white)
-                                .padding(.vertical, adaptiveVerticalPadding(for: geometry))
-                                .offset(y: 0)
-                                .zIndex(2)
                                 
                                 Group {
                                     switch selectedTab {
@@ -422,7 +665,9 @@ struct ContentView: View {
                                     case 3:
                                         HelpView(isBackButtonVisible: $isBackButtonVisible)
                                     case 4:
-                                        CreateQRView()
+                                        CreateQRView(selectedTab: $selectedTab,isBackButtonVisible: $isBackButtonVisible)
+                                            .transition(.move(edge: .trailing))
+                                            .ignoresSafeArea()
                                     default:
                                         Text("Unknown View")
                                     }
@@ -843,6 +1088,10 @@ struct HistoryItemView: View {
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(colorScheme == .dark ? Color(white: 0.2) : Color.white)
+                .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(colorScheme == .dark ? Color.white.opacity(0.2) : Color.black.opacity(0.1), lineWidth: 1)
+                    )
                 .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
         )
         .contextMenu {
