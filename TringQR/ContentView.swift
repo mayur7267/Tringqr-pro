@@ -133,6 +133,15 @@ class AppState: ObservableObject {
             UserDefaults.standard.set(isSidebarVisible, forKey: "isSidebarVisible")
         }
     }
+    @Published var idToken: String? {
+        didSet {
+            if let token = idToken {
+                KeychainWrapper.standard.set(token, forKey: "idToken")
+            } else {
+                KeychainWrapper.standard.removeObject(forKey: "idToken")
+            }
+        }
+    }
   
     @Published var scannedHistory: [ScannedHistoryItem] = []
     @Published var scannedHistorySet: Set<String> = []
@@ -143,6 +152,7 @@ class AppState: ObservableObject {
     
 
     init() {
+        self.idToken = KeychainWrapper.standard.string(forKey: "idToken")
         self.currentUserId = UserDefaults.standard.string(forKey: "currentUserId")
         self.isLoggedIn = UserDefaults.standard.bool(forKey: "isLoggedIn")
         self.userName = UserDefaults.standard.string(forKey: "userName") ?? ""
@@ -151,6 +161,7 @@ class AppState: ObservableObject {
         self.isSidebarVisible = UserDefaults.standard.bool(forKey: "isSidebarVisible")
         
         restoreHistoryFromBackend()
+        restoreQRHistoryFromBackend()
     }
 
     func restoreHistoryFromBackend() {
@@ -324,173 +335,178 @@ class AppState: ObservableObject {
     }
     
     func restoreQRHistoryFromBackend() {
-            let deviceId = getDeviceId()
-            print("Starting QR history fetch for deviceId: \(deviceId)")
+        let deviceId = getDeviceId()
+        print("Starting QR history fetch for deviceId: \(deviceId)")
+        
+        fetchQRHistory(deviceId: deviceId) { [weak self] history in
+            guard let self = self else { return }
+            print("Received QR history response: \(String(describing: history))")
             
-            fetchQRHistory(deviceId: deviceId) { [weak self] history in
-                guard let self = self else { return }
-                print("Received QR history response: \(String(describing: history))")
+            DispatchQueue.main.async {
+                guard let history = history else {
+                    print("QR History is nil")
+                    return
+                }
+                
+                let newItems = history.compactMap { item -> QRHistoryItem? in
+                    guard let content = item["content"] as? String else {
+                        print("Failed to extract content from item: \(item)")
+                        return nil
+                    }
+                    
+                    let qrImage = self.generateQRImage(from: content)
+                    
+                    let historyItem = QRHistoryItem(
+                        content: content,
+                        image: qrImage,
+                        timestamp: item["updatedAt"] as? String
+                    )
+                    print("Created QR history item: \(historyItem)")
+                    return historyItem
+                }
+                
+                print("Processing \(newItems.count) new QR history items")
+                self.qrHistory = newItems
+                self.qrHistorySet = Set(newItems.map { $0.content })
+                print("Updated qrHistory count: \(self.qrHistory.count)")
+            }
+        }
+    }
+    func addQRCode(_ content: String, image: UIImage, completion: @escaping () -> Void) {
+        print("Adding QR code: \(content)")
+        
+        let deviceId = getDeviceId()
+        
+        let newItem = QRHistoryItem(
+            content: content,
+            image: image,
+            timestamp: ISO8601DateFormatter().string(from: Date())
+        )
+        
+        sendQRToBackend(content: content, deviceId: deviceId) { [weak self] success in
+            guard let self = self else { return }
+            
+            if success {
+                print("Successfully saved QR to backend")
                 
                 DispatchQueue.main.async {
-                    guard let history = history else {
-                        print("QR History is nil")
-                        return
+                    if !self.qrHistorySet.contains(content) {
+                        self.qrHistorySet.insert(content)
+                        self.qrHistory.insert(newItem, at: 0)
+                        print("Added to local QR history. Current count: \(self.qrHistory.count)")
                     }
-                    
-                    let newItems = history.compactMap { item -> QRHistoryItem? in
-                        guard let content = item["content"] as? String else {
-                            print("Failed to extract content from item: \(item)")
-                            return nil
-                        }
-                        
-                        // Generate QR image from content
-                        let qrImage = self.generateQRImage(from: content)
-                        
-                        let historyItem = QRHistoryItem(
-                            content: content,
-                            image: qrImage,
-                            timestamp: item["updatedAt"] as? String
-                        )
-                        print("Created QR history item: \(historyItem)")
-                        return historyItem
-                    }
-                    
-                    print("Processing \(newItems.count) new QR history items")
-                    self.qrHistory = newItems
-                    self.qrHistorySet = Set(newItems.map { $0.content })
-                    print("Updated qrHistory count: \(self.qrHistory.count)")
                 }
+            } else {
+                print("Failed to save QR to backend")
             }
+            completion()
+        }
+    }
+    private func sendQRToBackend(content: String, deviceId: String, completion: @escaping (Bool) -> Void) {
+        guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/qr/scan/create") else {
+            print("Invalid URL")
+            completion(false)
+            return
         }
         
-        func addQRCode(_ content: String, image: UIImage, completion: @escaping () -> Void) {
-            print("Adding QR code: \(content)")
-            
-            let deviceId = getDeviceId()
-            
-            let newItem = QRHistoryItem(
-                content: content,
-                image: image,
-                timestamp: ISO8601DateFormatter().string(from: Date())
-            )
-            
-            sendQRToBackend(content: content, deviceId: deviceId) { [weak self] success in
-                guard let self = self else { return }
-                
-                if success {
-                    print("Successfully saved QR to backend")
-                    
-                    DispatchQueue.main.async {
-                        if !self.qrHistorySet.contains(content) {
-                            self.qrHistorySet.insert(content)
-                            self.qrHistory.insert(newItem, at: 0)
-                            print("Added to local QR history. Current count: \(self.qrHistory.count)")
-                        }
-                    }
-                } else {
-                    print("Failed to save QR to backend")
-                }
-                completion()
-            }
+        guard let idToken = self.idToken else {
+            print("No authentication token found")
+            completion(false)
+            return
         }
         
-        private func sendQRToBackend(content: String, deviceId: String, completion: @escaping (Bool) -> Void) {
-            guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/qr/scan/create") else {
-                print("Invalid URL")
+        let payload: [String: Any] = [
+            "content": content
+        ]
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization") // Add token here
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [])
+            print("Sending QR payload to backend: \(payload)")
+        } catch {
+            print("Error encoding JSON: \(error)")
+            completion(false)
+            return
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Error sending QR data to backend: \(error.localizedDescription)")
                 completion(false)
                 return
             }
             
-            let payload: [String: Any] = [
-                "content": content,
-                "deviceId": deviceId,
-                "event": "create qr"
-            ]
-            
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            
-            do {
-                request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [])
-                print("Sending QR payload to backend: \(payload)")
-            } catch {
-                print("Error encoding JSON: \(error)")
+            guard let httpResponse = response as? HTTPURLResponse else {
+                print("Invalid response type")
                 completion(false)
                 return
             }
             
-            URLSession.shared.dataTask(with: request) { data, response, error in
-                if let error = error {
-                    print("Error sending QR data to backend: \(error.localizedDescription)")
-                    completion(false)
-                    return
-                }
-                
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    print("Invalid response type")
-                    completion(false)
-                    return
-                }
-                
-                print("Backend QR response status code: \(httpResponse.statusCode)")
-                
-                if let data = data, let responseString = String(data: data, encoding: .utf8) {
-                    print("Backend QR response data: \(responseString)")
-                }
-                
-                completion(httpResponse.statusCode == 200 || httpResponse.statusCode == 201)
-            }.resume()
+            print("Backend QR response status code: \(httpResponse.statusCode)")
+            
+            if let data = data, let responseString = String(data: data, encoding: .utf8) {
+                print("Backend QR response data: \(responseString)")
+            }
+            
+            completion(httpResponse.statusCode == 200 || httpResponse.statusCode == 201)
+        }.resume()
+    }
+        
+    private func fetchQRHistory(deviceId: String, completion: @escaping ([[String: Any]]?) -> Void) {
+        guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/qr/scan/\(deviceId)") else {
+            print("Invalid URL")
+            completion(nil)
+            return
         }
         
-        private func fetchQRHistory(deviceId: String, completion: @escaping ([[String: Any]]?) -> Void) {
-            guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/qr/scan/\(deviceId)") else {
-                print("Invalid URL")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        if let idToken = KeychainWrapper.standard.string(forKey: "idToken") {
+            request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization") // Add token here
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Network error: \(error.localizedDescription)")
                 completion(nil)
                 return
             }
             
-            var request = URLRequest(url: url)
-            request.httpMethod = "GET"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            guard let data = data else {
+                print("No data received")
+                completion(nil)
+                return
+            }
             
-            URLSession.shared.dataTask(with: request) { data, response, error in
-                if let error = error {
-                    print("Network error: \(error.localizedDescription)")
-                    completion(nil)
-                    return
-                }
-                
-                guard let data = data else {
-                    print("No data received")
-                    completion(nil)
-                    return
-                }
-                
-                if let responseString = String(data: data, encoding: .utf8) {
-                    print("Raw QR response: \(responseString)")
-                }
-                
-                do {
-                    if let jsonArray = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-                        print("Successfully parsed QR JSON array: \(jsonArray)")
-                        completion(jsonArray)
-                    } else if let jsonDict = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                              let jsonArray = jsonDict["data"] as? [[String: Any]] {
-                        print("Successfully parsed QR JSON array from 'data' key: \(jsonArray)")
-                        completion(jsonArray)
-                    } else {
-                        print("Failed to parse QR JSON as array or dictionary")
-                        completion(nil)
-                    }
-                } catch {
-                    print("QR JSON parsing error: \(error)")
-                    print("Raw data: \(data)")
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("Raw QR response: \(responseString)")
+            }
+            
+            do {
+                if let jsonArray = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                    print("Successfully parsed QR JSON array: \(jsonArray)")
+                    completion(jsonArray)
+                } else if let jsonDict = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                          let jsonArray = jsonDict["data"] as? [[String: Any]] {
+                    print("Successfully parsed QR JSON array from 'data' key: \(jsonArray)")
+                    completion(jsonArray)
+                } else {
+                    print("Failed to parse QR JSON as array or dictionary")
                     completion(nil)
                 }
-            }.resume()
-        }
-    
+            } catch {
+                print("QR JSON parsing error: \(error)")
+                print("Raw data: \(data)")
+                completion(nil)
+            }
+        }.resume()
+    }
     private func generateQRImage(from content: String) -> UIImage? {
             let context = CIContext()
             let filter = CIFilter.qrCodeGenerator()
@@ -520,6 +536,11 @@ class AppState: ObservableObject {
             return newDeviceId
         }
     }
+    func setAuthToken(_ token: String) {
+        self.idToken = token
+        print("Set idToken: \(token)")
+    }
+
 
     func toggleLogin() {
         isLoggedIn.toggle()
@@ -541,6 +562,7 @@ class AppState: ObservableObject {
         isLoggedIn = false
         userName = ""
         phoneNumber = nil
+        idToken = nil
         UserDefaults.standard.removeObject(forKey: "userName")
         UserDefaults.standard.removeObject(forKey: "phoneNumber")
     }

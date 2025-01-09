@@ -158,6 +158,7 @@ extension View {
 
 
 struct LoginView: View {
+    @EnvironmentObject var appState: AppState
     @State private var selectedCountry: Country = countries.first ?? Country(name: "India", code: "+91", flag: "🇮🇳")
     @State private var phoneNumber: String = ""
     @State private var isLoading: Bool = false
@@ -392,6 +393,11 @@ struct LoginView: View {
                 print("ID token is nil.")
                 return
             }
+            DispatchQueue.main.async {
+                       let appState = AppState()
+                       appState.setAuthToken(idToken)
+                   }
+                   
             
             Messaging.messaging().token { fcmToken, error in
                 if let error = error {
