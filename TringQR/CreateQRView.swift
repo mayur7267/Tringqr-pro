@@ -56,6 +56,9 @@ struct CreateQRView: View {
                         Button(action: {
                             withAnimation {
                                 currentTab = tab
+                                if tab == "History" {
+                                    refreshQRHistory()
+                             }
                             }
                         }) {
                             VStack(spacing: 4) {
@@ -88,7 +91,10 @@ struct CreateQRView: View {
                         .animation(.easeInOut, value: showToast)
                 }
             }
-            .offset(y: 40)
+            .modifier(NavBarOffsetModifier())
+            .onAppear {
+                refreshQRHistory()
+            }
             .preferredColorScheme(.light)
         }
     }
@@ -213,7 +219,7 @@ struct CreateQRView: View {
     private func qrImageView(_ image: UIImage) -> some View {
         VStack(spacing: 0) {
             VStack(spacing: 0) {
-                // QR Code
+                
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
@@ -306,6 +312,19 @@ struct CreateQRView: View {
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let rootViewController = windowScene.windows.first?.rootViewController {
             rootViewController.present(activityViewController, animated: true, completion: nil)
+        }
+    }
+    
+  
+    private func refreshQRHistory() {
+        appState.restoreQRHistoryFromBackend()
+    }
+    struct NavBarOffsetModifier: ViewModifier {
+        func body(content: Content) -> some View {
+            GeometryReader { geometry in
+                content
+                    .offset(y: geometry.size.height < 700 ? 20 : 40)
+            }
         }
     }
 }
