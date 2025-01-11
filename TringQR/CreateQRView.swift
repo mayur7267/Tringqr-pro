@@ -6,6 +6,7 @@
 //
 import SwiftUI
 import CoreImage.CIFilterBuiltins
+import Photos
 
 struct CreateQRView: View {
     @EnvironmentObject var appState: AppState
@@ -16,11 +17,12 @@ struct CreateQRView: View {
     @FocusState private var isTextFieldFocused: Bool
     @State private var showToast: Bool = false
     @State private var currentTab: String = "Create"
-    
+    @State private var showPermissionAlert: Bool = false
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-               
+                
                 HStack {
                     Button(action: {
                         withAnimation {
@@ -50,7 +52,7 @@ struct CreateQRView: View {
                 .padding(.vertical, 10)
                 .background(Color.yellow)
                 
-               
+                
                 HStack(spacing: 0) {
                     ForEach(["History", "Create"], id: \.self) { tab in
                         Button(action: {
@@ -58,7 +60,7 @@ struct CreateQRView: View {
                                 currentTab = tab
                                 if tab == "History" {
                                     refreshQRHistory()
-                             }
+                                }
                             }
                         }) {
                             VStack(spacing: 4) {
@@ -84,6 +86,7 @@ struct CreateQRView: View {
                     historyContent
                 }
                 
+                
                 if showToast {
                     ToastView()
                         .padding(.bottom, 30)
@@ -96,9 +99,17 @@ struct CreateQRView: View {
                 refreshQRHistory()
             }
             .preferredColorScheme(.light)
+            .alert(isPresented: $showPermissionAlert) {
+                Alert(
+                    title: Text("Permission Required"),
+                    message: Text("Please grant photo library access in Settings to save QR codes."),
+                    primaryButton: .default(Text("Open Settings"), action: openAppSettings),
+                    secondaryButton: .cancel()
+                )
+            }
         }
     }
-    
+
    
     private var createContent: some View {
         ScrollView {
@@ -112,11 +123,19 @@ struct CreateQRView: View {
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
                                 .stroke(Color.black, lineWidth: 1)
-                            )
+                        )
                         .focused($isTextFieldFocused)
                         .onTapGesture {
                             if qrText == "http://" {
                                 qrText = ""
+                            }
+                        }
+                        .toolbar {
+                            ToolbarItemGroup(placement: .keyboard) {
+                                Spacer()
+                                Button("Done") {
+                                    isTextFieldFocused = false
+                                }
                             }
                         }
                     
@@ -127,9 +146,9 @@ struct CreateQRView: View {
                             .background(Color.gray.opacity(0.2))
                             .cornerRadius(8)
                             .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.black, lineWidth: 1)
-                                )
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.black, lineWidth: 1)
+                            )
                     }
                 }
                 .padding(.horizontal)
@@ -171,55 +190,56 @@ struct CreateQRView: View {
             .padding(.top)
         }
     }
-    
-    
+
+   
     private var historyContent: some View {
-            ScrollView {
-                LazyVStack(spacing: 15) {
-                    ForEach(appState.qrHistory.reversed()) { item in
-                        HStack {
-                            Text(item.content)
-                                .font(.system(size: 16))
-                                .foregroundColor(.black)
-                                .padding(.leading)
+        ScrollView {
+            LazyVStack(spacing: 15) {
+                ForEach(appState.qrHistory.reversed()) { item in
+                    HStack {
+                        Text(item.content)
+                            .font(.system(size: 16))
+                            .foregroundColor(.black)
+                            .padding(.leading)
+                        
+                        Spacer()
+                        
+                        if let image = item.image {
+                            Button(action: { downloadQRCode(image) }) {
+                                Image(systemName: "arrow.down")
+                                    .foregroundColor(.black)
+                                    .padding(.horizontal, 8)
+                            }
                             
-                            Spacer()
-                            
-                            if let image = item.image {
-                                Button(action: { downloadQRCode(image) }) {
-                                    Image(systemName: "arrow.down")
-                                        .foregroundColor(.black)
-                                        .padding(.horizontal, 8)
-                                }
-                                
-                                Button(action: { shareQRCode(image) }) {
-                                    Image(systemName: "square.and.arrow.up")
-                                        .foregroundColor(.black)
-                                        .padding(.horizontal, 8)
-                                        .padding(.trailing, 4)
-                                }
+                            Button(action: { shareQRCode(image) }) {
+                                Image(systemName: "square.and.arrow.up")
+                                    .foregroundColor(.black)
+                                    .padding(.horizontal, 8)
+                                    .padding(.trailing, 4)
                             }
                         }
-                        .padding(.vertical, 15)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.purple.opacity(0.1))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color.black, lineWidth: 1)
-                                )
-                                .shadow(color: .gray.opacity(0.1), radius: 2)
-                        )
-                        .padding(.horizontal)
                     }
+                    .padding(.vertical, 15)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.purple.opacity(0.1))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.black, lineWidth: 1)
+                            )
+                            .shadow(color: .gray.opacity(0.1), radius: 2)
+                    )
+                    .padding(.horizontal)
                 }
-                .padding(.top)
             }
+            .padding(.top)
         }
+    }
+
+   
     private func qrImageView(_ image: UIImage) -> some View {
         VStack(spacing: 0) {
             VStack(spacing: 0) {
-                
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
@@ -228,12 +248,10 @@ struct CreateQRView: View {
                     .padding(.vertical, 20)
                     .padding(.horizontal, 40)
                 
-               
                 Rectangle()
                     .fill(Color.gray.opacity(0.1))
                     .frame(height: 1)
                     .padding(.horizontal)
-                
                 
                 HStack(spacing: 20) {
                     Button(action: { downloadQRCode(image) }) {
@@ -267,46 +285,73 @@ struct CreateQRView: View {
         }
         .padding(.vertical)
     }
-    
+
    
     private func generateQRCode() {
-            let context = CIContext()
-            let filter = CIFilter.qrCodeGenerator()
+        let context = CIContext()
+        let filter = CIFilter.qrCodeGenerator()
+        
+        let data = Data(qrText.utf8)
+        filter.setValue(data, forKey: "inputMessage")
+        
+        if let outputImage = filter.outputImage {
+            let transform = CGAffineTransform(scaleX: 10, y: 10)
+            let scaledImage = outputImage.transformed(by: transform)
             
-            let data = Data(qrText.utf8)
-            filter.setValue(data, forKey: "inputMessage")
-            
-            if let outputImage = filter.outputImage {
-                let transform = CGAffineTransform(scaleX: 10, y: 10)
-                let scaledImage = outputImage.transformed(by: transform)
+            if let cgimg = context.createCGImage(scaledImage, from: scaledImage.extent) {
+                let qrImage = UIImage(cgImage: cgimg)
+                self.qrImage = qrImage
                 
-                if let cgimg = context.createCGImage(scaledImage, from: scaledImage.extent) {
-                    let qrImage = UIImage(cgImage: cgimg)
-                    self.qrImage = qrImage
+                appState.addQRCode(qrText, image: qrImage) {
                     
-                    
-                    appState.addQRCode(qrText, image: qrImage) {
-                        
-                    }
                 }
             }
         }
+    }
+
     
     private func pasteFromClipboard() {
         if let clipboardText = UIPasteboard.general.string {
             qrText = clipboardText
         }
     }
+
     
     private func downloadQRCode(_ image: UIImage) {
-        UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
-        showToast = true
+        let status = PHPhotoLibrary.authorizationStatus()
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            showToast = false
+        switch status {
+        case .authorized:
+            UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+            showToast = true
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                showToast = false
+            }
+            
+        case .notDetermined:
+            PHPhotoLibrary.requestAuthorization { newStatus in
+                if newStatus == .authorized {
+                    UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+                    showToast = true
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        showToast = false
+                    }
+                } else {
+                    showPermissionAlert = true
+                }
+            }
+            
+        case .denied, .restricted, .limited:
+            showPermissionAlert = true
+            
+        @unknown default:
+            break
         }
     }
-    
+
+   
     private func shareQRCode(_ image: UIImage) {
         let activityViewController = UIActivityViewController(activityItems: [image], applicationActivities: nil)
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
@@ -314,11 +359,20 @@ struct CreateQRView: View {
             rootViewController.present(activityViewController, animated: true, completion: nil)
         }
     }
-    
-  
+
+   
     private func refreshQRHistory() {
         appState.restoreQRHistoryFromBackend()
     }
+
+    
+    private func openAppSettings() {
+        if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(settingsURL)
+        }
+    }
+
+    
     struct NavBarOffsetModifier: ViewModifier {
         func body(content: Content) -> some View {
             GeometryReader { geometry in
@@ -328,6 +382,7 @@ struct CreateQRView: View {
         }
     }
 }
+
 
 struct ToastView: View {
     var body: some View {
