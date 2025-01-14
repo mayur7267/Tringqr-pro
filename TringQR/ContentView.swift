@@ -11,6 +11,7 @@ import Combine
 import WebKit
 import SwiftKeychainWrapper
 import FirebaseAuth
+import AppTrackingTransparency
 
 
 struct QRHistoryItem: Identifiable, Codable {
@@ -97,6 +98,8 @@ struct ScannedHistoryItem: Identifiable, Codable {
 }
 
 class AppState: ObservableObject {
+    @Published var isTrackingAuthorized: Bool = false
+    
     @Published var currentUserId: String? {
         didSet {
             UserDefaults.standard.set(currentUserId, forKey: "currentUserId")
@@ -600,6 +603,23 @@ class AppState: ObservableObject {
             return newDeviceId
         }
     }
+    func requestTrackingPermission() {
+            ATTrackingManager.requestTrackingAuthorization { status in
+                DispatchQueue.main.async {
+                    switch status {
+                    case .authorized:
+                        self.isTrackingAuthorized = true
+                        print("Tracking authorized")
+                    case .denied, .restricted, .notDetermined:
+                        self.isTrackingAuthorized = false
+                        print("Tracking denied or not determined")
+                    @unknown default:
+                        self.isTrackingAuthorized = false
+                        print("Unknown tracking status")
+                    }
+                }
+            }
+        }
     func setAuthToken(_ token: String) {
         self.idToken = token
         print("Set idToken: \(token)")
@@ -814,6 +834,9 @@ struct ContentView: View {
                         }
                     }
                 }
+                .onAppear {
+                    appState.requestTrackingPermission()
+              }
             }
             .environmentObject(appState)
             .ignoresSafeArea(edges: .all)

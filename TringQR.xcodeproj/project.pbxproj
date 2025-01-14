@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		18044FD92D227D5600D9F4F6 /* SwiftKeychainWrapper in Frameworks */ = {isa = PBXBuildFile; productRef = 18044FD82D227D5600D9F4F6 /* SwiftKeychainWrapper */; };
 		18159D272D2A740D00D16ADC /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18159D262D2A740D00D16ADC /* AppConfig.swift */; };
+		186B72C22D36706400569B79 /* AppTrackingTransparency.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 186B72C12D36706400569B79 /* AppTrackingTransparency.framework */; };
+		186B72C42D3670C900569B79 /* CryptoKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 186B72C32D3670C900569B79 /* CryptoKit.framework */; };
+		186B72C62D3670D500569B79 /* AuthenticationServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 186B72C52D3670D500569B79 /* AuthenticationServices.framework */; };
 		187E2A8E2D29549D00494B26 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 187E2A8D2D29549D00494B26 /* FirebaseCrashlytics */; };
 		188C3A602CFB1EC40022D3F4 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 188C3A5F2CFB1EC40022D3F4 /* FirebaseCore */; };
 		188C3A622CFB1EC80022D3F4 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 188C3A612CFB1EC80022D3F4 /* FirebaseAuth */; };
@@ -37,6 +40,9 @@
 
 /* Begin PBXFileReference section */
 		18159D262D2A740D00D16ADC /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
+		186B72C12D36706400569B79 /* AppTrackingTransparency.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppTrackingTransparency.framework; path = System/Library/Frameworks/AppTrackingTransparency.framework; sourceTree = SDKROOT; };
+		186B72C32D3670C900569B79 /* CryptoKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CryptoKit.framework; path = System/Library/Frameworks/CryptoKit.framework; sourceTree = SDKROOT; };
+		186B72C52D3670D500569B79 /* AuthenticationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AuthenticationServices.framework; path = System/Library/Frameworks/AuthenticationServices.framework; sourceTree = SDKROOT; };
 		18C305772CFA532D00252B56 /* TringQR.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TringQR.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		18C305872CFA533000252B56 /* TringQRTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TringQRTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		18C305912CFA533000252B56 /* TringQRUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TringQRUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -80,7 +86,10 @@
 			files = (
 				18FA5D382D182C69002BAA25 /* FirebaseDatabase in Frameworks */,
 				188C3A602CFB1EC40022D3F4 /* FirebaseCore in Frameworks */,
+				186B72C42D3670C900569B79 /* CryptoKit.framework in Frameworks */,
 				188C3A622CFB1EC80022D3F4 /* FirebaseAuth in Frameworks */,
+				186B72C62D3670D500569B79 /* AuthenticationServices.framework in Frameworks */,
+				186B72C22D36706400569B79 /* AppTrackingTransparency.framework in Frameworks */,
 				188C3A712CFC782F0022D3F4 /* FirebaseMessaging in Frameworks */,
 				188C3A692CFB29980022D3F4 /* GoogleSignIn in Frameworks */,
 				187E2A8E2D29549D00494B26 /* FirebaseCrashlytics in Frameworks */,
@@ -109,6 +118,9 @@
 		188C3A5E2CFB1EC40022D3F4 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				186B72C52D3670D500569B79 /* AuthenticationServices.framework */,
+				186B72C32D3670C900569B79 /* CryptoKit.framework */,
+				186B72C12D36706400569B79 /* AppTrackingTransparency.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -467,6 +479,7 @@
 				INFOPLIST_FILE = TringQR/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need access to your camera to scan QR codes.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "We use this data to provide you with a better and more personalized scanning experience, and to improve our services.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = "";
@@ -513,6 +526,7 @@
 				INFOPLIST_FILE = TringQR/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need access to your camera to scan QR codes.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "We use this data to provide you with a better and more personalized scanning experience, and to improve our services.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = "";

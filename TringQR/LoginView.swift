@@ -11,6 +11,8 @@ import FirebaseCore
 import GoogleSignIn
 import FirebaseMessaging
 import AVKit
+import AuthenticationServices
+import CryptoKit
 
 
 class KeyboardObserver: ObservableObject {
@@ -170,6 +172,8 @@ struct LoginView: View {
     @State private var navigateToContent: Bool = false
     @State private var isPrivacyPolicyPresented: Bool = false
     
+    @State private var currentNonce: String?
+    
     @ObservedObject private var keyboardObserver = KeyboardObserver()
     
     var onLoginSuccess: (String) -> Void
@@ -190,12 +194,10 @@ struct LoginView: View {
                             Text("TringQR")
                                 .font(.system(size: isCompactDevice ? 50 : 55, weight: .bold))
                                 .foregroundColor(.white)
-                                
                             
                             Text("World's fastest QR Code scanner")
                                 .font(.system(size: isCompactDevice ? 8 : 14, weight: .bold))
                                 .foregroundColor(.white)
-                                
                         }
                         
                         Spacer()
@@ -266,26 +268,16 @@ struct LoginView: View {
                                 .font(.system(size: isCompactDevice ? 12 : 14))
                                 .foregroundColor(.white.opacity(0.7))
                             
-                            Button(action: {
-                                signInWithGoogle()
-                            }) {
-                                HStack {
-                                    Image("googleLogo")
-                                        .resizable()
-                                        .frame(width: isCompactDevice ? 30 : 34,
-                                               height: isCompactDevice ? 30 : 34)
-                                        .padding(.leading, isCompactDevice ? 15 : 17)
-                                    
-                                    Text("Continue with Google")
-                                        .font(.system(size: isCompactDevice ? 14 : 16, weight: .medium))
-                                        .foregroundColor(.black)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(isCompactDevice ? 12 : 16)
+                            SignInWithAppleButton(
+                                onRequest: { request in
+                                    request.requestedScopes = [.fullName, .email]
+                                },
+                                onCompletion: { result in
+                                    handleAppleSignIn(result)
                                 }
-                                .background(Color.white)
-                                .cornerRadius(8)
-                                .shadow(color: Color.gray.opacity(0.3), radius: 4, x: 0, y: 2)
-                            }
+                            )
+                            .frame(height: isCompactDevice ? 45 : 50)
+                            .cornerRadius(8)
                         }
                         .padding()
                         .background(Color.white.opacity(0.1))
@@ -324,14 +316,11 @@ struct LoginView: View {
                     isOTPViewPresented: $navigateToOTP,
                     phoneNumber: selectedCountry.code + phoneNumber,
                     onOTPVerified: {[self] in
-                        
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                             registerUser()
                         }
-
-                       
                     },
-                    navigateToContent: $navigateToContent 
+                    navigateToContent: $navigateToContent
                 )
                 .navigationBarBackButtonHidden(true)
             }
@@ -352,6 +341,112 @@ struct LoginView: View {
         }
     }
     
+    private func randomNonceString(length: Int = 32) -> String {
+            precondition(length > 0)
+            let charset: [Character] =
+                Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
+            var result = ""
+            var remainingLength = length
+            
+            while remainingLength > 0 {
+                let randoms: [UInt8] = (0 ..< 16).map { _ in
+                    var random: UInt8 = 0
+                    let errorCode = SecRandomCopyBytes(kSecRandomDefault, 1, &random)
+                    if errorCode != errSecSuccess {
+                        fatalError("Unable to generate nonce. SecRandomCopyBytes failed with OSStatus \(errorCode)")
+                    }
+                    return random
+                }
+                
+                randoms.forEach { random in
+                    if remainingLength == 0 {
+                        return
+                    }
+                    
+                    if random < charset.count {
+                        result.append(charset[Int(random)])
+                        remainingLength -= 1
+                    }
+                }
+            }
+            
+            return result
+        }
+        
+        private func sha256(_ input: String) -> String {
+            let inputData = Data(input.utf8)
+            let hashedData = SHA256.hash(data: inputData)
+            let hashString = hashedData.compactMap {
+                String(format: "%02x", $0)
+            }.joined()
+            
+            return hashString
+        }
+        
+      
+        var appleSignInButton: some View {
+            GeometryReader { geometry in
+                let isCompactDevice = geometry.size.height < 700
+                SignInWithAppleButton(
+                    onRequest: { request in
+                        let nonce = randomNonceString()
+                        currentNonce = nonce
+                        request.requestedScopes = [.fullName, .email]
+                        request.nonce = sha256(nonce)
+                    },
+                    onCompletion: { result in
+                        handleAppleSignIn(result)
+                    }
+                )
+                .frame(height: isCompactDevice ? 45 : 50)
+                .cornerRadius(8)
+            }
+        }
+        
+        private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) {
+            switch result {
+            case .success(let authorization):
+                if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
+                    guard let nonce = currentNonce else {
+                        print("Invalid state: A login callback was received, but no login request was sent.")
+                        return
+                    }
+                    
+                    guard let appleIDToken = appleIDCredential.identityToken else {
+                        print("Unable to fetch identity token")
+                        return
+                    }
+                    
+                    guard let idTokenString = String(data: appleIDToken, encoding: .utf8) else {
+                        print("Unable to serialize token string from data")
+                        return
+                    }
+                    
+                    let credential = OAuthProvider.credential(
+                        withProviderID: "apple.com",
+                        idToken: idTokenString,
+                        rawNonce: nonce
+                    )
+                    
+                    let displayName = [appleIDCredential.fullName?.givenName, appleIDCredential.fullName?.familyName]
+                        .compactMap { $0 }
+                        .joined(separator: " ")
+                    
+                    Auth.auth().signIn(with: credential) { authResult, error in
+                        if let error = error {
+                            print("Firebase Apple Sign-In failed: \(error.localizedDescription)")
+                            return
+                        }
+                        self.registerUser(displayName: displayName.isEmpty ? "Apple User" : displayName)
+                    }
+                }
+            case .failure(let error):
+                print("Apple Sign-In failed: \(error.localizedDescription)")
+            }
+        }
+    
+    
+
     func sendOTP() {
         let formattedNumber = selectedCountry.code + phoneNumber.trimmingCharacters(in: .whitespaces)
         
@@ -439,46 +534,6 @@ struct LoginView: View {
                 }
             }
         }
-    }
-
-
-    private func signInWithGoogle() {
-        guard let clientID = FirebaseApp.app()?.options.clientID else { return }
-
-        let config = GIDConfiguration(clientID: clientID)
-
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let rootViewController = windowScene.windows.first?.rootViewController else { return }
-
-        GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { result, error in
-            if let error = error {
-                print("Google Sign-In failed: \(error.localizedDescription)")
-                return
-            }
-
-            guard let user = result?.user,
-                  let idToken = user.idToken?.tokenString else { return }
-            
-
-            let credential = GoogleAuthProvider.credential(withIDToken: idToken,
-                                                           accessToken: user.accessToken.tokenString)
-            
-            let displayName = user.profile?.name ?? "Google User"
-
-            Auth.auth().signIn(with: credential) { authResult, error in
-                if let error = error {
-                    print("Firebase Google Sign-In failed: \(error.localizedDescription)")
-                    return
-                }
-
-                
-                self.registerUser(displayName: displayName)
-            }
-        }
-    }
-
-    private func getToken() -> String {
-        return UserDefaults.standard.string(forKey: "tringboxToken") ?? ""
     }
 }
 struct CountryPicker: View {
