@@ -11,6 +11,7 @@ import FirebaseMessaging
 import UserNotifications
 import FirebaseCrashlytics
 import GoogleSignIn
+import AppTrackingTransparency
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
     func application(
@@ -25,14 +26,18 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         
         requestNotificationPermissions(application)
 
-       
         Messaging.messaging().delegate = self
 
-        
         GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: FirebaseApp.app()?.options.clientID ?? "")
+
+        
+       
 
         return true
     }
+
+    
+   
 
     private func requestNotificationPermissions(_ application: UIApplication) {
         UNUserNotificationCenter.current().delegate = self
@@ -49,7 +54,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         application.registerForRemoteNotifications()
     }
 
-   
     func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any],
                      fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
         if Auth.auth().canHandleNotification(userInfo) {
@@ -66,7 +70,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         let token = tokenParts.joined()
         print("Device Token: \(token)")
 
-       
         Messaging.messaging().apnsToken = deviceToken
 
         #if DEBUG
@@ -80,7 +83,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         print("Failed to register for remote notifications: \(error.localizedDescription)")
     }
 
-  
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
         guard let fcmToken = fcmToken else {
             print("Failed to receive FCM token")
@@ -89,7 +91,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         print("FCM Token: \(fcmToken)")
     }
 
-    
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
         guard let scheme = url.scheme, let host = url.host else { return false }
         if scheme == "app-1-318092550249-ios-ae473cdeaea44f437042f8" {
@@ -105,7 +106,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         return false
     }
 }
-
 @main
 struct TringQRApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate

@@ -14,6 +14,7 @@ import FirebaseAuth
 import AppTrackingTransparency
 
 
+
 struct QRHistoryItem: Identifiable, Codable {
     let id: UUID
     let content: String
@@ -99,6 +100,7 @@ struct ScannedHistoryItem: Identifiable, Codable {
 
 class AppState: ObservableObject {
     @Published var isTrackingAuthorized: Bool = false
+    @Published var showTrackingPermissionAlert: Bool = false
     
     @Published var currentUserId: String? {
         didSet {
@@ -604,22 +606,37 @@ class AppState: ObservableObject {
         }
     }
     func requestTrackingPermission() {
-            ATTrackingManager.requestTrackingAuthorization { status in
-                DispatchQueue.main.async {
-                    switch status {
-                    case .authorized:
-                        self.isTrackingAuthorized = true
-                        print("Tracking authorized")
-                    case .denied, .restricted, .notDetermined:
-                        self.isTrackingAuthorized = false
-                        print("Tracking denied or not determined")
-                    @unknown default:
-                        self.isTrackingAuthorized = false
-                        print("Unknown tracking status")
+        DispatchQueue.main.async {
+           
+            self.showTrackingPermissionAlert = true
+        }
+    }
+    func handleTrackingPermissionResponse(accepted: Bool) {
+            showTrackingPermissionAlert = false
+            
+            if accepted {
+                
+                ATTrackingManager.requestTrackingAuthorization { status in
+                    DispatchQueue.main.async {
+                        switch status {
+                        case .authorized:
+                            self.isTrackingAuthorized = true
+                            print("Tracking authorized")
+                        case .denied, .restricted, .notDetermined:
+                            self.isTrackingAuthorized = false
+                            print("Tracking denied or not determined: \(status.rawValue)")
+                        @unknown default:
+                            self.isTrackingAuthorized = false
+                            print("Unknown tracking status")
+                        }
                     }
                 }
+            } else {
+                self.isTrackingAuthorized = false
+                print("Tracking permission declined in custom alert")
             }
         }
+
     func setAuthToken(_ token: String) {
         self.idToken = token
         print("Set idToken: \(token)")
@@ -681,6 +698,19 @@ struct ContentView: View {
                     self._displayName = State(initialValue: displayName)
                 }
         }
+    
+    var trackingPermissionAlert: Alert {
+           Alert(
+               title: Text("Allow Tracking"),
+               message: Text("We use tracking to provide you with a better experience and improve our service. Your data helps us understand how users interact with our app."),
+               primaryButton: .default(Text("Allow")) {
+                   appState.handleTrackingPermissionResponse(accepted: true)
+               },
+               secondaryButton: .cancel(Text("Don't Allow")) {
+                   appState.handleTrackingPermissionResponse(accepted: false)
+               }
+           )
+       }
     
     var body: some View {
         NavigationStack {
@@ -839,9 +869,15 @@ struct ContentView: View {
                     }
                 }
                 .onAppear {
-                    appState.requestTrackingPermission()
-              }
+                           
+                           appState.requestTrackingPermission()
+                       }
+                .alert(isPresented: $appState.showTrackingPermissionAlert) {
+                                trackingPermissionAlert
+                            }
             }
+            
+            
             .environmentObject(appState)
             .ignoresSafeArea(edges: .all)
             .sheet(isPresented: $showShareSheet) {
@@ -850,6 +886,7 @@ struct ContentView: View {
                 ShareSheet(items: [shareText, shareURL])
             }
         }
+        
         .onAppear {
             withAnimation(.easeInOut) {
                 appState.isSidebarVisible = false
