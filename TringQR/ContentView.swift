@@ -673,10 +673,14 @@ struct ContentView: View {
     @State private var showShareSheet = false
     @State private var dragOffset = CGSize.zero
     @Environment(\.scenePhase) private var scenePhase
+    @State private var displayName: String = "Apple User"
     
-    init(appState: AppState) {
-        _showLoginView = State(initialValue: !appState.isLoggedIn && appState.isFirstLaunch)
-    }
+    init(appState: AppState, displayName: String? = nil) {
+            self._showLoginView = State(initialValue: !appState.isLoggedIn && appState.isFirstLaunch)
+             if let displayName = displayName {
+                    self._displayName = State(initialValue: displayName)
+                }
+        }
     
     var body: some View {
         NavigationStack {

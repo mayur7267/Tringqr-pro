@@ -268,16 +268,9 @@ struct LoginView: View {
                                 .font(.system(size: isCompactDevice ? 12 : 14))
                                 .foregroundColor(.white.opacity(0.7))
                             
-                            SignInWithAppleButton(
-                                onRequest: { request in
-                                    request.requestedScopes = [.fullName, .email]
-                                },
-                                onCompletion: { result in
-                                    handleAppleSignIn(result)
-                                }
-                            )
-                            .frame(height: isCompactDevice ? 45 : 50)
-                            .cornerRadius(8)
+                            appleSignInButton
+                                .frame(height: isCompactDevice ? 45 : 50)
+                                .cornerRadius(8)
                         }
                         .padding()
                         .background(Color.white.opacity(0.1))
@@ -325,7 +318,7 @@ struct LoginView: View {
                 .navigationBarBackButtonHidden(true)
             }
             .navigationDestination(isPresented: $navigateToContent) {
-                ContentView(appState: AppState())
+                ContentView(appState: appState,displayName: appState.userName ?? "Apple User")
                     .navigationBarBackButtonHidden(true)
             }
             .sheet(isPresented: $isCountryPickerPresented) {
@@ -342,111 +335,187 @@ struct LoginView: View {
     }
     
     private func randomNonceString(length: Int = 32) -> String {
-            precondition(length > 0)
-            let charset: [Character] =
-                Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
-            var result = ""
-            var remainingLength = length
+        precondition(length > 0)
+        let charset: [Character] =
+        Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
+        var result = ""
+        var remainingLength = length
+        
+        while remainingLength > 0 {
+            let randoms: [UInt8] = (0 ..< 16).map { _ in
+                var random: UInt8 = 0
+                let errorCode = SecRandomCopyBytes(kSecRandomDefault, 1, &random)
+                if errorCode != errSecSuccess {
+                    fatalError("Unable to generate nonce. SecRandomCopyBytes failed with OSStatus \(errorCode)")
+                }
+                return random
+            }
             
-            while remainingLength > 0 {
-                let randoms: [UInt8] = (0 ..< 16).map { _ in
-                    var random: UInt8 = 0
-                    let errorCode = SecRandomCopyBytes(kSecRandomDefault, 1, &random)
-                    if errorCode != errSecSuccess {
-                        fatalError("Unable to generate nonce. SecRandomCopyBytes failed with OSStatus \(errorCode)")
-                    }
-                    return random
+            randoms.forEach { random in
+                if remainingLength == 0 {
+                    return
                 }
                 
-                randoms.forEach { random in
-                    if remainingLength == 0 {
-                        return
-                    }
-                    
-                    if random < charset.count {
-                        result.append(charset[Int(random)])
-                        remainingLength -= 1
-                    }
+                if random < charset.count {
+                    result.append(charset[Int(random)])
+                    remainingLength -= 1
                 }
             }
-            
-            return result
         }
         
-        private func sha256(_ input: String) -> String {
-            let inputData = Data(input.utf8)
-            let hashedData = SHA256.hash(data: inputData)
-            let hashString = hashedData.compactMap {
-                String(format: "%02x", $0)
-            }.joined()
-            
-            return hashString
-        }
+        return result
+    }
+    
+    private func sha256(_ input: String) -> String {
+        let inputData = Data(input.utf8)
+        let hashedData = SHA256.hash(data: inputData)
+        let hashString = hashedData.compactMap {
+            String(format: "%02x", $0)
+        }.joined()
         
-      
-        var appleSignInButton: some View {
-            GeometryReader { geometry in
-                let isCompactDevice = geometry.size.height < 700
-                SignInWithAppleButton(
-                    onRequest: { request in
-                        let nonce = randomNonceString()
-                        currentNonce = nonce
-                        request.requestedScopes = [.fullName, .email]
-                        request.nonce = sha256(nonce)
-                    },
-                    onCompletion: { result in
-                        handleAppleSignIn(result)
-                    }
-                )
-                .frame(height: isCompactDevice ? 45 : 50)
-                .cornerRadius(8)
-            }
-        }
-        
-        private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) {
-            switch result {
-            case .success(let authorization):
-                if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
-                    guard let nonce = currentNonce else {
-                        print("Invalid state: A login callback was received, but no login request was sent.")
-                        return
-                    }
-                    
-                    guard let appleIDToken = appleIDCredential.identityToken else {
-                        print("Unable to fetch identity token")
-                        return
-                    }
-                    
-                    guard let idTokenString = String(data: appleIDToken, encoding: .utf8) else {
-                        print("Unable to serialize token string from data")
-                        return
-                    }
-                    
-                    let credential = OAuthProvider.credential(
-                        withProviderID: "apple.com",
-                        idToken: idTokenString,
-                        rawNonce: nonce
-                    )
-                    
-                    let displayName = [appleIDCredential.fullName?.givenName, appleIDCredential.fullName?.familyName]
-                        .compactMap { $0 }
-                        .joined(separator: " ")
-                    
-                    Auth.auth().signIn(with: credential) { authResult, error in
-                        if let error = error {
-                            print("Firebase Apple Sign-In failed: \(error.localizedDescription)")
-                            return
-                        }
-                        self.registerUser(displayName: displayName.isEmpty ? "Apple User" : displayName)
-                    }
-                }
-            case .failure(let error):
-                print("Apple Sign-In failed: \(error.localizedDescription)")
-            }
-        }
+        return hashString
+    }
     
     
-
+    var appleSignInButton: some View {
+        SignInWithAppleButton(
+            onRequest: { request in
+                let nonce = randomNonceString()
+                currentNonce = nonce
+                request.requestedScopes = [.fullName, .email]
+                request.nonce = sha256(nonce)
+            },
+            onCompletion: { result in
+                handleAppleSignIn(result)
+            }
+        )
+    }
+    
+    private func debugPrint(_ message: String) {
+           print("DEBUG: \(message)")
+       }
+       
+       private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) {
+           debugPrint("Starting Apple Sign In process")
+           switch result {
+           case .success(let authorization):
+               if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
+                   guard let nonce = currentNonce else {
+                       debugPrint("Invalid state: Missing nonce")
+                       return
+                   }
+                   
+                   guard let appleIDToken = appleIDCredential.identityToken else {
+                       debugPrint("Missing identity token")
+                       return
+                   }
+                   
+                   guard let idTokenString = String(data: appleIDToken, encoding: .utf8) else {
+                       debugPrint("Unable to serialize token string")
+                       return
+                   }
+                   
+                   let credential = OAuthProvider.credential(
+                       withProviderID: "apple.com",
+                       idToken: idTokenString,
+                       rawNonce: nonce
+                   )
+                   
+                   let displayName = [appleIDCredential.fullName?.givenName, appleIDCredential.fullName?.familyName]
+                       .compactMap { $0 }
+                       .joined(separator: " ")
+                   
+                   debugPrint("Starting Firebase authentication")
+                   isLoading = true
+                   
+                   Auth.auth().signIn(with: credential) { authResult, error in
+                       if let error = error {
+                           debugPrint("Firebase auth error: \(error.localizedDescription)")
+                           DispatchQueue.main.async {
+                               self.isLoading = false
+                               self.errorMessage = "Sign-in failed: \(error.localizedDescription)"
+                               self.showErrorAlert = true
+                           }
+                           return
+                       }
+                       
+                       guard let user = authResult?.user else {
+                           debugPrint("No user data received")
+                           DispatchQueue.main.async {
+                               self.isLoading = false
+                               self.errorMessage = "Failed to get user data"
+                               self.showErrorAlert = true
+                           }
+                           return
+                       }
+                       
+                       debugPrint("Firebase auth successful for user: \(user.uid)")
+                       
+                       
+                       user.getIDToken { idToken, error in
+                           guard let idToken = idToken else {
+                               debugPrint("Failed to get ID token: \(error?.localizedDescription ?? "unknown error")")
+                               return
+                           }
+                           
+                           DispatchQueue.main.async {
+                               self.appState.setAuthToken(idToken)
+                               debugPrint("Auth token set in AppState")
+                               
+                               
+                               let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "UnknownDeviceID"
+                               
+                               Messaging.messaging().token { fcmToken, error in
+                                   let fcmToken = fcmToken ?? ""
+                                   
+                                   let registerRequest = RegisterUserRequest(
+                                       type: "User",
+                                       email: user.email ?? "support@tringbox.com",
+                                       display_name: displayName.isEmpty ? "Apple User" : displayName,
+                                       phone_number: user.phoneNumber ?? "",
+                                       notificationId: fcmToken,
+                                       deviceId: deviceId
+                                   )
+                                   
+                                   debugPrint("Sending register request")
+                                   APIManager.shared.registerUser(request: registerRequest, token: idToken) { result in
+                                       DispatchQueue.main.async {
+                                           self.isLoading = false
+                                           
+                                           switch result {
+                                           case .success(let response):
+                                               debugPrint("User registration successful")
+                                               self.onLoginSuccess(displayName.isEmpty ? "Apple User" : displayName)
+                                               
+                                              
+                                               DispatchQueue.main.async {
+                                                   debugPrint("Setting navigateToContent to true")
+                                                   self.navigateToContent = true
+                                               }
+                                               
+                                           case .failure(let error):
+                                               debugPrint("Registration failed: \(error)")
+                                               self.errorMessage = "Failed to register user: \(error.localizedDescription)"
+                                               self.showErrorAlert = true
+                                           }
+                                       }
+                                   }
+                               }
+                           }
+                       }
+                   }
+               }
+           case .failure(let error):
+               debugPrint("Apple Sign In failed: \(error)")
+               DispatchQueue.main.async {
+                   self.isLoading = false
+                   self.errorMessage = "Apple Sign-In failed: \(error.localizedDescription)"
+                   self.showErrorAlert = true
+               }
+           }
+       }
+    
+    
     func sendOTP() {
         let formattedNumber = selectedCountry.code + phoneNumber.trimmingCharacters(in: .whitespaces)
         
@@ -475,37 +544,52 @@ struct LoginView: View {
         
         guard let currentUser = Auth.auth().currentUser else {
             print("No user is signed in.")
+            errorMessage = "No user is signed in"
+            showErrorAlert = true
             return
         }
         
+        isLoading = true
+        
         currentUser.getIDToken { idToken, error in
             if let error = error {
-                print("Failed to fetch ID token: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    isLoading = false
+                    print("Failed to fetch ID token: \(error.localizedDescription)")
+                    errorMessage = "Failed to fetch authentication token"
+                    showErrorAlert = true
+                }
                 return
             }
             
             guard let idToken = idToken else {
-                print("ID token is nil.")
+                DispatchQueue.main.async {
+                    isLoading = false
+                    print("ID token is nil.")
+                    errorMessage = "Authentication token is missing"
+                    showErrorAlert = true
+                }
                 return
             }
+            
+            
             DispatchQueue.main.async {
-                       let appState = AppState()
-                       appState.setAuthToken(idToken)
-                   }
-                   
+                appState.setAuthToken(idToken)
+            }
             
             Messaging.messaging().token { fcmToken, error in
                 if let error = error {
-                    print("Error fetching FCM token: \(error.localizedDescription)")
-                    return
-                }
-                guard let fcmToken = fcmToken else {
-                    print("FCM token is nil.")
+                    DispatchQueue.main.async {
+                        isLoading = false
+                        print("Error fetching FCM token: \(error.localizedDescription)")
+                        errorMessage = "Failed to setup notifications"
+                        showErrorAlert = true
+                    }
                     return
                 }
                 
+                let fcmToken = fcmToken ?? ""
                 let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "UnknownDeviceID"
-                print("Fetched Device ID: \(deviceId)")
                 
                 let registerRequest = RegisterUserRequest(
                     type: "User",
@@ -520,6 +604,8 @@ struct LoginView: View {
                 
                 APIManager.shared.registerUser(request: registerRequest, token: idToken) { result in
                     DispatchQueue.main.async {
+                        isLoading = false
+                        
                         switch result {
                         case .success(let response):
                             print("User registered successfully: \(response)")
