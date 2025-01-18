@@ -610,25 +610,34 @@ class AppState: ObservableObject {
     }
 
     func requestTrackingPermission() {
-            
+       
+        let status = ATTrackingManager.trackingAuthorizationStatus
+        
+        switch status {
+        case .notDetermined:
             if isFirstLaunch {
                 showTrackingExplanation = true
                 print("Showing tracking explanation sheet on first launch")
             } else {
-                print("Not first launch, skipping explanation sheet")
+                
+                requestSystemTrackingPermission()
             }
+        case .authorized:
+            self.isTrackingAuthorized = true
+            print("Tracking already authorized")
+        case .denied, .restricted:
+            self.isTrackingAuthorized = false
+            print("Tracking already denied or restricted")
+        @unknown default:
+            self.isTrackingAuthorized = false
+            print("Unknown tracking status")
         }
-    
+    }
 
-    func proceedWithTracking() {
-        showTrackingExplanation = false
-        print("Custom explanation acknowledged, requesting system permission")
-
+    private func requestSystemTrackingPermission() {
+        print("Requesting system tracking permission")
         ATTrackingManager.requestTrackingAuthorization { status in
             DispatchQueue.main.async {
-                self.isFirstLaunch = false
-                                UserDefaults.standard.set(false, forKey: "isFirstLaunch")
-                                
                 switch status {
                 case .authorized:
                     self.isTrackingAuthorized = true
@@ -648,6 +657,14 @@ class AppState: ObservableObject {
                 }
             }
         }
+    }
+
+    func proceedWithTracking() {
+        showTrackingExplanation = false
+        print("Custom explanation acknowledged, requesting system permission")
+        requestSystemTrackingPermission()
+        isFirstLaunch = false
+        UserDefaults.standard.set(false, forKey: "isFirstLaunch")
     }
     func setAuthToken(_ token: String) {
         self.idToken = token
@@ -894,10 +911,12 @@ struct ContentView: View {
                     }
                 }
                 .onAppear {
-                           
-                    if appState.isFirstLaunch {
+                            
+                            if appState.isFirstLaunch {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                                     appState.requestTrackingPermission()
                                 }
+                            }
                         }
                         .sheet(isPresented: $appState.showTrackingExplanation) {
                             trackingExplanationSheet
