@@ -272,6 +272,7 @@ struct LoginView: View {
                             appleSignInButton
                                 .frame(height: isCompactDevice ? 45 : 50)
                                 .cornerRadius(8)
+                                
                         }
                         .padding()
                         .background(Color.white.opacity(0.1))
@@ -300,9 +301,7 @@ struct LoginView: View {
                     .ignoresSafeArea(.keyboard)
                 }
                 .ignoresSafeArea()
-                .onTapGesture {
-                    self.hideKeyboard()
-                }
+
             }
             .onAppear {
                 if ATTrackingManager.trackingAuthorizationStatus == .notDetermined {
@@ -386,17 +385,22 @@ struct LoginView: View {
     var appleSignInButton: some View {
         SignInWithAppleButton(
             onRequest: { request in
+                debugPrint("Apple Sign-In request started")
                 let nonce = randomNonceString()
                 currentNonce = nonce
                 request.requestedScopes = [.fullName, .email]
                 request.nonce = sha256(nonce)
             },
             onCompletion: { result in
+                debugPrint("Apple Sign-In result received")
                 handleAppleSignIn(result)
             }
         )
+        .frame(maxWidth: .infinity, maxHeight: 50)
+        .cornerRadius(8)
+        .padding(.horizontal, 20)
     }
-    
+
     private func debugPrint(_ message: String) {
            print("DEBUG: \(message)")
        }

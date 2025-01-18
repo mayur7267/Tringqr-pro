@@ -101,6 +101,7 @@ struct ScannedHistoryItem: Identifiable, Codable {
 class AppState: ObservableObject {
     @Published var isTrackingAuthorized: Bool = false
     @Published var showTrackingPermissionAlert: Bool = false
+    @Published var showTrackingExplanation = false
     
     @Published var currentUserId: String? {
         didSet {
@@ -167,7 +168,9 @@ class AppState: ObservableObject {
         self.phoneNumber = UserDefaults.standard.string(forKey: "phoneNumber")
         self.isFirstLaunch = UserDefaults.standard.object(forKey: "isFirstLaunch") == nil || UserDefaults.standard.bool(forKey: "isFirstLaunch")
         self.isSidebarVisible = UserDefaults.standard.bool(forKey: "isSidebarVisible")
-        
+        if self.isFirstLaunch {
+                    self.showTrackingExplanation = true
+                }
         restoreHistoryFromBackend()
         restoreQRHistoryFromBackend()
     }
@@ -605,38 +608,47 @@ class AppState: ObservableObject {
             return newDeviceId
         }
     }
+
     func requestTrackingPermission() {
-        DispatchQueue.main.async {
-           
-            self.showTrackingPermissionAlert = true
-        }
-    }
-    func handleTrackingPermissionResponse(accepted: Bool) {
-            showTrackingPermissionAlert = false
             
-            if accepted {
-                
-                ATTrackingManager.requestTrackingAuthorization { status in
-                    DispatchQueue.main.async {
-                        switch status {
-                        case .authorized:
-                            self.isTrackingAuthorized = true
-                            print("Tracking authorized")
-                        case .denied, .restricted, .notDetermined:
-                            self.isTrackingAuthorized = false
-                            print("Tracking denied or not determined: \(status.rawValue)")
-                        @unknown default:
-                            self.isTrackingAuthorized = false
-                            print("Unknown tracking status")
-                        }
-                    }
-                }
+            if isFirstLaunch {
+                showTrackingExplanation = true
+                print("Showing tracking explanation sheet on first launch")
             } else {
-                self.isTrackingAuthorized = false
-                print("Tracking permission declined in custom alert")
+                print("Not first launch, skipping explanation sheet")
             }
         }
+    
 
+    func proceedWithTracking() {
+        showTrackingExplanation = false
+        print("Custom explanation acknowledged, requesting system permission")
+
+        ATTrackingManager.requestTrackingAuthorization { status in
+            DispatchQueue.main.async {
+                self.isFirstLaunch = false
+                                UserDefaults.standard.set(false, forKey: "isFirstLaunch")
+                                
+                switch status {
+                case .authorized:
+                    self.isTrackingAuthorized = true
+                    print("Tracking authorized by user")
+                case .denied:
+                    self.isTrackingAuthorized = false
+                    print("Tracking denied by user")
+                case .notDetermined:
+                    self.isTrackingAuthorized = false
+                    print("Tracking status not determined")
+                case .restricted:
+                    self.isTrackingAuthorized = false
+                    print("Tracking restricted")
+                @unknown default:
+                    self.isTrackingAuthorized = false
+                    print("Unknown tracking status")
+                }
+            }
+        }
+    }
     func setAuthToken(_ token: String) {
         self.idToken = token
         print("Set idToken: \(token)")
@@ -699,18 +711,31 @@ struct ContentView: View {
                 }
         }
     
-    var trackingPermissionAlert: Alert {
-           Alert(
-               title: Text("Allow Tracking"),
-               message: Text("We use tracking to provide you with a better experience and improve our service. Your data helps us understand how users interact with our app."),
-               primaryButton: .default(Text("Allow")) {
-                   appState.handleTrackingPermissionResponse(accepted: true)
-               },
-               secondaryButton: .cancel(Text("Don't Allow")) {
-                   appState.handleTrackingPermissionResponse(accepted: false)
-               }
-           )
-       }
+    var trackingExplanationSheet: some View {
+        VStack(spacing: 20) {
+            Text("About Data Collection")
+                .font(.headline)
+                .padding(.top)
+            
+            Text("We collect usage data to improve your experience and our service. This helps us understand how users interact with our app and provide better features.")
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            
+            Button(action: {
+                appState.proceedWithTracking()
+            }) {
+                Text("Continue")
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+            }
+            .padding()
+        }
+        .padding()
+        .presentationDetents([.height(250)])
+    }
     
     var body: some View {
         NavigationStack {
@@ -870,11 +895,13 @@ struct ContentView: View {
                 }
                 .onAppear {
                            
-                           appState.requestTrackingPermission()
-                       }
-                .alert(isPresented: $appState.showTrackingPermissionAlert) {
-                                trackingPermissionAlert
-                            }
+                    if appState.isFirstLaunch {
+                                    appState.requestTrackingPermission()
+                                }
+                        }
+                        .sheet(isPresented: $appState.showTrackingExplanation) {
+                            trackingExplanationSheet
+                        }
             }
             
             
