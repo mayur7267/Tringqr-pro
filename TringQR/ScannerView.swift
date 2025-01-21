@@ -31,7 +31,6 @@ struct ScannerView: View {
     @State private var scannedCode: String = ""
     @State private var showGalleryPicker: Bool = false
     
-
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
@@ -44,8 +43,7 @@ struct ScannerView: View {
                     
                     GeometryReader { geometry in
                         let size = geometry.size
-                        
-                        let scannerSize = max(isCompactDevice ? size.width - 20 : size.width,320)
+                        let scannerSize = max(isCompactDevice ? size.width - 20 : size.width, 320)
                         
                         ZStack {
                             CameraView(frameSize: CGSize(width: scannerSize, height: scannerSize), session: $session)
@@ -63,7 +61,6 @@ struct ScannerView: View {
                             }
                         }
                         .frame(width: scannerSize, height: scannerSize)
-                        
                         .offset(y: isCompactDevice ? -50 : -92)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
@@ -71,7 +68,6 @@ struct ScannerView: View {
                     .edgesIgnoringSafeArea(.top)
                     
                     Spacer()
-                    
                     
                     VStack(spacing: isCompactDevice ? 8 : 12) {
                         Text("Scan with TringQR")
@@ -87,7 +83,6 @@ struct ScannerView: View {
                     .padding(.vertical, 4)
                     
                     Spacer()
-                    
                     
                     VStack(spacing: isCompactDevice ? 5 : 10) {
                         HStack(spacing: 3) {
@@ -131,7 +126,6 @@ struct ScannerView: View {
                         .padding(.vertical, 5)
                         .offset(y: isCompactDevice ? -40 : -80)
                     }
-                    
                     
                     HStack {
                         Button(action: { isPickerPresented = true }) {
@@ -188,7 +182,6 @@ struct ScannerView: View {
                     return
                 }
                 
-                
                 let scannedItems = history.compactMap { item -> ScannedHistoryItem? in
                     guard let code = item["code"] as? String else { return nil }
                     return ScannedHistoryItem(
@@ -204,14 +197,10 @@ struct ScannerView: View {
                 }
             }
         }
-        
-        
         .onDisappear {
             session.stopRunning()
             deactivateScannerAnimation()
         }
-        
-        
         .alert(errormessage, isPresented: $showError) {
             if cameraPermission == .denied {
                 Button("Settings") {
@@ -226,20 +215,22 @@ struct ScannerView: View {
             }
         }
         .onChange(of: qrDelegate.scannedCode) { newValue in
-                    if let code = newValue {
-                        print("Scanned code detected: \(code)")
-                        scannedCode = code
-                        session.stopRunning()
-                        deactivateScannerAnimation()
-                        handleScannedCode(code)
-                        qrDelegate.scannedCode = nil
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                            restartScanning()
-                        }
-                    }
+            if let code = newValue {
+                print("Scanned code detected: \(code)")
+                scannedCode = code
+                session.stopRunning()
+                deactivateScannerAnimation()
+                handleScannedCode(code)
+                qrDelegate.scannedCode = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    restartScanning()
                 }
             }
-
+        }
+    }
+    
+    // MARK: - Helper Functions
+    
     func restartScanning() {
         DispatchQueue.global(qos: .background).async {
             if !session.isRunning {
@@ -272,7 +263,6 @@ struct ScannerView: View {
             isScanning = false
         }
     }
-    
     
     func checkCameraPermission() {
         Task {
@@ -326,7 +316,6 @@ struct ScannerView: View {
     
     func setupCamera() {
         do {
-            
             guard let device = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera], mediaType: .video, position: .back).devices.first else {
                 presentError("No camera found")
                 return
@@ -347,18 +336,15 @@ struct ScannerView: View {
             qrOutput.setMetadataObjectsDelegate(qrDelegate, queue: .main)
             session.commitConfiguration()
             
-            
             DispatchQueue.global(qos: .background).async {
                 session.startRunning()
             }
             
             activateScannerAnimation()
-            
         } catch {
             presentError("Failed to set up camera: \(error.localizedDescription)")
         }
     }
-    
     
     func updateZoomFactor(_ factor: CGFloat) {
         guard let device = AVCaptureDevice.default(for: .video) else { return }
@@ -392,7 +378,6 @@ struct ScannerView: View {
         }
     }
     
-    
     func extractQRCode(from image: UIImage) -> String? {
         guard let ciImage = CIImage(image: image) else { return nil }
         let context = CIContext()
@@ -410,83 +395,108 @@ struct ScannerView: View {
         
         print("Using deviceId: \(deviceId)")
         
-        guard let url = URL(string: code) else {
-            presentError("Invalid QR code content: \(code)")
-            return
-        }
         
-        session.stopRunning()
-        deactivateScannerAnimation()
-        
-        appState.addScannedCode(code, deviceId: deviceId, os: os, event: event, eventName: eventName) {
-            print("Scan history updated, handling URL opening")
+        if let url = URL(string: code), UIApplication.shared.canOpenURL(url) {
             
-            DispatchQueue.main.async {
-                if code.lowercased().hasPrefix("upi://pay") {
-                    print("Handling UPI URL: \(code)")
-                    
-                    // Extract query parameters from UPI URL
-                    guard let components = URLComponents(string: code),
-                          let queryItems = components.queryItems else {
-                        self.presentError("Invalid UPI URL format")
-                        return
-                    }
-                    
-                    // Build MobiKwik payment URL
-                    var mobikwikComponents = URLComponents()
-                    mobikwikComponents.scheme = "mobikwik"
-                    mobikwikComponents.host = "pay"
-                    
-                    // Map UPI parameters to MobiKwik parameters
-                    var mobikwikQueryItems: [URLQueryItem] = []
-                    
-                    // Transfer all UPI parameters
-                    for item in queryItems {
-                        mobikwikQueryItems.append(URLQueryItem(name: item.name, value: item.value))
-                    }
-                    
-                    // Add additional required parameters if needed
-                    mobikwikQueryItems.append(URLQueryItem(name: "source", value: "upi_qr"))
-                    mobikwikComponents.queryItems = mobikwikQueryItems
-                    
-                    guard let mobikwikURL = mobikwikComponents.url else {
-                        self.presentError("Failed to create MobiKwik payment URL")
-                        return
-                    }
-                    
-                    print("Opening MobiKwik URL: \(mobikwikURL.absoluteString)")
-                    
-                    if UIApplication.shared.canOpenURL(mobikwikURL) {
-                        UIApplication.shared.open(mobikwikURL) { success in
-                            if !success {
-                                self.presentError("Unable to open MobiKwik payment page")
+            print("Handling URL-based code: \(code)")
+            session.stopRunning()
+            deactivateScannerAnimation()
+            
+            appState.addScannedCode(code, deviceId: deviceId, os: os, event: event, eventName: eventName) {
+                print("Scan history updated, handling URL opening")
+                
+                DispatchQueue.main.async {
+                    if code.lowercased().hasPrefix("upi://pay") {
+                        print("Handling UPI URL: \(code)")
+                        
+                       
+                        guard let components = URLComponents(string: code),
+                              let queryItems = components.queryItems else {
+                            self.presentError("Invalid UPI URL format")
+                            return
+                        }
+                        
+                        
+                        var mobikwikComponents = URLComponents()
+                        mobikwikComponents.scheme = "mobikwik"
+                        mobikwikComponents.host = "pay"
+                        
+                        
+                        var mobikwikQueryItems: [URLQueryItem] = []
+                        
+                       
+                        for item in queryItems {
+                            mobikwikQueryItems.append(URLQueryItem(name: item.name, value: item.value))
+                        }
+                        
+                       
+                        mobikwikQueryItems.append(URLQueryItem(name: "source", value: "upi_qr"))
+                        mobikwikComponents.queryItems = mobikwikQueryItems
+                        
+                        guard let mobikwikURL = mobikwikComponents.url else {
+                            self.presentError("Failed to create MobiKwik payment URL")
+                            return
+                        }
+                        
+                        print("Opening MobiKwik URL: \(mobikwikURL.absoluteString)")
+                        
+                        if UIApplication.shared.canOpenURL(mobikwikURL) {
+                            UIApplication.shared.open(mobikwikURL) { success in
+                                if !success {
+                                    self.presentError("Unable to open MobiKwik payment page")
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                    self.restartScanning()
+                                }
                             }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                self.restartScanning()
-                            }
+                        } else {
+                            self.promptToInstallMobiKwik()
                         }
                     } else {
-                        self.promptToInstallMobiKwik()
-                    }
-                } else {
-                    print("Handling regular URL: \(code)")
-                    if UIApplication.shared.canOpenURL(url) {
+                        print("Handling regular URL: \(code)")
                         UIApplication.shared.open(url) { _ in
                             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                                 self.restartScanning()
                             }
                         }
-                    } else {
-                        self.presentError("Scanned code is not a valid URL: \(code)")
+                    }
+                }
+            }
+        } else {
+           
+            print("Handling non-URL code: \(code)")
+            session.stopRunning()
+            deactivateScannerAnimation()
+            
+            
+            let productURL = constructProductURL(from: code)
+            
+            if let productURL = productURL, UIApplication.shared.canOpenURL(productURL) {
+               
+                DispatchQueue.main.async {
+                    UIApplication.shared.open(productURL) { _ in
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                             self.restartScanning()
                         }
                     }
                 }
+            } else {
+               
+                self.presentError("Unable to find product details for barcode: \(code)")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    self.restartScanning()
+                }
             }
         }
     }
 
+    func constructProductURL(from barcode: String) -> URL? {
+        
+        let googleSearchURL = "https://www.google.com/search?q=\(barcode)"
+        
+       
+        return URL(string: googleSearchURL)
+    }
     private func promptToInstallMobiKwik() {
         DispatchQueue.main.async {
             let installAlert = UIAlertController(
@@ -515,25 +525,8 @@ struct ScannerView: View {
             }
         }
     }
-    func openUPIURL(_ url: URL) {
-        if UIApplication.shared.canOpenURL(url) {
-            UIApplication.shared.open(url) { success in
-                if !success {
-                    self.presentError("Unable to open UPI link. Please ensure a UPI app is installed.")
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    self.restartScanning()
-                }
-            }
-        } else {
-            self.presentError("No app available to handle UPI payment.")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                self.restartScanning()
-            }
-        }
-    }
-
 }
+
 struct Preview_scannerview: PreviewProvider {
     static var previews: some View {
         ContentView(appState: AppState())

@@ -11,7 +11,7 @@ import Combine
 import WebKit
 import SwiftKeychainWrapper
 import FirebaseAuth
-import AppTrackingTransparency
+
 
 
 
@@ -99,9 +99,6 @@ struct ScannedHistoryItem: Identifiable, Codable {
 }
 
 class AppState: ObservableObject {
-    @Published var isTrackingAuthorized: Bool = false
-    @Published var showTrackingPermissionAlert: Bool = false
-    @Published var showTrackingExplanation = false
     
     @Published var currentUserId: String? {
         didSet {
@@ -168,9 +165,6 @@ class AppState: ObservableObject {
         self.phoneNumber = UserDefaults.standard.string(forKey: "phoneNumber")
         self.isFirstLaunch = UserDefaults.standard.object(forKey: "isFirstLaunch") == nil || UserDefaults.standard.bool(forKey: "isFirstLaunch")
         self.isSidebarVisible = UserDefaults.standard.bool(forKey: "isSidebarVisible")
-        if self.isFirstLaunch {
-                    self.showTrackingExplanation = true
-                }
         restoreHistoryFromBackend()
         restoreQRHistoryFromBackend()
     }
@@ -609,63 +603,9 @@ class AppState: ObservableObject {
         }
     }
 
-    func requestTrackingPermission() {
-       
-        let status = ATTrackingManager.trackingAuthorizationStatus
-        
-        switch status {
-        case .notDetermined:
-            if isFirstLaunch {
-                showTrackingExplanation = true
-                print("Showing tracking explanation sheet on first launch")
-            } else {
-                
-                requestSystemTrackingPermission()
-            }
-        case .authorized:
-            self.isTrackingAuthorized = true
-            print("Tracking already authorized")
-        case .denied, .restricted:
-            self.isTrackingAuthorized = false
-            print("Tracking already denied or restricted")
-        @unknown default:
-            self.isTrackingAuthorized = false
-            print("Unknown tracking status")
-        }
-    }
+    
 
-    private func requestSystemTrackingPermission() {
-        print("Requesting system tracking permission")
-        ATTrackingManager.requestTrackingAuthorization { status in
-            DispatchQueue.main.async {
-                switch status {
-                case .authorized:
-                    self.isTrackingAuthorized = true
-                    print("Tracking authorized by user")
-                case .denied:
-                    self.isTrackingAuthorized = false
-                    print("Tracking denied by user")
-                case .notDetermined:
-                    self.isTrackingAuthorized = false
-                    print("Tracking status not determined")
-                case .restricted:
-                    self.isTrackingAuthorized = false
-                    print("Tracking restricted")
-                @unknown default:
-                    self.isTrackingAuthorized = false
-                    print("Unknown tracking status")
-                }
-            }
-        }
-    }
-
-    func proceedWithTracking() {
-        showTrackingExplanation = false
-        print("Custom explanation acknowledged, requesting system permission")
-        requestSystemTrackingPermission()
-        isFirstLaunch = false
-        UserDefaults.standard.set(false, forKey: "isFirstLaunch")
-    }
+   
     func setAuthToken(_ token: String) {
         self.idToken = token
         print("Set idToken: \(token)")
@@ -727,32 +667,6 @@ struct ContentView: View {
                     self._displayName = State(initialValue: displayName)
                 }
         }
-    
-    var trackingExplanationSheet: some View {
-        VStack(spacing: 20) {
-            Text("About Data Collection")
-                .font(.headline)
-                .padding(.top)
-            
-            Text("We collect usage data to improve your experience and our service. This helps us understand how users interact with our app and provide better features.")
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-            
-            Button(action: {
-                appState.proceedWithTracking()
-            }) {
-                Text("Continue")
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
-            }
-            .padding()
-        }
-        .padding()
-        .presentationDetents([.height(250)])
-    }
     
     var body: some View {
         NavigationStack {
@@ -910,20 +824,7 @@ struct ContentView: View {
                         }
                     }
                 }
-                .onAppear {
-                            
-                            if appState.isFirstLaunch {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                                    appState.requestTrackingPermission()
-                                }
-                            }
-                        }
-                        .sheet(isPresented: $appState.showTrackingExplanation) {
-                            trackingExplanationSheet
-                        }
             }
-            
-            
             .environmentObject(appState)
             .ignoresSafeArea(edges: .all)
             .sheet(isPresented: $showShareSheet) {

@@ -13,7 +13,8 @@ import FirebaseMessaging
 import AVKit
 import AuthenticationServices
 import CryptoKit
-import AppTrackingTransparency
+
+
 
 
 class KeyboardObserver: ObservableObject {
@@ -303,11 +304,6 @@ struct LoginView: View {
                 .ignoresSafeArea()
 
             }
-            .onAppear {
-                if ATTrackingManager.trackingAuthorizationStatus == .notDetermined {
-                    appState.requestTrackingPermission()
-                            }
-                        }
             .navigationDestination(isPresented: $navigateToOTP) {
                 OTPView(
                     verificationID: verificationID,
