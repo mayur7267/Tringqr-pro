@@ -475,7 +475,6 @@
 				INFOPLIST_FILE = TringQR/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need access to your camera to scan QR codes.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "";
-				INFOPLIST_KEY_NSUserTrackingUsageDescription = "We use this data to provide you with a better and more personalized scanning experience, and to improve our services.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = "";
@@ -522,7 +521,6 @@
 				INFOPLIST_FILE = TringQR/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need access to your camera to scan QR codes.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "";
-				INFOPLIST_KEY_NSUserTrackingUsageDescription = "We use this data to provide you with a better and more personalized scanning experience, and to improve our services.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = "";
