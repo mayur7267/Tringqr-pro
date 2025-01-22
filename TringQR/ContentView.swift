@@ -230,12 +230,41 @@ class AppState: ObservableObject {
         }
     }
     func sendToBackend(code: String, deviceId: String, os: String, event: String, eventName: String, completion: @escaping (Bool) -> Void) {
+        
+        guard let currentUser = Auth.auth().currentUser else {
+            print("No user is signed in.")
+            completion(false)
+            return
+        }
+
+        
+        currentUser.getIDTokenForcingRefresh(true) { idToken, error in
+            if let error = error {
+                print("Failed to refresh ID token: \(error.localizedDescription)")
+                completion(false)
+                return
+            }
+
+            guard let idToken = idToken else {
+                print("Refreshed ID token is nil.")
+                completion(false)
+                return
+            }
+
+            
+            DispatchQueue.main.async {
+                self.idToken = idToken
+                print("Refreshed idToken set in AppState: \(idToken)")
+            }
+
+            
             guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/qr-pro/activity") else {
                 print("Invalid URL")
                 completion(false)
                 return
             }
 
+            
             let payload: [String: Any] = [
                 "code": code,
                 "deviceId": deviceId,
@@ -244,10 +273,13 @@ class AppState: ObservableObject {
                 "eventName": eventName
             ]
 
+            
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
 
+           
             do {
                 request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [])
                 print("Sending payload to backend: \(payload)")
@@ -257,6 +289,7 @@ class AppState: ObservableObject {
                 return
             }
 
+           
             URLSession.shared.dataTask(with: request) { data, response, error in
                 if let error = error {
                     print("Error sending data to backend: \(error.localizedDescription)")
@@ -264,6 +297,7 @@ class AppState: ObservableObject {
                     return
                 }
 
+                
                 guard let httpResponse = response as? HTTPURLResponse else {
                     print("Invalid response type")
                     completion(false)
@@ -271,65 +305,113 @@ class AppState: ObservableObject {
                 }
 
                 print("Backend response status code: \(httpResponse.statusCode)")
+
                 
                 if let data = data, let responseString = String(data: data, encoding: .utf8) {
                     print("Backend response data: \(responseString)")
                 }
 
+                
                 completion(httpResponse.statusCode == 200 || httpResponse.statusCode == 201)
             }.resume()
         }
+    }
     func fetchScanHistory(deviceId: String, completion: @escaping ([[String: Any]]?) -> Void) {
-        guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/qr-pro/activity") else {
-            print("Invalid URL")
+        
+        guard let currentUser = Auth.auth().currentUser else {
+            print("No user is signed in for scan history fetch")
             completion(nil)
             return
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        
+        currentUser.getIDTokenForcingRefresh(true) { idToken, error in
             if let error = error {
-                print("Network error: \(error.localizedDescription)")
+                print("Failed to refresh ID token for scan history: \(error.localizedDescription)")
                 completion(nil)
                 return
             }
 
-            guard let data = data else {
-                print("No data received")
+            guard let idToken = idToken else {
+                print("Refreshed ID token is nil for scan history")
                 completion(nil)
                 return
             }
+
+          
+            guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/qr-pro/activity") else {
+                print("Invalid URL for scan history")
+                completion(nil)
+                return
+            }
+
+           
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
+
+            print("Fetching scan history with token: \(idToken)")
 
             
-            if let responseString = String(data: data, encoding: .utf8) {
-                print("Raw response: \(responseString)")
-            }
+            URLSession.shared.dataTask(with: request) { data, response, error in
+                if let error = error {
+                    print("Network error fetching scan history: \(error.localizedDescription)")
+                    completion(nil)
+                    return
+                }
 
-            do {
                 
-                if let jsonArray = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-                    print("Successfully parsed JSON array: \(jsonArray)")
-                    completion(jsonArray)
-                } else if let jsonDict = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                          let jsonArray = jsonDict["data"] as? [[String: Any]] {
-                    
-                    print("Successfully parsed JSON array from 'data' key: \(jsonArray)")
-                    completion(jsonArray)
-                } else {
-                    print("Failed to parse JSON as array or dictionary")
+                if let httpResponse = response as? HTTPURLResponse {
+                    print("Scan history fetch response code: \(httpResponse.statusCode)")
+                }
+
+               
+                guard let data = data else {
+                    print("No data received for scan history")
+                    completion(nil)
+                    return
+                }
+
+                
+                if let responseString = String(data: data, encoding: .utf8) {
+                    print("Raw scan history response: \(responseString)")
+                }
+
+                
+                do {
+                    if let jsonArray = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                        print("Successfully parsed scan history array directly: \(jsonArray)")
+                        completion(jsonArray)
+                    } else if let jsonDict = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                        
+                        if let dataArray = jsonDict["data"] as? [[String: Any]] {
+                            print("Found scan history in 'data' field: \(dataArray)")
+                            completion(dataArray)
+                        } else if let results = jsonDict["results"] as? [[String: Any]] {
+                            print("Found scan history in 'results' field: \(results)")
+                            completion(results)
+                        } else if let items = jsonDict["items"] as? [[String: Any]] {
+                            print("Found scan history in 'items' field: \(items)")
+                            completion(items)
+                        } else {
+                            print("Could not find scan history array in response: \(jsonDict)")
+                            completion(nil)
+                        }
+                    } else {
+                        print("Failed to parse scan history JSON")
+                        completion(nil)
+                    }
+                } catch {
+                    print("Scan history JSON parsing error: \(error)")
+                    if let responseString = String(data: data, encoding: .utf8) {
+                        print("Failed to parse response: \(responseString)")
+                    }
                     completion(nil)
                 }
-            } catch {
-                print("JSON parsing error: \(error)")
-                print("Raw data: \(data)")
-                completion(nil)
-            }
-        }.resume()
+            }.resume()
+        }
     }
-    
     func restoreQRHistoryFromBackend() {
         let deviceId = getDeviceId()
         print("Starting QR history restore process")
