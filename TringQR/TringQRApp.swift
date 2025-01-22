@@ -12,7 +12,20 @@ import UserNotifications
 import FirebaseCrashlytics
 import GoogleSignIn
 import AppTrackingTransparency
+import FirebaseAuth
+import UIKit
 
+class AuthUIDelegateHandler: NSObject, AuthUIDelegate {
+    func present(_ viewControllerToPresent: UIViewController, animated flag: Bool, completion: (() -> Void)? = nil) {
+        
+        UIApplication.shared.windows.first?.rootViewController?.present(viewControllerToPresent, animated: flag, completion: completion)
+    }
+
+    func dismiss(animated flag: Bool, completion: (() -> Void)? = nil) {
+        
+        UIApplication.shared.windows.first?.rootViewController?.dismiss(animated: flag, completion: completion)
+    }
+}
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
     func application(
         _ application: UIApplication,
@@ -93,7 +106,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
         guard let scheme = url.scheme, let host = url.host else { return false }
-        if scheme == "app-1-318092550249-ios-ae473cdeaea44f437042f8" {
+        if scheme == "app-1-1044910506169-ios-073a0122277255931f1b68" {
             print("URL Host: \(host)")
             if let urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: true),
                let queryItems = urlComponents.queryItems {

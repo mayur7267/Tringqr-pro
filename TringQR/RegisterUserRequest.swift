@@ -55,7 +55,7 @@ class APIManager {
 
    
     func sendIDTokenToBackend(idToken: String, completion: @escaping (Result<Bool, Error>) -> Void) {
-        guard let url = URL(string: "\(baseURL)/v1/users/validateToken") else {
+        guard let url = URL(string: "\(baseURL)/v1/qr-pro/validateToken") else {
             completion(.failure(NSError(domain: "Invalid URL", code: -1, userInfo: nil)))
             return
         }
@@ -88,7 +88,7 @@ class APIManager {
 
     
     func registerUser(request: RegisterUserRequest, token: String, completion: @escaping (Result<RegisterUserResponse, Error>) -> Void) {
-        guard let url = URL(string: "\(baseURL)/v1/users/qr") else {
+        guard let url = URL(string: "\(baseURL)/v1/qr-pro/users") else {
             completion(.failure(NSError(domain: "Invalid URL", code: -1, userInfo: nil)))
             return
         }

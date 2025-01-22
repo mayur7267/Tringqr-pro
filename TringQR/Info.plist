@@ -13,7 +13,7 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.318092550249-hgnei1i74s09e859etljbo0qf5joa4gt</string>
+				<string>com.googleusercontent.apps.1044910506169-34r8510b4s0veavldcsp93lsr30bmdb5</string>
 			</array>
 		</dict>
 		<dict>
@@ -21,12 +21,12 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>app-1-318092550249-ios-ae473cdeaea44f437042f8</string>
+				<string>app-1-1044910506169-ios-073a0122277255931f1b68</string>
 			</array>
 		</dict>
 	</array>
 	<key>FirebaseAppDelegateProxyEnabled</key>
-	<false/>
+	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSApplicationQueriesSchemes</key>

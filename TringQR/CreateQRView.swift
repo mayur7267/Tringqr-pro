@@ -54,7 +54,8 @@ struct CreateQRView: View {
                 
                 
                 HStack(spacing: 0) {
-                    ForEach(["History", "Create"], id: \.self) { tab in
+                    
+                    ForEach(["Create", "History"], id: \.self) { tab in
                         Button(action: {
                             withAnimation {
                                 currentTab = tab

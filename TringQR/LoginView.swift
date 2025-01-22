@@ -523,6 +523,7 @@ struct LoginView: View {
     
     
     func sendOTP() {
+        let authUIDelegate = AuthUIDelegateHandler()
         let formattedNumber = selectedCountry.code + phoneNumber.trimmingCharacters(in: .whitespaces)
         
         isLoading = true

@@ -124,14 +124,6 @@ class AppState: ObservableObject {
         }
     }
 
-   
-
-    @Published var isFirstLaunch: Bool {
-        didSet {
-            UserDefaults.standard.set(isFirstLaunch, forKey: "isFirstLaunch")
-        }
-    }
-
     @Published var isSidebarVisible: Bool {
         didSet {
             UserDefaults.standard.set(isSidebarVisible, forKey: "isSidebarVisible")
@@ -163,7 +155,6 @@ class AppState: ObservableObject {
         self.isLoggedIn = UserDefaults.standard.bool(forKey: "isLoggedIn")
         self.userName = UserDefaults.standard.string(forKey: "userName") ?? ""
         self.phoneNumber = UserDefaults.standard.string(forKey: "phoneNumber")
-        self.isFirstLaunch = UserDefaults.standard.object(forKey: "isFirstLaunch") == nil || UserDefaults.standard.bool(forKey: "isFirstLaunch")
         self.isSidebarVisible = UserDefaults.standard.bool(forKey: "isSidebarVisible")
         restoreHistoryFromBackend()
         restoreQRHistoryFromBackend()
@@ -239,7 +230,7 @@ class AppState: ObservableObject {
         }
     }
     func sendToBackend(code: String, deviceId: String, os: String, event: String, eventName: String, completion: @escaping (Bool) -> Void) {
-            guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/users/activity") else {
+            guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/qr-pro/activity") else {
                 print("Invalid URL")
                 completion(false)
                 return
@@ -289,7 +280,7 @@ class AppState: ObservableObject {
             }.resume()
         }
     func fetchScanHistory(deviceId: String, completion: @escaping ([[String: Any]]?) -> Void) {
-        guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/users/activity/\(deviceId)") else {
+        guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/qr-pro/activity") else {
             print("Invalid URL")
             completion(nil)
             return
@@ -437,7 +428,7 @@ class AppState: ObservableObject {
             }
 
            
-            guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/qr/scan/create") else {
+            guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/qr-pro/scan/create") else {
                 print("Invalid URL")
                 completion(false)
                 return
@@ -506,7 +497,7 @@ class AppState: ObservableObject {
                 return
             }
             
-            guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/qr/scan") else {
+            guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/qr-pro/scan") else {
                 print("Invalid URL for QR history")
                 completion(nil)
                 return
@@ -633,13 +624,16 @@ class AppState: ObservableObject {
         userName = ""
         phoneNumber = nil
         idToken = nil
-        UserDefaults.standard.removeObject(forKey: "userName")
-        UserDefaults.standard.removeObject(forKey: "phoneNumber")
+        UserDefaults.standard.removeObject(forKey: "isLoggedIn")
+           UserDefaults.standard.removeObject(forKey: "userName")
+           UserDefaults.standard.removeObject(forKey: "phoneNumber")
+           UserDefaults.standard.removeObject(forKey: "idToken")
+           
+          
+           KeychainWrapper.standard.removeObject(forKey: "idToken")
     }
 
-    func completeFirstLaunch() {
-        isFirstLaunch = false
-    }
+
 
     func toggleSidebar() {
         DispatchQueue.main.async {
@@ -662,11 +656,11 @@ struct ContentView: View {
     @State private var displayName: String = "Apple User"
     
     init(appState: AppState, displayName: String? = nil) {
-            self._showLoginView = State(initialValue: !appState.isLoggedIn && appState.isFirstLaunch)
-             if let displayName = displayName {
-                    self._displayName = State(initialValue: displayName)
-                }
+        self._showLoginView = State(initialValue: !appState.isLoggedIn)
+        if let displayName = displayName {
+            self._displayName = State(initialValue: displayName)
         }
+    }
     
     var body: some View {
         NavigationStack {
@@ -685,7 +679,7 @@ struct ContentView: View {
                                 appState.setUserName(displayName)
                             }
                             showLoginView = false
-                            appState.completeFirstLaunch()
+//                            appState.completeFirstLaunch()
                         })
                         .transition(.move(edge: .leading))
                     } else {

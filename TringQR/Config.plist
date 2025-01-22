@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>BaseURL</key>
-	<string>https://core-api-619357594029.asia-south1.run.app</string>
+	<string>https://api.tringbox.com</string>
 	<key>RegisterUserURL</key>
-	<string>https://core-api-619357594029.asia-south1.run.app/v1/users/qr</string>
+	<string>https://core-api-619357594029.asia-south1.run.app/v1/qr-pro/users</string>
 	<key>BearerToken</key>
 	<string>actual_bearer_token_string</string>
 	<key>IDToken</key>
