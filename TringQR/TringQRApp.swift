@@ -34,6 +34,12 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         
+        if let baseURL = Bundle.main.object(forInfoDictionaryKey: "BASE_URL") as? String {
+                    print("Base URL: \(baseURL)")
+                } else {
+                    print("Base URL not found in Info.plist")
+                }
+        
         FirebaseApp.configure()
         FirebaseConfiguration.shared.setLoggerLevel(.debug)
         
@@ -41,7 +47,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
         Crashlytics.crashlytics()
         
-//        requestNotificationPermissions(application)
+
 
         Messaging.messaging().delegate = self
 
@@ -131,7 +137,7 @@ struct TringQRApp: App {
     var body: some Scene {
         WindowGroup {
             NavigationView {
-//                ContentView(appState: appState,displayName: appState.userName ?? "Apple User")
+
                 SplashView()
                     .environmentObject(appState)
             }
