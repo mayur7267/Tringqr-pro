@@ -42,7 +42,12 @@ class APIManager {
     private init() {}
 
    
-    private let baseURL = AppConfig.baseURL
+    private var baseURL: String {
+            guard let url = Bundle.main.object(forInfoDictionaryKey: "BASE_URL") as? String else {
+                fatalError("BASE_URL not found in Info.plist")
+            }
+            return url
+        }
 
     
     private var config: [String: Any] {

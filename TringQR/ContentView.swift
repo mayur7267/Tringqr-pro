@@ -98,6 +98,14 @@ struct ScannedHistoryItem: Identifiable, Codable {
         }
     }
 }
+extension Bundle {
+    static var baseURL: String {
+        guard let url = Bundle.main.object(forInfoDictionaryKey: "BASE_URL") as? String else {
+            fatalError("BASE_URL not found in Info.plist")
+        }
+        return url
+    }
+}
 
 class AppState: ObservableObject {
     
@@ -259,7 +267,7 @@ class AppState: ObservableObject {
             }
 
             
-            guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/qr-pro/activity") else {
+            guard let url = URL(string: "\(Bundle.baseURL)/v1/qr-pro/activity") else {
                 print("Invalid URL")
                 completion(false)
                 return
@@ -340,7 +348,7 @@ class AppState: ObservableObject {
             }
 
           
-            guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/qr-pro/activity") else {
+            guard let url = URL(string: "\(Bundle.baseURL)/v1/qr-pro/activity") else {
                 print("Invalid URL for scan history")
                 completion(nil)
                 return
@@ -514,7 +522,7 @@ class AppState: ObservableObject {
             }
 
            
-            guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/qr-pro/scan/create") else {
+            guard let url = URL(string: "\(Bundle.baseURL)/v1/qr-pro/scan/create") else {
                 print("Invalid URL")
                 completion(false)
                 return
@@ -583,7 +591,7 @@ class AppState: ObservableObject {
                 return
             }
             
-            guard let url = URL(string: "https://core-api-619357594029.asia-south1.run.app/v1/qr-pro/scan") else {
+            guard let url = URL(string: "\(Bundle.baseURL)/v1/qr-pro/scan") else {
                 print("Invalid URL for QR history")
                 completion(nil)
                 return
