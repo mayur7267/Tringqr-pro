@@ -13,6 +13,7 @@ import FirebaseMessaging
 import AVKit
 import AuthenticationServices
 import CryptoKit
+import Firebase
 
 
 
@@ -187,6 +188,10 @@ struct LoginView: View {
                 ZStack {
                     VideoBackgroundView()
                         .ignoresSafeArea()
+                    
+                            .onTapGesture {
+                                self.hideKeyboard()
+                            }
                     
                     VStack {
                         Spacer()
