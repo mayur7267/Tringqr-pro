@@ -11,7 +11,8 @@ import Combine
 import WebKit
 import SwiftKeychainWrapper
 import FirebaseAuth
-
+import Firebase
+import FirebaseAnalytics
 
 
 
@@ -479,6 +480,9 @@ class AppState: ObservableObject {
             
             completion()
         }
+        Analytics.logEvent("qr_code_created", parameters: [
+                "content_type": content.contains("://") ? "url" : "text"
+            ])
     }
     private func sendQRToBackend(content: String, completion: @escaping (Bool) -> Void) {
         

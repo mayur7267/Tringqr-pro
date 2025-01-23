@@ -322,6 +322,17 @@ struct LoginView: View {
                 ContentView(appState: appState,displayName: appState.userName ?? "Apple User")
                     .navigationBarBackButtonHidden(true)
             }
+            .onAppear {
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+                    if let error = error {
+                        print("Failed to request notification permissions: \(error.localizedDescription)")
+                    } else {
+                        UserDefaults.standard.set(granted, forKey: "notificationsEnabled")
+                        print("Notification permissions granted: \(granted)")
+                    }
+                }
+                UIApplication.shared.registerForRemoteNotifications()
+            }
             .sheet(isPresented: $isCountryPickerPresented) {
                 CountryPicker(selectedCountry: $selectedCountry)
             }
@@ -332,6 +343,8 @@ struct LoginView: View {
                 Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
             }
             .preferredColorScheme(.light)
+            
+            
         }
     }
     

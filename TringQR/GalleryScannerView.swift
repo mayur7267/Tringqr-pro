@@ -132,7 +132,7 @@ struct GalleryScannerView: View {
 import SwiftUI
 import UIKit
 
-// GIFCache to store GIF data in memory
+
 class GIFCache {
     static let shared = GIFCache()
     private let cache = NSCache<NSString, NSData>()
@@ -154,7 +154,7 @@ struct GIFView: UIViewRepresentable {
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
 
-        // Load GIF
+        
         loadGIF(for: imageView)
 
         return imageView
@@ -165,7 +165,7 @@ struct GIFView: UIViewRepresentable {
    
     private func loadGIF(for imageView: UIImageView) {
         DispatchQueue.global(qos: .userInteractive).async {
-            // Check cache first
+           
             if let cachedData = GIFCache.shared.getCachedGIF(named: gifName) {
                 if let image = UIImage.animatedImage(withAnimatedGIFData: cachedData) {
                     DispatchQueue.main.async {
@@ -175,14 +175,14 @@ struct GIFView: UIViewRepresentable {
                 return
             }
 
-            // Load from bundle if not cached
+            
             guard let path = Bundle.main.path(forResource: gifName, ofType: "gif"),
                   let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else {
                 print("Error: GIF not found or failed to load: \(gifName)")
                 return
             }
 
-            // Cache and display the GIF
+            
             GIFCache.shared.cacheGIF(data: data, named: gifName)
             if let image = UIImage.animatedImage(withAnimatedGIFData: data) {
                 DispatchQueue.main.async {

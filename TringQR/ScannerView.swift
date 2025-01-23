@@ -9,6 +9,7 @@ import SwiftUI
 import AVFoundation
 import PhotosUI
 import UIKit
+import Firebase
 
 struct ScannerView: View {
     @State private var isScanning: Bool = true
@@ -488,6 +489,10 @@ struct ScannerView: View {
                 }
             }
         }
+        Analytics.logEvent("qr_code_scanned", parameters: [
+                "code_type": code.contains("://") ? "url" : "text",
+                "scan_method": "camera"
+            ])
     }
 
     func constructProductURL(from barcode: String) -> URL? {

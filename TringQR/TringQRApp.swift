@@ -14,6 +14,8 @@ import GoogleSignIn
 import AppTrackingTransparency
 import FirebaseAuth
 import UIKit
+import Firebase
+import FirebaseAnalytics
 
 class AuthUIDelegateHandler: NSObject, AuthUIDelegate {
     func present(_ viewControllerToPresent: UIViewController, animated flag: Bool, completion: (() -> Void)? = nil) {
@@ -34,10 +36,12 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         
         FirebaseApp.configure()
         FirebaseConfiguration.shared.setLoggerLevel(.debug)
+        
+        Analytics.setAnalyticsCollectionEnabled(true)
 
         Crashlytics.crashlytics()
         
-        requestNotificationPermissions(application)
+//        requestNotificationPermissions(application)
 
         Messaging.messaging().delegate = self
 
@@ -127,7 +131,8 @@ struct TringQRApp: App {
     var body: some Scene {
         WindowGroup {
             NavigationView {
-                ContentView(appState: appState,displayName: appState.userName ?? "Apple User")
+//                ContentView(appState: appState,displayName: appState.userName ?? "Apple User")
+                SplashView()
                     .environmentObject(appState)
             }
         }
