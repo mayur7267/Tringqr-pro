@@ -1086,11 +1086,8 @@ struct SignInView: View {
 
 struct HistoryView: View {
     @EnvironmentObject var appState: AppState
-    @State private var showShareSheet = false
-    @State private var selectedHistoryItem: ScannedHistoryItem? = nil
     @State private var isRefreshing = false
     @State private var errorMessage: String? = nil
-    @State private var shareContent: String? = nil
 
     var body: some View {
         ZStack {
@@ -1102,7 +1099,6 @@ struct HistoryView: View {
                     PullToRefresh(coordinateSpaceName: "pullToRefresh") {
                         refreshScanHistory()
                     }
-                    
                     
                     if let error = errorMessage {
                         Text(error)
@@ -1129,11 +1125,7 @@ struct HistoryView: View {
                     } else {
                         VStack(spacing: 12) {
                             ForEach(appState.scannedHistory) { historyItem in
-                                HistoryItemView(
-                                    historyItem: historyItem,
-                                    showShareSheet: $showShareSheet, shareContent: $shareContent,
-                                    selectedHistoryItem: $selectedHistoryItem
-                                )
+                                HistoryItemView(historyItem: historyItem) // No bindings needed
                             }
                         }
                         .padding(.horizontal, 16)
@@ -1160,7 +1152,6 @@ struct HistoryView: View {
                 isRefreshing = false
                 
                 if let history = history {
-                    
                     let scannedItems = history.compactMap { item -> ScannedHistoryItem? in
                         guard let code = item["eventName"] as? String else { return nil }
                         return ScannedHistoryItem(
@@ -1171,12 +1162,10 @@ struct HistoryView: View {
                         )
                     }
                     
-                   
                     if !scannedItems.isEmpty {
                         appState.scannedHistory = scannedItems
                         errorMessage = nil
                     } else if appState.scannedHistory.isEmpty {
-                        
                         errorMessage = "No scan history available yet"
                     }
                 }
@@ -1186,6 +1175,7 @@ struct HistoryView: View {
         }
     }
 }
+
 struct PullToRefresh: View {
     var coordinateSpaceName: String
     var onRefresh: () -> Void
@@ -1220,14 +1210,12 @@ struct PullToRefresh: View {
 }
 struct HistoryItemView: View {
     let historyItem: ScannedHistoryItem
-    @Binding var showShareSheet: Bool
-    @Binding var shareContent: String?
-    @Binding var selectedHistoryItem: ScannedHistoryItem?
     @EnvironmentObject var appState: AppState
     @Environment(\.colorScheme) var colorScheme
     
     @State private var showDeleteConfirmation = false
-    @State private var activityItems: [String] = []
+    @State private var showShareSheet = false
+    @State private var shareItems: [Any] = []
     @State private var isShareSheetReady = false
 
     var body: some View {
@@ -1240,7 +1228,7 @@ struct HistoryItemView: View {
                 
                 Spacer()
                 
-                // Redirect Button
+               
                 Button(action: {
                     handleRedirect(historyItem.code)
                 }) {
@@ -1250,11 +1238,9 @@ struct HistoryItemView: View {
                 }
                 .padding(.horizontal, 4)
                 
-                // Share Button
+               
                 Button(action: {
-                    activityItems = [historyItem.code]
-                    selectedHistoryItem = historyItem
-                    isShareSheetReady = true
+                    prepareShareSheet()
                 }) {
                     Image(systemName: "square.and.arrow.up")
                         .font(.system(size: 20))
@@ -1278,9 +1264,7 @@ struct HistoryItemView: View {
         )
         .contextMenu {
             Button(action: {
-                activityItems = [historyItem.code]
-                selectedHistoryItem = historyItem
-                isShareSheetReady = true
+                prepareShareSheet()
             }) {
                 Label("Share", systemImage: "square.and.arrow.up")
             }
@@ -1305,21 +1289,45 @@ struct HistoryItemView: View {
         } message: {
             Text("Are you sure you want to delete this item?")
         }
-        .onChange(of: isShareSheetReady) { isReady in
-            if isReady {
+        .onChange(of: isShareSheetReady) { newValue in
+            if newValue {
                 showShareSheet = true
             }
         }
         .sheet(isPresented: $showShareSheet, onDismiss: {
-            showShareSheet = false
-            selectedHistoryItem = nil
-            activityItems = []
-            isShareSheetReady = false
+            resetShareSheet()
         }) {
-            if !activityItems.isEmpty {
-                ActivityView(activityItems: activityItems)
+            if !shareItems.isEmpty {
+                ActivityView(activityItems: shareItems)
+            } else {
+                
+                EmptyView()
             }
         }
+    }
+    
+    private func prepareShareSheet() {
+        
+        guard !historyItem.code.isEmpty else {
+            print("Error: historyItem.code is empty")
+            return
+        }
+        
+       
+        shareItems = [historyItem.code]
+        
+       
+        isShareSheetReady = true
+        
+        print("Prepared share sheet with: \(historyItem.code)")
+    }
+    
+    private func resetShareSheet() {
+        showShareSheet = false
+        shareItems = []
+        isShareSheetReady = false
+        
+        print("Share sheet reset")
     }
 
     private func formattedDate(_ date: Date) -> String {
@@ -1334,17 +1342,13 @@ struct HistoryItemView: View {
             appState.scannedHistory.remove(at: index)
         }
     }
-
     
     private func handleRedirect(_ code: String) {
         if code.lowercased().hasPrefix("upi://pay") {
-           
             handleUPIQRCode(code)
         } else if let url = URL(string: code), UIApplication.shared.canOpenURL(url) {
-            
             UIApplication.shared.open(url)
         } else {
-            
             let searchURLString = "https://www.google.com/search?q=\(code.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
             if let searchURL = URL(string: searchURLString) {
                 UIApplication.shared.open(searchURL)
@@ -1354,7 +1358,6 @@ struct HistoryItemView: View {
         }
     }
 
-  
     private func handleUPIQRCode(_ upiCode: String) {
         guard let components = URLComponents(string: upiCode),
               let queryItems = components.queryItems else {
@@ -1362,22 +1365,18 @@ struct HistoryItemView: View {
             return
         }
 
-       
         var mobikwikComponents = URLComponents()
         mobikwikComponents.scheme = "mobikwik"
         mobikwikComponents.host = "pay"
 
-       
         var mobikwikQueryItems: [URLQueryItem] = []
         for item in queryItems {
             mobikwikQueryItems.append(URLQueryItem(name: item.name, value: item.value))
         }
 
-        
         mobikwikQueryItems.append(URLQueryItem(name: "source", value: "upi_qr"))
         mobikwikComponents.queryItems = mobikwikQueryItems
 
-       
         guard let mobikwikURL = mobikwikComponents.url else {
             presentError("Failed to create MobiKwik payment URL")
             return
@@ -1396,7 +1395,6 @@ struct HistoryItemView: View {
         }
     }
 
-    
     private func promptToInstallMobiKwik() {
         DispatchQueue.main.async {
             let installAlert = UIAlertController(
@@ -1405,9 +1403,7 @@ struct HistoryItemView: View {
                 preferredStyle: .alert
             )
             
-            installAlert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
-               
-            })
+            installAlert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
             
             installAlert.addAction(UIAlertAction(title: "Install", style: .default) { _ in
                 if let appStoreURL = URL(string: "https://apps.apple.com/in/app/mobikwik-bhim-upi-wallet/id600002523") {
@@ -1422,18 +1418,18 @@ struct HistoryItemView: View {
         }
     }
 
-   
     private func presentError(_ message: String) {
-        let alert = UIAlertController(title: "Error", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootViewController = windowScene.windows.first?.rootViewController {
-            rootViewController.present(alert, animated: true)
+        DispatchQueue.main.async {
+            let alert = UIAlertController(title: "Error", message: message, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let rootViewController = windowScene.windows.first?.rootViewController {
+                rootViewController.present(alert, animated: true)
+            }
         }
     }
 }
-
 struct Preview_contentview: PreviewProvider {
     static var previews: some View {
         Group {
