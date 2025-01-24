@@ -393,115 +393,96 @@ struct ScannerView: View {
         let os = "ios"
         let event = "scan"
         let eventName = code
-        
+
         print("Using deviceId: \(deviceId)")
-        
-        
-        if let url = URL(string: code), UIApplication.shared.canOpenURL(url) {
+
+       
+        appState.addScannedCode(code, deviceId: deviceId, os: os, event: event, eventName: eventName) {
+            print("Scan history updated for code: \(code)")
+
             
-            print("Handling URL-based code: \(code)")
-            session.stopRunning()
-            deactivateScannerAnimation()
+            if code.lowercased().hasPrefix("upi://pay") {
+                print("Handling UPI QR code: \(code)")
+                handleUPIQRCode(code)
+            }
             
-            appState.addScannedCode(code, deviceId: deviceId, os: os, event: event, eventName: eventName) {
-                print("Scan history updated, handling URL opening")
-                
-                DispatchQueue.main.async {
-                    if code.lowercased().hasPrefix("upi://pay") {
-                        print("Handling UPI URL: \(code)")
-                        
-                       
-                        guard let components = URLComponents(string: code),
-                              let queryItems = components.queryItems else {
-                            self.presentError("Invalid UPI URL format")
-                            return
-                        }
-                        
-                        
-                        var mobikwikComponents = URLComponents()
-                        mobikwikComponents.scheme = "mobikwik"
-                        mobikwikComponents.host = "pay"
-                        
-                        
-                        var mobikwikQueryItems: [URLQueryItem] = []
-                        
-                       
-                        for item in queryItems {
-                            mobikwikQueryItems.append(URLQueryItem(name: item.name, value: item.value))
-                        }
-                        
-                       
-                        mobikwikQueryItems.append(URLQueryItem(name: "source", value: "upi_qr"))
-                        mobikwikComponents.queryItems = mobikwikQueryItems
-                        
-                        guard let mobikwikURL = mobikwikComponents.url else {
-                            self.presentError("Failed to create MobiKwik payment URL")
-                            return
-                        }
-                        
-                        print("Opening MobiKwik URL: \(mobikwikURL.absoluteString)")
-                        
-                        if UIApplication.shared.canOpenURL(mobikwikURL) {
-                            UIApplication.shared.open(mobikwikURL) { success in
-                                if !success {
-                                    self.presentError("Unable to open MobiKwik payment page")
-                                }
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                    self.restartScanning()
-                                }
-                            }
-                        } else {
-                            self.promptToInstallMobiKwik()
-                        }
-                    } else {
-                        print("Handling regular URL: \(code)")
-                        UIApplication.shared.open(url) { _ in
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                self.restartScanning()
-                            }
-                        }
+            else if let url = URL(string: code), UIApplication.shared.canOpenURL(url) {
+                print("Handling regular URL-based code: \(code)")
+                UIApplication.shared.open(url) { _ in
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        self.restartScanning()
                     }
                 }
             }
-        } else {
            
-            print("Handling non-URL code: \(code)")
-            session.stopRunning()
-            deactivateScannerAnimation()
-            
-            
-            let productURL = constructProductURL(from: code)
-            
-            if let productURL = productURL, UIApplication.shared.canOpenURL(productURL) {
-               
-                DispatchQueue.main.async {
-                    UIApplication.shared.open(productURL) { _ in
+            else {
+                print("Handling non-URL code: \(code)")
+                let searchURLString = "https://www.google.com/search?q=\(code.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
+                if let searchURL = URL(string: searchURLString) {
+                    UIApplication.shared.open(searchURL) { _ in
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                             self.restartScanning()
                         }
                     }
+                } else {
+                    print("Failed to construct search URL for barcode: \(code)")
                 }
-            } else {
-               
-                self.presentError("Unable to find product details for barcode: \(code)")
+            }
+        }
+
+       
+        Analytics.logEvent("qr_code_scanned", parameters: [
+            "code_type": code.contains("://") ? "url" : "text",
+            "scan_method": "camera"
+        ])
+    }
+
+   
+    private func handleUPIQRCode(_ upiCode: String) {
+        guard let components = URLComponents(string: upiCode),
+              let queryItems = components.queryItems else {
+            presentError("Invalid UPI QR code format")
+            return
+        }
+
+       
+        var mobikwikComponents = URLComponents()
+        mobikwikComponents.scheme = "mobikwik"
+        mobikwikComponents.host = "pay"
+
+        
+        var mobikwikQueryItems: [URLQueryItem] = []
+        for item in queryItems {
+            mobikwikQueryItems.append(URLQueryItem(name: item.name, value: item.value))
+        }
+
+        
+        mobikwikQueryItems.append(URLQueryItem(name: "source", value: "upi_qr"))
+        mobikwikComponents.queryItems = mobikwikQueryItems
+
+        
+        guard let mobikwikURL = mobikwikComponents.url else {
+            presentError("Failed to create MobiKwik payment URL")
+            return
+        }
+
+        print("Opening MobiKwik URL: \(mobikwikURL.absoluteString)")
+
+        if UIApplication.shared.canOpenURL(mobikwikURL) {
+            UIApplication.shared.open(mobikwikURL) { success in
+                if !success {
+                    self.presentError("Unable to open MobiKwik payment page")
+                }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                     self.restartScanning()
                 }
             }
+        } else {
+            promptToInstallMobiKwik()
         }
-        Analytics.logEvent("qr_code_scanned", parameters: [
-                "code_type": code.contains("://") ? "url" : "text",
-                "scan_method": "camera"
-            ])
     }
 
-    func constructProductURL(from barcode: String) -> URL? {
-        
-        let googleSearchURL = "https://www.google.com/search?q=\(barcode)"
-        
-       
-        return URL(string: googleSearchURL)
-    }
+   
     private func promptToInstallMobiKwik() {
         DispatchQueue.main.async {
             let installAlert = UIAlertController(

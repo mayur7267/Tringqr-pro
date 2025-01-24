@@ -1240,11 +1240,9 @@ struct HistoryItemView: View {
                 
                 Spacer()
                 
+                // Redirect Button
                 Button(action: {
-                    if let url = URL(string: historyItem.code),
-                       UIApplication.shared.canOpenURL(url) {
-                        UIApplication.shared.open(url)
-                    }
+                    handleRedirect(historyItem.code)
                 }) {
                     Image(systemName: "arrow.up.right.square")
                         .font(.system(size: 20))
@@ -1252,7 +1250,7 @@ struct HistoryItemView: View {
                 }
                 .padding(.horizontal, 4)
                 
-                
+                // Share Button
                 Button(action: {
                     activityItems = [historyItem.code]
                     selectedHistoryItem = historyItem
@@ -1282,16 +1280,13 @@ struct HistoryItemView: View {
             Button(action: {
                 activityItems = [historyItem.code]
                 selectedHistoryItem = historyItem
-                isShareSheetReady = true 
+                isShareSheetReady = true
             }) {
                 Label("Share", systemImage: "square.and.arrow.up")
             }
             
             Button(action: {
-                if let url = URL(string: historyItem.code),
-                   UIApplication.shared.canOpenURL(url) {
-                    UIApplication.shared.open(url)
-                }
+                handleRedirect(historyItem.code)
             }) {
                 Label("Open Link", systemImage: "arrow.up.right.square")
             }
@@ -1339,7 +1334,106 @@ struct HistoryItemView: View {
             appState.scannedHistory.remove(at: index)
         }
     }
+
+    
+    private func handleRedirect(_ code: String) {
+        if code.lowercased().hasPrefix("upi://pay") {
+           
+            handleUPIQRCode(code)
+        } else if let url = URL(string: code), UIApplication.shared.canOpenURL(url) {
+            
+            UIApplication.shared.open(url)
+        } else {
+            
+            let searchURLString = "https://www.google.com/search?q=\(code.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
+            if let searchURL = URL(string: searchURLString) {
+                UIApplication.shared.open(searchURL)
+            } else {
+                print("Failed to construct search URL for barcode: \(code)")
+            }
+        }
+    }
+
+  
+    private func handleUPIQRCode(_ upiCode: String) {
+        guard let components = URLComponents(string: upiCode),
+              let queryItems = components.queryItems else {
+            presentError("Invalid UPI QR code format")
+            return
+        }
+
+       
+        var mobikwikComponents = URLComponents()
+        mobikwikComponents.scheme = "mobikwik"
+        mobikwikComponents.host = "pay"
+
+       
+        var mobikwikQueryItems: [URLQueryItem] = []
+        for item in queryItems {
+            mobikwikQueryItems.append(URLQueryItem(name: item.name, value: item.value))
+        }
+
+        
+        mobikwikQueryItems.append(URLQueryItem(name: "source", value: "upi_qr"))
+        mobikwikComponents.queryItems = mobikwikQueryItems
+
+       
+        guard let mobikwikURL = mobikwikComponents.url else {
+            presentError("Failed to create MobiKwik payment URL")
+            return
+        }
+
+        print("Opening MobiKwik URL: \(mobikwikURL.absoluteString)")
+
+        if UIApplication.shared.canOpenURL(mobikwikURL) {
+            UIApplication.shared.open(mobikwikURL) { success in
+                if !success {
+                    self.presentError("Unable to open MobiKwik payment page")
+                }
+            }
+        } else {
+            promptToInstallMobiKwik()
+        }
+    }
+
+    
+    private func promptToInstallMobiKwik() {
+        DispatchQueue.main.async {
+            let installAlert = UIAlertController(
+                title: "MobiKwik Required",
+                message: "MobiKwik app is required for UPI payments. Would you like to install it?",
+                preferredStyle: .alert
+            )
+            
+            installAlert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+               
+            })
+            
+            installAlert.addAction(UIAlertAction(title: "Install", style: .default) { _ in
+                if let appStoreURL = URL(string: "https://apps.apple.com/in/app/mobikwik-bhim-upi-wallet/id600002523") {
+                    UIApplication.shared.open(appStoreURL)
+                }
+            })
+            
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let rootViewController = windowScene.windows.first?.rootViewController {
+                rootViewController.present(installAlert, animated: true)
+            }
+        }
+    }
+
+   
+    private func presentError(_ message: String) {
+        let alert = UIAlertController(title: "Error", message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootViewController = windowScene.windows.first?.rootViewController {
+            rootViewController.present(alert, animated: true)
+        }
+    }
 }
+
 struct Preview_contentview: PreviewProvider {
     static var previews: some View {
         Group {
