@@ -917,7 +917,7 @@ struct ContentView: View {
             .ignoresSafeArea(edges: .all)
             .sheet(isPresented: $showShareSheet) {
                 let shareText = "Check out this amazing app!"
-                let shareURL = URL(string: "https://example.com")!
+                let shareURL = URL(string: "https://apps.apple.com/app/id6738846559")!
                 ShareSheet(items: [shareText, shareURL])
             }
         }
@@ -1021,7 +1021,7 @@ struct ShareView: View {
             isBackButtonVisible = true
         }) {
             let shareText = "Check out this amazing app!"
-            let shareURL = URL(string: "https://example.com")!
+            let shareURL = URL(string: "https://apps.apple.com/app/id6738846559")!
             ActivityView(activityItems: [shareText, shareURL])
         }
     }
@@ -1227,7 +1227,9 @@ struct HistoryItemView: View {
     @Environment(\.colorScheme) var colorScheme
     
     @State private var showDeleteConfirmation = false
-    
+    @State private var activityItems: [String] = []
+    @State private var isShareSheetReady = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -1250,11 +1252,11 @@ struct HistoryItemView: View {
                 }
                 .padding(.horizontal, 4)
                 
+                
                 Button(action: {
-                    shareContent = historyItem.code
-                    DispatchQueue.main.async {
-                        showShareSheet = true
-                    }
+                    activityItems = [historyItem.code]
+                    selectedHistoryItem = historyItem
+                    isShareSheetReady = true
                 }) {
                     Image(systemName: "square.and.arrow.up")
                         .font(.system(size: 20))
@@ -1271,15 +1273,16 @@ struct HistoryItemView: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(colorScheme == .dark ? Color(white: 0.2) : Color.white)
                 .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(colorScheme == .dark ? Color.white.opacity(0.2) : Color.black.opacity(0.1), lineWidth: 1)
-                    )
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(colorScheme == .dark ? Color.white.opacity(0.2) : Color.black.opacity(0.1), lineWidth: 1)
+                )
                 .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
         )
         .contextMenu {
             Button(action: {
-                shareContent = historyItem.code
-                showShareSheet = true
+                activityItems = [historyItem.code]
+                selectedHistoryItem = historyItem
+                isShareSheetReady = true 
             }) {
                 Label("Share", systemImage: "square.and.arrow.up")
             }
@@ -1307,11 +1310,21 @@ struct HistoryItemView: View {
         } message: {
             Text("Are you sure you want to delete this item?")
         }
-        .sheet(isPresented: $showShareSheet) {
-                    if let selectedHistoryItem = selectedHistoryItem {
-                        ActivityView(activityItems: [selectedHistoryItem.code])
-                    }
-                }
+        .onChange(of: isShareSheetReady) { isReady in
+            if isReady {
+                showShareSheet = true
+            }
+        }
+        .sheet(isPresented: $showShareSheet, onDismiss: {
+            showShareSheet = false
+            selectedHistoryItem = nil
+            activityItems = []
+            isShareSheetReady = false
+        }) {
+            if !activityItems.isEmpty {
+                ActivityView(activityItems: activityItems)
+            }
+        }
     }
 
     private func formattedDate(_ date: Date) -> String {
@@ -1327,7 +1340,6 @@ struct HistoryItemView: View {
         }
     }
 }
-
 struct Preview_contentview: PreviewProvider {
     static var previews: some View {
         Group {
