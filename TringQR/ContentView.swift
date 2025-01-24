@@ -820,8 +820,9 @@ struct ContentView: View {
                                         
                                         Spacer()
                                         
-                                        Text(selectedTab == 0 ? "Scan History" : "TringQR")
+                                        Text(selectedTab == 0 ? "Scan History" : "TringQR Pro")
                                             .foregroundColor(.black)
+                                            .bold()
                                             .font(.system(size: adaptiveFontSize(for: geometry)))
                                             .frame(maxWidth: .infinity, alignment: .center)
                                             .offset(x: isBackButtonVisible ? 0 : -20)

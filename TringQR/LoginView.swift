@@ -198,12 +198,12 @@ struct LoginView: View {
                         Spacer()
                         
                         VStack(spacing: isCompactDevice ? 3 : 5) {
-                            Text("TringQR")
+                            Text("TringQR Pro")
                                 .font(.system(size: isCompactDevice ? 50 : 55, weight: .bold))
                                 .foregroundColor(.white)
                             
                             Text("World's fastest QR Code scanner")
-                                .font(.system(size: isCompactDevice ? 8 : 14, weight: .bold))
+                                .font(.system(size: isCompactDevice ? 12 : 14, weight: .bold))
                                 .foregroundColor(.white)
                         }
                         

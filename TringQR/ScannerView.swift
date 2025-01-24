@@ -71,7 +71,7 @@ struct ScannerView: View {
                     Spacer()
                     
                     VStack(spacing: isCompactDevice ? 8 : 12) {
-                        Text("Scan with TringQR")
+                        Text("Scan with TringQR Pro")
                             .font(isCompactDevice ? .title2 : .title)
                             .bold()
                             .foregroundStyle(.white)
