@@ -14,8 +14,7 @@ import AVKit
 import AuthenticationServices
 import CryptoKit
 import Firebase
-
-
+import CoreLocation
 
 
 class KeyboardObserver: ObservableObject {

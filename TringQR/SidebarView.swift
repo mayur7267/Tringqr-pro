@@ -41,56 +41,77 @@ struct SidebarView: View {
     @Binding var isBackButtonVisible: Bool
     @Binding var showShareSheet: Bool
     @Binding var showLoginView: Bool
-    
+
+    @State private var isEditingName = false
+    @State private var newName = UserDefaults.standard.string(forKey: "userName") ?? "Champion" 
+
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown Version"
     }
-    
+
     var body: some View {
         GeometryReader { geometry in
             let isCompactDevice = geometry.size.height < 700
-            
+
             VStack(alignment: .leading, spacing: isCompactDevice ? 10 : 20) {
-               
                 VStack {
-                    if appState.isLoggedIn, let userName = appState.userName, !userName.isEmpty {
-                        Image("Champion")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: isCompactDevice ? 90 : 120, height: isCompactDevice ? 90 : 120)
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.purple, lineWidth: 4)
-                            )
-                            .padding(.top, isCompactDevice ? 10 : 15)
-                            .offset(y: isCompactDevice ? 25 : 35)
-                        
-                        Text("Hi \(userName)!")
-                            .font(isCompactDevice ? .callout : .headline)
-                            .foregroundColor(.black)
-                            .padding(isCompactDevice ? 30 : 50)
-                            .offset(y: isCompactDevice ? 10 : 20)
-                        
-                    } else {
-                        Image("Champion")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: isCompactDevice ? 90 : 120, height: isCompactDevice ? 90 : 120)
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.purple, lineWidth: 4)
-                            )
-                            .padding(.top, isCompactDevice ? 10 : 15)
-                            .offset(y: isCompactDevice ? 25 : 35)
-                        
-                        Text("Hi Champion!")
-                            .font(isCompactDevice ? .callout : .headline)
-                            .foregroundColor(.black)
-                            .padding(isCompactDevice ? 30 : 50)
-                            .offset(y: isCompactDevice ? 10 : 20)
+                    Image("Champion")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: isCompactDevice ? 90 : 120, height: isCompactDevice ? 90 : 120)
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(Color.purple, lineWidth: 4)
+                        )
+                        .padding(.top, isCompactDevice ? 10 : 15)
+                        .offset(y: isCompactDevice ? 25 : 35)
+
+                    HStack {
+                        if isEditingName {
+                            TextField("", text: $newName)
+                                .textFieldStyle(PlainTextFieldStyle())
+                                .font(isCompactDevice ? .callout : .headline)
+                                .foregroundColor(.black)
+                                .padding(4)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .stroke(Color.gray.opacity(0.5), lineWidth: 1)
+                                )
+                                .frame(width: 150)
+
+                            Button(action: {
+                                appState.setUserName(newName)
+                                UserDefaults.standard.setValue(newName, forKey: "userName")
+                                isEditingName = false
+                            }) {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.green)
+                            }
+
+                            Button(action: {
+                                isEditingName = false
+                            }) {
+                                Image(systemName: "xmark")
+                                    .foregroundColor(.red)
+                            }
+                        } else {
+                            Text("Hi \(newName)!")
+                                .font(isCompactDevice ? .callout : .headline)
+                                .foregroundColor(.black)
+
+                            Button {
+                                isEditingName = true
+                            } label: {
+                                Image(systemName: "pencil")
+                                    .foregroundColor(.blue)
+                                    .imageScale(.small)
+                            }
+                        }
                     }
+
+                    .padding(isCompactDevice ? 30 : 50)
+                    .offset(y: isCompactDevice ? 10 : 20)
                 }
                 .frame(maxWidth: .infinity)
                 .background(Color.yellow)

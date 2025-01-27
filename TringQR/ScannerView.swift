@@ -446,48 +446,76 @@ struct ScannerView: View {
         }
 
        
-        var mobikwikComponents = URLComponents()
-        mobikwikComponents.scheme = "mobikwik"
-        mobikwikComponents.host = "pay"
+        var payeeVPA: String?
+        var payeeName: String?
+        var amount: String?
+        var transactionNote: String?
 
-        
-        var mobikwikQueryItems: [URLQueryItem] = []
         for item in queryItems {
-            mobikwikQueryItems.append(URLQueryItem(name: item.name, value: item.value))
+            switch item.name.lowercased() {
+            case "pa":
+                payeeVPA = item.value
+            case "pn":
+                payeeName = item.value
+            case "am":
+                amount = item.value
+            case "tn":
+                transactionNote = item.value
+            default:
+                break
+            }
         }
 
         
-        mobikwikQueryItems.append(URLQueryItem(name: "source", value: "upi_qr"))
-        mobikwikComponents.queryItems = mobikwikQueryItems
-
-        
-        guard let mobikwikURL = mobikwikComponents.url else {
-            presentError("Failed to create MobiKwik payment URL")
+        guard let payeeVPA = payeeVPA else {
+            presentError("Payee VPA is missing in the UPI QR code")
             return
         }
 
-        print("Opening MobiKwik URL: \(mobikwikURL.absoluteString)")
-
-        if UIApplication.shared.canOpenURL(mobikwikURL) {
-            UIApplication.shared.open(mobikwikURL) { success in
-                if !success {
-                    self.presentError("Unable to open MobiKwik payment page")
+        
+        let credUPIURLString = "cred://pay/upi?vpa=\(payeeVPA)&name=\(payeeName ?? "")&amount=\(amount ?? "")&note=\(transactionNote ?? "")"
+        if let credUPIURL = URL(string: credUPIURLString) {
+            if UIApplication.shared.canOpenURL(credUPIURL) {
+                UIApplication.shared.open(credUPIURL) { success in
+                    if !success {
+                        
+                        self.openCREDAppDirectly()
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        self.restartScanning()
+                    }
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    self.restartScanning()
-                }
+                return
             }
-        } else {
-            promptToInstallMobiKwik()
+        }
+
+        
+        openCREDAppDirectly()
+    }
+
+    private func openCREDAppDirectly() {
+        if let credURL = URL(string: "cred://") {
+            if UIApplication.shared.canOpenURL(credURL) {
+                UIApplication.shared.open(credURL) { success in
+                    if !success {
+                        self.presentError("Unable to open CRED app")
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        self.restartScanning()
+                    }
+                }
+            } else {
+               
+                promptToInstallCRED()
+            }
         }
     }
 
-   
-    private func promptToInstallMobiKwik() {
+    private func promptToInstallCRED() {
         DispatchQueue.main.async {
             let installAlert = UIAlertController(
-                title: "MobiKwik Required",
-                message: "MobiKwik app is required for UPI payments. Would you like to install it?",
+                title: "CRED Required",
+                message: "CRED app is required for UPI payments. Would you like to install it?",
                 preferredStyle: .alert
             )
             
@@ -496,7 +524,7 @@ struct ScannerView: View {
             })
             
             installAlert.addAction(UIAlertAction(title: "Install", style: .default) { _ in
-                if let appStoreURL = URL(string: "https://apps.apple.com/in/app/mobikwik-bhim-upi-wallet/id600002523") {
+                if let appStoreURL = URL(string: "https://apps.apple.com/in/app/cred-credit-cards-payments/id1428580080") {
                     UIApplication.shared.open(appStoreURL) { _ in
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                             self.restartScanning()

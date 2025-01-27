@@ -190,6 +190,9 @@ struct CreateQRView: View {
             }
             .padding(.top)
         }
+        .onTapGesture {
+            isTextFieldFocused = false
+                }
     }
 
    
