@@ -57,40 +57,6 @@ class APIManager {
         }
         return dict
     }
-
-   
-    func sendIDTokenToBackend(idToken: String, completion: @escaping (Result<Bool, Error>) -> Void) {
-        guard let url = URL(string: "\(baseURL)/v1/qr-pro/validateToken") else {
-            completion(.failure(NSError(domain: "Invalid URL", code: -1, userInfo: nil)))
-            return
-        }
-
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "POST"
-        urlRequest.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        urlRequest.addValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
-
-        URLSession.shared.dataTask(with: urlRequest) { data, response, error in
-            if let error = error {
-                completion(.failure(error))
-                return
-            }
-
-            guard let data = data else {
-                completion(.failure(NSError(domain: "No Data", code: -1, userInfo: nil)))
-                return
-            }
-
-            do {
-                let responseDict = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
-                let success = responseDict?["success"] as? Bool ?? false
-                completion(.success(success))
-            } catch {
-                completion(.failure(error))
-            }
-        }.resume()
-    }
-
     
     func registerUser(request: RegisterUserRequest, token: String, completion: @escaping (Result<RegisterUserResponse, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)/v1/qr-pro/users") else {

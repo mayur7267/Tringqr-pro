@@ -43,7 +43,7 @@ struct SidebarView: View {
     @Binding var showLoginView: Bool
 
     @State private var isEditingName = false
-    @State private var newName = UserDefaults.standard.string(forKey: "userName") ?? "Champion" 
+    @State private var newName = ""
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown Version"
@@ -81,9 +81,12 @@ struct SidebarView: View {
                                 .frame(width: 150)
 
                             Button(action: {
-                                appState.setUserName(newName)
-                                UserDefaults.standard.setValue(newName, forKey: "userName")
-                                isEditingName = false
+                                appState.updateUserName(newName) { success in
+                                    if success {
+                                        appState.setUserName(newName)
+                                        isEditingName = false
+                                    }
+                                }
                             }) {
                                 Image(systemName: "checkmark")
                                     .foregroundColor(.green)
@@ -96,12 +99,13 @@ struct SidebarView: View {
                                     .foregroundColor(.red)
                             }
                         } else {
-                            Text("Hi \(newName)!")
+                            Text("Hi \(appState.userName ?? "Champion")!")
                                 .font(isCompactDevice ? .callout : .headline)
                                 .foregroundColor(.black)
 
                             Button {
                                 isEditingName = true
+                                newName = appState.userName ?? ""
                             } label: {
                                 Image(systemName: "pencil")
                                     .foregroundColor(.blue)
@@ -191,6 +195,13 @@ struct SidebarView: View {
             .frame(maxWidth: .infinity)
             .background(Color.white)
         }
+        .onAppear {
+                    appState.fetchUserName { userName in
+                        if let userName = userName {
+                            appState.setUserName(userName)
+                        }
+                    }
+                }
     }
 }
 
@@ -200,4 +211,3 @@ struct SidebarView: View {
     SidebarView(isSidebarVisible: .constant(true), selectedTab: .constant(0), isBackButtonVisible: .constant(false), showShareSheet: .constant(false), showLoginView: .constant(false))
         .environmentObject(AppState())
 }
-

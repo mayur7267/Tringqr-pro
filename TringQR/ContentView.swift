@@ -5,6 +5,8 @@
 //  Created by Mayur on 30/11/24.
 //
 
+
+
 import SwiftUI
 import UIKit
 import Combine
@@ -65,7 +67,7 @@ struct QRHistoryItem: Identifiable, Codable {
 struct ScannedHistoryItem: Identifiable, Codable {
     let id: UUID
     let code: String
-    let date: Date 
+    let date: Date
     let eventName: String?
     let event: String?
     let timestamp: String?
@@ -658,6 +660,144 @@ class AppState: ObservableObject {
             }.resume()
         }
     }
+    func updateUserName(_ name: String, completion: @escaping (Bool) -> Void) {
+            guard let currentUser = Auth.auth().currentUser else {
+                print("No user is signed in.")
+                completion(false)
+                return
+            }
+
+            currentUser.getIDTokenForcingRefresh(true) { idToken, error in
+                if let error = error {
+                    print("Failed to refresh ID token: \(error.localizedDescription)")
+                    completion(false)
+                    return
+                }
+
+                guard let idToken = idToken else {
+                    print("Refreshed ID token is nil.")
+                    completion(false)
+                    return
+                }
+
+                guard let url = URL(string: "\(Bundle.baseURL)/v1/qr-pro/users") else {
+                    print("Invalid URL")
+                    completion(false)
+                    return
+                }
+
+                let payload: [String: Any] = [
+                    "display_name": name
+                ]
+
+                var request = URLRequest(url: url)
+                request.httpMethod = "PUT"
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
+
+                do {
+                    request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [])
+                } catch {
+                    print("Error encoding JSON: \(error)")
+                    completion(false)
+                    return
+                }
+
+                URLSession.shared.dataTask(with: request) { data, response, error in
+                    if let error = error {
+                        print("Error sending data to backend: \(error.localizedDescription)")
+                        completion(false)
+                        return
+                    }
+
+                    guard let httpResponse = response as? HTTPURLResponse else {
+                        print("Invalid response type")
+                        completion(false)
+                        return
+                    }
+
+                    print("Backend response status code: \(httpResponse.statusCode)")
+
+                    if let data = data, let responseString = String(data: data, encoding: .utf8) {
+                        print("Backend response data: \(responseString)")
+                    }
+
+                    completion(httpResponse.statusCode == 200)
+                }.resume()
+            }
+        }
+
+        func fetchUserName(completion: @escaping (String?) -> Void) {
+            guard let currentUser = Auth.auth().currentUser else {
+                print("No user is signed in.")
+                completion(nil)
+                return
+            }
+
+            currentUser.getIDTokenForcingRefresh(true) { idToken, error in
+                if let error = error {
+                    print("Failed to refresh ID token: \(error.localizedDescription)")
+                    completion(nil)
+                    return
+                }
+
+                guard let idToken = idToken else {
+                    print("Refreshed ID token is nil.")
+                    completion(nil)
+                    return
+                }
+
+                guard let url = URL(string: "\(Bundle.baseURL)/v1/qr-pro/users") else {
+                    print("Invalid URL")
+                    completion(nil)
+                    return
+                }
+
+                var request = URLRequest(url: url)
+                request.httpMethod = "GET"
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
+
+                URLSession.shared.dataTask(with: request) { data, response, error in
+                    if let error = error {
+                        print("Network error fetching user name: \(error.localizedDescription)")
+                        completion(nil)
+                        return
+                    }
+
+                    guard let httpResponse = response as? HTTPURLResponse else {
+                        print("Invalid response type")
+                        completion(nil)
+                        return
+                    }
+
+                    print("User name fetch response code: \(httpResponse.statusCode)")
+
+                    guard let data = data else {
+                        print("No data received for user name")
+                        completion(nil)
+                        return
+                    }
+
+                    if let responseString = String(data: data, encoding: .utf8) {
+                        print("Raw user name response: \(responseString)")
+                    }
+
+                    do {
+                        if let jsonDict = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                           let userName = jsonDict["display_name"] as? String {
+                            completion(userName)
+                        } else {
+                            print("Failed to parse user name JSON")
+                            completion(nil)
+                        }
+                    } catch {
+                        print("User name JSON parsing error: \(error)")
+                        completion(nil)
+                    }
+                }.resume()
+            }
+        }
     private func generateQRImage(from content: String) -> UIImage? {
             let context = CIContext()
             let filter = CIFilter.qrCodeGenerator()
@@ -706,8 +846,11 @@ class AppState: ObservableObject {
     }
 
     func setUserName(_ name: String) {
-        userName = name
+        DispatchQueue.main.async {
+            self.userName = name
+        }
     }
+
 
     func setPhoneNumber(_ number: String?) {
         phoneNumber = number
@@ -737,6 +880,7 @@ class AppState: ObservableObject {
         }
     }
 }
+
 
 
 struct ContentView: View {
@@ -969,7 +1113,7 @@ private func adaptiveHorizontalPadding(for geometry: GeometryProxy) -> CGFloat {
     }
 private func adaptiveVerticalPadding(for geometry: GeometryProxy) -> CGFloat {
     let screenHeight = geometry.size.height
-    let device = UIDevice.current
+    _ = UIDevice.current
     let hasNotch = UIApplication.shared.windows.first?.safeAreaInsets.top ?? 0 > 20
     
     if screenHeight <= 667 { // iPhone SE, 7, 8
