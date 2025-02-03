@@ -10,6 +10,7 @@ import AVFoundation
 import PhotosUI
 import UIKit
 import Firebase
+import FirebaseAnalytics
 
 struct ScannerView: View {
     @State private var isScanning: Bool = true

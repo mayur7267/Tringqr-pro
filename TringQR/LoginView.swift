@@ -618,7 +618,7 @@ struct LoginView: View {
                 let registerRequest = RegisterUserRequest(
                     type: "User",
                     email: "support@tringbox.com",
-                    display_name: displayName ?? "Tringbox",
+                    display_name: displayName ?? "Champion",
                     phone_number: formattedPhoneNumber,
                     notificationId: fcmToken,
                     deviceId: deviceId
@@ -709,7 +709,7 @@ struct PrivacyPolicyView: View {
         ZStack {
             Color(red: 220 / 255, green: 220 / 255, blue: 220 / 255)
                 .edgesIgnoringSafeArea(.all)
-            WebView(urlString: "https://cdn-tringbox-photos.s3.ap-south-1.amazonaws.com/privacy-policy.html")
+            WebView(urlString: "https://cdn-tringbox-photos.s3.ap-south-1.amazonaws.com/tringqr-pro/privacy-policy.html")
                 .edgesIgnoringSafeArea(.all)
         }
         .onAppear {

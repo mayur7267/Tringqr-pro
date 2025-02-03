@@ -870,8 +870,6 @@ class AppState: ObservableObject {
            KeychainWrapper.standard.removeObject(forKey: "idToken")
     }
 
-
-
     func toggleSidebar() {
         DispatchQueue.main.async {
             withAnimation(.easeInOut) {
@@ -880,8 +878,6 @@ class AppState: ObservableObject {
         }
     }
 }
-
-
 
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
@@ -1181,7 +1177,7 @@ struct HelpView: View {
         ZStack {
             Color(red: 220 / 255, green: 220 / 255, blue: 220 / 255)
                 .edgesIgnoringSafeArea(.all)
-            WebView(urlString: "https://cdn-tringbox-photos.s3.ap-south-1.amazonaws.com/about/index.html")
+            WebView(urlString: "https://cdn-tringbox-photos.s3.ap-south-1.amazonaws.com/tringqr-pro/about.html")
                 .edgesIgnoringSafeArea(.all)
         }
         .onAppear {
