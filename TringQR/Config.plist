@@ -1,18 +1,1 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>BaseURL</key>
-	<string>https://api.tringbox.com</string>
-	<key>RegisterUserURL</key>
-	<string>https://core-api-619357594029.asia-south1.run.app/v1/qr-pro/users</string>
-	<key>BearerToken</key>
-	<string>actual_bearer_token_string</string>
-	<key>IDToken</key>
-	<string>id_token_</string>
-	<key>NotificationID</key>
-	<string>802a6eea-1ae2-4254-85fa-fd4b877c2dc3</string>
-	<key>DeviceID</key>
-	<string>123e4567-e89b-12d3-a456-426614174000</string>
-</dict>
-</plist>
+
