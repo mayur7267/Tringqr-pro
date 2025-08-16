@@ -1,146 +1,132 @@
-// //
-// //  TringQRApp.swift
-// //  TringQR
-// //
-// //  Created by Mayur on 30/11/24.
-// //
-// import SwiftUI
-// import FirebaseCore
-// import FirebaseAuth
-// import FirebaseMessaging
-// import UserNotifications
-// import FirebaseCrashlytics
-// import GoogleSignIn
-// import AppTrackingTransparency
-// import FirebaseAuth
-// import UIKit
-// import Firebase
-// import FirebaseAnalytics
+//
+//  TringQRApp.swift
+//  TringQR
+//
+//  Created by Mayur on 30/11/24.
+//
+import SwiftUI
+import FirebaseCore
+import FirebaseAuth
+import FirebaseMessaging
+import UserNotifications
+import FirebaseCrashlytics
+import GoogleSignIn
+import AppTrackingTransparency
+import FirebaseAuth
+import UIKit
+import Firebase
+import FirebaseAnalytics
 
-// class AuthUIDelegateHandler: NSObject, AuthUIDelegate {
-//     func present(_ viewControllerToPresent: UIViewController, animated flag: Bool, completion: (() -> Void)? = nil) {
+class AuthUIDelegateHandler: NSObject, AuthUIDelegate {
+    func present(_ viewControllerToPresent: UIViewController, animated flag: Bool, completion: (() -> Void)? = nil) {
         
-//         UIApplication.shared.windows.first?.rootViewController?.present(viewControllerToPresent, animated: flag, completion: completion)
-//     }
+        UIApplication.shared.windows.first?.rootViewController?.present(viewControllerToPresent, animated: flag, completion: completion)
+    }
 
-//     func dismiss(animated flag: Bool, completion: (() -> Void)? = nil) {
+    func dismiss(animated flag: Bool, completion: (() -> Void)? = nil) {
         
-//         UIApplication.shared.windows.first?.rootViewController?.dismiss(animated: flag, completion: completion)
-//     }
-// }
-// class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
-//     func application(
-//         _ application: UIApplication,
-//         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
-//     ) -> Bool {
+        UIApplication.shared.windows.first?.rootViewController?.dismiss(animated: flag, completion: completion)
+    }
+}
+class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
         
-//         if let baseURL = Bundle.main.object(forInfoDictionaryKey: "BASE_URL") as? String {
-//                     print("Base URL: \(baseURL)")
-//                 } else {
-//                     print("Base URL not found in Info.plist")
-//                 }
+        if let baseURL = Bundle.main.object(forInfoDictionaryKey: "BASE_URL") as? String {
+                    print("Base URL: \(baseURL)")
+                } else {
+                    print("Base URL not found in Info.plist")
+                }
         
-//         FirebaseApp.configure()
-//         FirebaseConfiguration.shared.setLoggerLevel(.debug)
+        FirebaseApp.configure()
+        FirebaseConfiguration.shared.setLoggerLevel(.debug)
         
-//         Analytics.setAnalyticsCollectionEnabled(true)
+        Analytics.setAnalyticsCollectionEnabled(true)
 
-//         Crashlytics.crashlytics()
+        Crashlytics.crashlytics()
         
 
 
-//         Messaging.messaging().delegate = self
+        Messaging.messaging().delegate = self
 
-//         GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: FirebaseApp.app()?.options.clientID ?? "")
+        GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: FirebaseApp.app()?.options.clientID ?? "")
 
         
        
 
-//         return true
-//     }
+        return true
+    }
 
     
    
 
-//     private func requestNotificationPermissions(_ application: UIApplication) {
-//         UNUserNotificationCenter.current().delegate = self
-//         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-//             DispatchQueue.main.async {
-//                 if let error = error {
-//                     print("Failed to request notification permissions: \(error.localizedDescription)")
-//                 } else {
-//                     UserDefaults.standard.set(granted, forKey: "notificationsEnabled")
-//                     print("Notification permissions granted: \(granted)")
-//                 }
-//             }
-//         }
-//         application.registerForRemoteNotifications()
-//     }
+    private func requestNotificationPermissions(_ application: UIApplication) {
+        UNUserNotificationCenter.current().delegate = self
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("Failed to request notification permissions: \(error.localizedDescription)")
+                } else {
+                    UserDefaults.standard.set(granted, forKey: "notificationsEnabled")
+                    print("Notification permissions granted: \(granted)")
+                }
+            }
+        }
+        application.registerForRemoteNotifications()
+    }
 
-//     func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any],
-//                      fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
-//         if Auth.auth().canHandleNotification(userInfo) {
-//             completionHandler(.noData)
-//             return
-//         }
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+                     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        if Auth.auth().canHandleNotification(userInfo) {
+            completionHandler(.noData)
+            return
+        }
         
-//         print("Remote notification received: \(userInfo)")
-//         completionHandler(.newData)
-//     }
+        print("Remote notification received: \(userInfo)")
+        completionHandler(.newData)
+    }
 
-//     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-//         let tokenParts = deviceToken.map { String(format: "%02.2hhx", $0) }
-//         let token = tokenParts.joined()
-//         print("Device Token: \(token)")
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        let tokenParts = deviceToken.map { String(format: "%02.2hhx", $0) }
+        let token = tokenParts.joined()
+        print("Device Token: \(token)")
 
-//         Messaging.messaging().apnsToken = deviceToken
+        Messaging.messaging().apnsToken = deviceToken
 
-//         #if DEBUG
-//         Auth.auth().setAPNSToken(deviceToken, type: .sandbox)
-//         #else
-//         Auth.auth().setAPNSToken(deviceToken, type: .prod)
-//         #endif
-//     }
+        #if DEBUG
+        Auth.auth().setAPNSToken(deviceToken, type: .sandbox)
+        #else
+        Auth.auth().setAPNSToken(deviceToken, type: .prod)
+        #endif
+    }
 
-//     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
-//         print("Failed to register for remote notifications: \(error.localizedDescription)")
-//     }
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        print("Failed to register for remote notifications: \(error.localizedDescription)")
+    }
 
-//     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
-//         guard let fcmToken = fcmToken else {
-//             print("Failed to receive FCM token")
-//             return
-//         }
-//         print("FCM Token: \(fcmToken)")
-//     }
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        guard let fcmToken = fcmToken else {
+            print("Failed to receive FCM token")
+            return
+        }
+        print("FCM Token: \(fcmToken)")
+    }
 
-//     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-//         guard let scheme = url.scheme, let host = url.host else { return false }
-//         if scheme == "app-1-1044910506169-ios-073a0122277255931f1b68" {
-//             print("URL Host: \(host)")
-//             if let urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: true),
-//                let queryItems = urlComponents.queryItems {
-//                 for item in queryItems {
-//                     print("\(item.name): \(item.value ?? "")")
-//                 }
-//             }
-//             return true
-//         }
-//         return false
-//     }
-// }
-// @main
-// struct TringQRApp: App {
-//     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-//     @StateObject private var appState = AppState()
+  
+@main
+struct TringQRApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    @StateObject private var appState = AppState()
 
-//     var body: some Scene {
-//         WindowGroup {
-//             NavigationView {
+    var body: some Scene {
+        WindowGroup {
+            NavigationView {
 
-//                 SplashView()
-//                     .environmentObject(appState)
-//             }
-//         }
-//     }
-// }
+                SplashView()
+                    .environmentObject(appState)
+            }
+        }
+    }
+}
